@@ -215,32 +215,136 @@ export const AppProvider = ({ children }) => {
     return initialStudentsDB[0];
   });
   
-  const [lessons, setLessons] = useState(initialLessons);
+  const [lessons, setLessonsState] = useState(() => {
+    const saved = localStorage.getItem('bashmohandis_lessons');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return initialLessons;
+  });
+
+  const setLessons = (updater) => {
+    setLessonsState(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      localStorage.setItem('bashmohandis_lessons', JSON.stringify(next));
+      return next;
+    });
+  };
+
   const [quizzes, setQuizzes] = useState(initialQuizzes);
-  const [couponsDB, setCouponsDB] = useState(initialCouponsDB);
-  const [paymentRequestsDB, setPaymentRequestsDB] = useState(initialPaymentRequests);
-  const [examHistory, setExamHistory] = useState([]);
-  const [examAttempts, setExamAttempts] = useState({}); // { quizId: { ...resultRecord, userAnswers, questions } }
+
+  const [couponsDB, setCouponsDBState] = useState(() => {
+    const saved = localStorage.getItem('bashmohandis_couponsDB');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return initialCouponsDB;
+  });
+
+  const setCouponsDB = (updater) => {
+    setCouponsDBState(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      localStorage.setItem('bashmohandis_couponsDB', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const [paymentRequestsDB, setPaymentRequestsState] = useState(() => {
+    const saved = localStorage.getItem('bashmohandis_paymentRequests');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return initialPaymentRequests;
+  });
+
+  const setPaymentRequestsDB = (updater) => {
+    setPaymentRequestsState(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      localStorage.setItem('bashmohandis_paymentRequests', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const [examHistory, setExamHistoryState] = useState(() => {
+    const saved = localStorage.getItem('bashmohandis_examHistory');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [];
+  });
+
+  const setExamHistory = (updater) => {
+    setExamHistoryState(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      localStorage.setItem('bashmohandis_examHistory', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const [examAttempts, setExamAttemptsState] = useState(() => {
+    const saved = localStorage.getItem('bashmohandis_examAttempts');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return {};
+  });
+
+  const setExamAttempts = (updater) => {
+    setExamAttemptsState(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      localStorage.setItem('bashmohandis_examAttempts', JSON.stringify(next));
+      return next;
+    });
+  };
+
   const [whatsappLogs, setWhatsappLogs] = useState([]);
   const [smsLogs, setSmsLogs] = useState([]);
 
   // Video Q&A State
-  const [videoQuestions, setVideoQuestions] = useState([
-    {
-      id: 'q_101',
-      lessonId: 'les_demo_1',
-      studentName: 'أحمد محمود العبد',
-      studentPhone: '01012345678',
-      questionText: 'يا باشمهندس ازاي أفرق بين List و Tuple في لغة Python؟',
-      replyText: 'أهلاً يا أحمد! الـ List قابلة للتعديل (mutable)، بينما الـ Tuple ثابته ولا يمكن تعديل عناصرها بعد إنشائها.',
-      repliedAt: 'منذ ساعتين',
-      status: 'answered'
+  const [videoQuestions, setVideoQuestionsState] = useState(() => {
+    const saved = localStorage.getItem('bashmohandis_videoQuestions');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
     }
-  ]);
+    return [
+      {
+        id: 'q_101',
+        lessonId: 'les_demo_1',
+        studentName: 'أحمد محمود العبد',
+        studentPhone: '01012345678',
+        questionText: 'يا باشمهندس ازاي أفرق بين List و Tuple في لغة Python؟',
+        replyText: 'أهلاً يا أحمد! الـ List قابلة للتعديل (mutable)، بينما الـ Tuple ثابته ولا يمكن تعديل عناصرها بعد إنشائها.',
+        repliedAt: 'منذ ساعتين',
+        status: 'answered'
+      }
+    ];
+  });
 
-  const [notifications, setNotifications] = useState([
-    { id: 'n1', title: 'مرحباً بك في منصة الباشمهندس للبرمجة! 💻', body: 'التطبيق جاهز ومحمي بالكامل 100%.', time: 'الآن', unread: true }
-  ]);
+  const setVideoQuestions = (updater) => {
+    setVideoQuestionsState(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      localStorage.setItem('bashmohandis_videoQuestions', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const [notifications, setNotificationsState] = useState(() => {
+    const saved = localStorage.getItem('bashmohandis_notifications');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return [
+      { id: 'n1', title: 'مرحباً بك في منصة الباشمهندس للبرمجة! 💻', body: 'التطبيق جاهز ومحمي بالكامل 100%.', time: 'الآن', unread: true }
+    ];
+  });
+
+  const setNotifications = (updater) => {
+    setNotificationsState(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      localStorage.setItem('bashmohandis_notifications', JSON.stringify(next));
+      return next;
+    });
+  };
 
   const [activeWhatsAppModal, setActiveWhatsAppModal] = useState(null);
 
@@ -459,7 +563,7 @@ export const AppProvider = ({ children }) => {
       return st;
     }));
 
-    setPaymentRequestsDB(prev => [requestId].includes(r => r.id === requestId ? { ...r, status: 'approved' } : r));
+    setPaymentRequestsDB(prev => prev.map(r => r.id === requestId ? { ...r, status: 'approved' } : r));
 
     triggerWhatsAppSend({
       isFullParentReport: false,
