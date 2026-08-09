@@ -459,7 +459,7 @@ export const AppProvider = ({ children }) => {
       return st;
     }));
 
-    setPaymentRequestsDB(prev => prev.map(r => r.id === requestId ? { ...r, status: 'approved' } : r));
+    setPaymentRequestsDB(prev => [requestId].includes(r => r.id === requestId ? { ...r, status: 'approved' } : r));
 
     triggerWhatsAppSend({
       isFullParentReport: false,
