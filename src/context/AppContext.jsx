@@ -178,7 +178,27 @@ export const AppProvider = ({ children }) => {
     return localStorage.getItem('bashmohandis_auth') === 'true';
   });
 
-  const [studentsDB, setStudentsDB] = useState(initialStudentsDB);
+  // Teacher accounts for quick login from student login page
+  const TEACHER_ACCOUNTS = [
+    { email: 'nour@bashmohandis.com', phone: '01002169889', password: 'nour2026', identity: 'eng_nour', name: 'مهندس نور' },
+    { email: 'sayed@bashmohandis.com', phone: '01094273996', password: 'sayed2026', identity: 'mr_sayed', name: 'مستر سيد' }
+  ];
+
+  const [studentsDB, setStudentsDBState] = useState(() => {
+    const saved = localStorage.getItem('bashmohandis_studentsDB');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return initialStudentsDB;
+  });
+
+  const setStudentsDB = (updater) => {
+    setStudentsDBState(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      localStorage.setItem('bashmohandis_studentsDB', JSON.stringify(next));
+      return next;
+    });
+  };
   
   const [currentStudent, setCurrentStudentState] = useState(() => {
     const saved = localStorage.getItem('bashmohandis_student');
@@ -341,7 +361,32 @@ export const AppProvider = ({ children }) => {
       return { success: false, message: 'يرجى إدخال البريد الإلكتروني أو رقم الموبايل وكلمة المرور.' };
     }
 
-    const foundStudent = studentsDB.find(s => s.phone === identifier || s.email === identifier);
+    // Helper to normalize phone numbers (removes spaces, replaces +20 or 20 prefix with 0)
+    const normalizePhone = (p) => {
+      if (!p) return '';
+      const clean = p.replace(/\s+/g, '');
+      if (clean.startsWith('+20')) return '0' + clean.substring(3);
+      if (clean.startsWith('20') && clean.length > 10) return '0' + clean.substring(2);
+      if (clean.startsWith('+2')) return '0' + clean.substring(2);
+      return clean;
+    };
+
+    const cleanIdentifier = normalizePhone(identifier);
+
+    // Check teacher accounts first
+    const foundTeacher = TEACHER_ACCOUNTS.find(
+      t => (t.email.toLowerCase() === identifier.toLowerCase() || normalizePhone(t.phone) === cleanIdentifier) && t.password === pass
+    );
+    if (foundTeacher) {
+      setUserRole('admin');
+      setAdminIdentity(foundTeacher.identity);
+      setIsAuthenticated(true);
+      return { success: true, message: `أهلاً وسهلاً يا ${foundTeacher.name}! تم تسجيل الدخول.` };
+    }
+
+    const foundStudent = studentsDB.find(
+      s => normalizePhone(s.phone) === cleanIdentifier || s.email.toLowerCase() === identifier.toLowerCase()
+    );
     if (!foundStudent) {
       return { success: false, message: 'البريد أو رقم الموبايل غير مسجل! يرجى إنشاء حساب جديد أولاً.' };
     }
