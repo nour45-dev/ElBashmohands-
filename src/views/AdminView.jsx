@@ -1,0 +1,1582 @@
+import React, { useState, useRef } from 'react';
+import { useApp } from '../context/AppContext';
+import { 
+  Users, 
+  Video, 
+  CreditCard, 
+  MessageSquare, 
+  PlusCircle, 
+  Search, 
+  CheckCircle2, 
+  TrendingUp, 
+  ShieldCheck,
+  Upload,
+  Link as LinkIcon,
+  FileText,
+  AlertCircle,
+  Ticket,
+  Edit,
+  Trash2,
+  Send,
+  DollarSign,
+  Eye,
+  Award,
+  HelpCircle,
+  MessageCircle,
+  Plus,
+  Clock,
+  XCircle,
+  Check,
+  Image as ImageIcon,
+  X,
+  BarChart2,
+  Bell
+} from 'lucide-react';
+
+export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
+  const { 
+    studentsDB,
+    lessons, 
+    couponsDB,
+    paymentRequestsDB,
+    videoQuestions,
+    whatsappLogs,
+    examHistory,
+    notifications,
+    addNotification,
+    adminAddLesson,
+    adminDeleteLesson,
+    adminUpdateLesson,
+    adminCreateCoupon,
+    adminDeleteCoupon,
+    adminReplyToQuestion,
+    adminApprovePayment,
+    adminRejectPayment,
+    adminUpdateStudent,
+    adminDeleteStudent,
+    triggerWhatsAppSend,
+    triggerSmsSend,
+    broadcastNewLesson,
+    adminIdentity,
+    setActiveWhatsAppModal 
+  } = useApp();
+
+  const isSayedAdmin = adminIdentity === 'mr_sayed';
+  const defaultAdminSubject = isSayedAdmin ? 'اللغة العربية' : 'برمجة وعلوم الحاسب';
+
+  // Broadcast Modal State
+  const [broadcastModal, setBroadcastModal] = useState(null); // { lessonTitle, links: [{studentName, phone, whatsappUrl}] }
+  const [smsModal, setSmsModal] = useState(null); // { phone, msgText, whatsappFallbackUrl }
+
+  const [adminTab, setAdminTab] = useState('videos');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Student Performance Modal State
+  const [studentPerfModal, setStudentPerfModal] = useState(null); // student object
+
+  // Proof Image Preview Modal State
+  const [previewProofImage, setPreviewProofImage] = useState(null);
+
+  // Edit Student Modal State
+  const [editingStudent, setEditingStudent] = useState(null);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editParentPhone, setEditParentPhone] = useState('');
+  const [editGrade, setEditGrade] = useState('3sec');
+  const [editBalance, setEditBalance] = useState(0);
+  const [editPassword, setEditPassword] = useState('');
+
+  // Edit Lesson Modal State
+  const [editingLessonModal, setEditingLessonModal] = useState(null);
+  const [editLessonTitle, setEditLessonTitle] = useState('');
+  const [editLessonPrice, setEditLessonPrice] = useState(25);
+  const [editLessonGrade, setEditLessonGrade] = useState('3sec');
+  const [editLessonDesc, setEditLessonDesc] = useState('');
+
+  // Refs for local file uploads
+  const videoInputRef = useRef(null);
+  const docInputRef = useRef(null);
+  const thumbInputRef = useRef(null);
+
+  // Video Form State
+  const [newLessonTitle, setNewLessonTitle] = useState('');
+  const [newLessonSubject, setNewLessonSubject] = useState(defaultAdminSubject);
+  const [newLessonGrade, setNewLessonGrade] = useState('3sec');
+  const [newLessonPrice, setNewLessonPrice] = useState(25);
+  const [newLessonDesc, setNewLessonDesc] = useState('');
+  
+  const [videoUploadMode, setVideoUploadMode] = useState('file'); 
+  const [videoFile, setVideoFile] = useState(null);
+  const [videoUrlInput, setVideoUrlInput] = useState('');
+
+  // Thumbnail State (Custom upload OR Auto-captured from video)
+  const [customThumbFile, setCustomThumbFile] = useState(null);
+  const [customThumbUrlData, setCustomThumbUrlData] = useState(null);
+  const [autoVideoFrameUrl, setAutoVideoFrameUrl] = useState(null);
+
+  // Attachment Choice: 'pdf', 'word', 'quiz'
+  const [attachmentType, setAttachmentType] = useState('pdf');
+  const [attachmentFile, setAttachmentFile] = useState(null);
+
+  // Multi-Question Quiz Builder State
+  const [quizQuestionsList, setQuizQuestionsList] = useState([
+    {
+      id: 1,
+      question: 'ما هي أسرع لغة برمجة لتطوير تطبيقات الويب الحديثة؟',
+      options: ['JavaScript / Node.js', 'Python', 'C++', 'Java'],
+      correctIndex: 0
+    }
+  ]);
+  const [newQTitle, setNewQTitle] = useState('');
+  const [newQOptA, setNewQOptA] = useState('');
+  const [newQOptB, setNewQOptB] = useState('');
+  const [newQOptC, setNewQOptC] = useState('');
+  const [newQOptD, setNewQOptD] = useState('');
+  const [newQCorrectIdx, setNewQCorrectIdx] = useState(0);
+  const [quizDurationMinutes, setQuizDurationMinutes] = useState(20);
+
+  const [uploadError, setUploadError] = useState(null);
+  const [lessonSuccessMsg, setLessonSuccessMsg] = useState(false);
+
+  // Coupon Form State
+  const [couponCode, setCouponCode] = useState('');
+  const [couponType, setCouponType] = useState('percent');
+  const [couponValue, setCouponValue] = useState(50);
+  const [couponGrade, setCouponGrade] = useState('all');
+  const [couponMaxUses, setCouponMaxUses] = useState(50);
+  const [couponSuccess, setCouponSuccess] = useState(false);
+
+  // Notification Form State
+  const [notifTargetGrade, setNotifTargetGrade] = useState('all');
+  const [notifTitle, setNotifTitle] = useState('');
+  const [notifBody, setNotifBody] = useState('');
+  const [notifSubject, setNotifSubject] = useState(() => {
+    return adminIdentity === 'mr_sayed' ? 'arabic' : adminIdentity === 'eng_nour' ? 'programming' : 'general';
+  });
+  const [notifSuccess, setNotifSuccess] = useState(false);
+
+  // Q&A Reply State
+  const [replyTexts, setReplyTexts] = useState({});
+
+  // Auto-capture video frame when video file changes
+  const handleVideoFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setVideoFile(file);
+      
+      // Extract video snapshot thumbnail using canvas
+      try {
+        const videoEl = document.createElement('video');
+        videoEl.src = URL.createObjectURL(file);
+        videoEl.currentTime = 1.0;
+        videoEl.onloadeddata = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = 480;
+          canvas.height = 270;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+          setAutoVideoFrameUrl(canvas.toDataURL('image/jpeg'));
+        };
+      } catch (err) {
+        console.log('Auto frame extraction note:', err);
+      }
+    }
+  };
+
+  const handleDocFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) setAttachmentFile(file);
+  };
+
+  // Open Edit Lesson Modal
+  const handleOpenEditLessonModal = (les) => {
+    setEditingLessonModal(les);
+    setEditLessonTitle(les.title);
+    setEditLessonPrice(les.price);
+    setEditLessonGrade(les.grade);
+    setEditLessonDesc(les.description || '');
+  };
+
+  // Save Edit Lesson
+  const handleSaveEditLesson = (e) => {
+    e.preventDefault();
+    if (!editingLessonModal) return;
+
+    adminUpdateLesson(editingLessonModal.id, {
+      title: editLessonTitle,
+      price: Number(editLessonPrice),
+      grade: editLessonGrade,
+      description: editLessonDesc
+    });
+
+    setEditingLessonModal(null);
+  };
+
+  const handleOpenEditStudentModal = (std) => {
+    setEditingStudent(std);
+    setEditName(std.name);
+    setEditPhone(std.phone);
+    setEditParentPhone(std.parentPhone);
+    setEditGrade(std.grade);
+    setEditBalance(std.walletBalance);
+    setEditPassword(std.password);
+  };
+
+  const handleSaveEditStudent = (e) => {
+    e.preventDefault();
+    if (!editingStudent) return;
+
+    adminUpdateStudent(editingStudent.id, {
+      name: editName,
+      phone: editPhone,
+      parentPhone: editParentPhone,
+      grade: editGrade,
+      gradeName: editGrade === '1sec' ? 'الصف الأول الثانوي' : editGrade === '2sec' ? 'الصف الثاني الثانوي' : 'الصف الثالث الثانوي (تانوية عامة)',
+      walletBalance: Number(editBalance),
+      password: editPassword
+    });
+
+    setEditingStudent(null);
+  };
+
+  const handleAddQuestionToQuiz = () => {
+    if (!newQTitle.trim()) return;
+    const newQuestionObj = {
+      id: quizQuestionsList.length + 1,
+      question: newQTitle.trim(),
+      options: [newQOptA || 'خيار 1', newQOptB || 'خيار 2', newQOptC || 'خيار 3', newQOptD || 'خيار 4'],
+      correctIndex: Number(newQCorrectIdx)
+    };
+    setQuizQuestionsList(prev => [...prev, newQuestionObj]);
+    setNewQTitle('');
+    setNewQOptA('');
+    setNewQOptB('');
+    setNewQOptC('');
+    setNewQOptD('');
+  };
+
+  const handleCreateLesson = (e) => {
+    e.preventDefault();
+    setUploadError(null);
+
+    if (!newLessonTitle.trim()) {
+      setUploadError('يرجى إدخال عنوان الحصة البرمجية.');
+      return;
+    }
+
+    let finalVideoUrl = '';
+    let videoType = videoUploadMode;
+
+    if (videoUploadMode === 'file') {
+      if (!videoFile) {
+        setUploadError('يرجى اختيار ملف الفيديو من الجهاز.');
+        return;
+      }
+      finalVideoUrl = URL.createObjectURL(videoFile);
+    } else {
+      if (!videoUrlInput.trim()) {
+        setUploadError('يرجى كتابة رابط الفيديو.');
+        return;
+      }
+      finalVideoUrl = videoUrlInput.trim();
+    }
+
+    let attachedQuizObj = null;
+    if (attachmentType === 'quiz') {
+      attachedQuizObj = {
+        id: 'qz_' + Date.now(),
+        title: `الامتحان الإلكتروني التفاعلي للحصة - ${newLessonTitle}`,
+        rewardPoints: 50,
+        durationMinutes: Number(quizDurationMinutes) || 20,
+        questions: quizQuestionsList
+      };
+    }
+
+    const docFileUrl = attachmentFile ? URL.createObjectURL(attachmentFile) : null;
+
+    // Resolve Thumbnail: Custom file > Auto-extracted frame snapshot > Default subject fallback
+    const customThumbUrl = customThumbFile ? URL.createObjectURL(customThumbFile) : null;
+    const defaultSubjectThumb = newLessonSubject === 'اللغة العربية'
+      ? 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&q=80&w=500'
+      : 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=500';
+
+    const finalThumbnail = customThumbUrlData || customThumbUrl || autoVideoFrameUrl || defaultSubjectThumb;
+
+    const createdObj = adminAddLesson({
+      title: newLessonTitle,
+      subject: newLessonSubject,
+      grade: newLessonGrade,
+      duration: '45 دقيقة',
+      price: Number(newLessonPrice),
+      videoType: videoType,
+      videoUrl: finalVideoUrl,
+      thumbnail: finalThumbnail,
+      videoFileName: videoFile ? videoFile.name : 'فيديو مرفوع',
+      description: newLessonDesc || `حصة ${newLessonSubject} مرفوعة من لوحة التحكم الإدارية.`,
+      attachmentType: attachmentType,
+      attachmentPdf: attachmentFile ? attachmentFile.name : (attachmentType === 'word' ? 'ملخص_الحصة.docx' : 'مذكرة_الحصة.pdf'),
+      attachmentFileUrl: docFileUrl,
+      attachedQuiz: attachedQuizObj
+    });
+
+    setLessonSuccessMsg(true);
+
+    // Broadcast to all students via WhatsApp
+    if (broadcastNewLesson) {
+      const links = broadcastNewLesson(createdObj);
+      setBroadcastModal({ lessonTitle: createdObj.title, links });
+    }
+    
+    setTimeout(() => {
+      if (setSelectedLessonId && setCurrentTab) {
+        setSelectedLessonId(createdObj.id);
+        setCurrentTab('lesson-detail');
+      }
+    }, 1500);
+  };
+
+  const handleCreateCoupon = (e) => {
+    e.preventDefault();
+    if (!couponCode.trim()) return;
+
+    adminCreateCoupon({
+      code: couponCode,
+      type: couponType,
+      value: Number(couponValue),
+      targetGrade: couponGrade,
+      maxUses: Number(couponMaxUses)
+    });
+
+    setCouponCode('');
+    setCouponSuccess(true);
+    setTimeout(() => setCouponSuccess(false), 3000);
+  };
+
+  const handleReplySubmit = (questionId) => {
+    const text = replyTexts[questionId];
+    if (!text || !text.trim()) return;
+    adminReplyToQuestion(questionId, text);
+    setReplyTexts(prev => ({ ...prev, [questionId]: '' }));
+  };
+
+  // Bulk WhatsApp Broadcast to All Students in DB
+  const handleBulkWhatsAppBroadcast = () => {
+    studentsDB.forEach(std => {
+      triggerWhatsAppSend({
+        isFullParentReport: true,
+        studentName: std.name,
+        parentPhone: std.parentPhone,
+        studentPhone: std.phone,
+        gradeName: std.gradeName
+      }, 'parent');
+    });
+    alert(`تم إرسال وتقارير المتابعة عبر الواتساب لـ ${studentsDB.length} طالب وولي أمر مسجل في السيستم!`);
+  };
+
+  // Bulk SMS Broadcast to All Students in DB
+  const handleBulkSmsBroadcast = () => {
+    studentsDB.forEach(std => {
+      triggerSmsSend({
+        title: 'تنبيه من منصة الباشمهندس للبرمجة',
+        studentName: std.name,
+        parentPhone: std.parentPhone,
+        studentPhone: std.phone
+      }, 'parent');
+    });
+    alert(`تم فتح تطبيق الرسائل القصيرة SMS لبث الإشعارات لجميع الطلاب المسجلين!`);
+  };
+
+  const pendingPaymentsCount = paymentRequestsDB.filter(r => r.status === 'pending').length;
+  const pendingQAQuestionsCount = videoQuestions.filter(q => q.status === 'pending').length;
+
+  return (
+    <div className="space-y-8 pb-16">
+      
+      {/* Admin Header Banner */}
+      <div className="bg-slate-900 text-white p-8 rounded-3xl border border-slate-800 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="space-y-2 text-right">
+          <div className="inline-flex items-center gap-2 bg-amber-500/20 text-amber-300 text-xs font-black px-3 py-1 rounded-full border border-amber-500/30">
+            <ShieldCheck className="w-4 h-4 text-amber-400" />
+            <span>لوحة التحكم الإدارية • الباشمهندس 💻</span>
+          </div>
+          <h1 className="text-2xl md:text-3xl font-black">إدارة الحصص، الأسئلة والردود، المدفوعات، والكوبونات</h1>
+          <p className="text-xs text-slate-400 font-medium">
+            الرد الفوري على أسئلة الطلاب، تعديل وتحديد أسعار الحصص، والموافقة على سكرين شوت إيصالات الشحن.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleBulkWhatsAppBroadcast}
+            className="btn-whatsapp text-xs font-black px-4 py-2.5 rounded-xl shadow-md"
+          >
+            بث واتساب لجميع الطلاب 📲
+          </button>
+        </div>
+      </div>
+
+      {/* Admin Navigation Tabs */}
+      <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-2 overflow-x-auto">
+        <button
+          onClick={() => setAdminTab('videos')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all whitespace-nowrap ${adminTab === 'videos' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
+        >
+          <Video className="w-4 h-4" />
+          رفع وتعديل وحذف الحصص ({lessons.length})
+        </button>
+
+        <button
+          onClick={() => setAdminTab('coupons')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all whitespace-nowrap ${adminTab === 'coupons' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
+        >
+          <Ticket className="w-4 h-4 text-amber-500" />
+          إدارة الكوبونات والخصومات ({couponsDB.length})
+        </button>
+
+        <button
+          onClick={() => setAdminTab('payments')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all whitespace-nowrap ${adminTab === 'payments' ? 'bg-purple-900 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
+        >
+          <CreditCard className="w-4 h-4 text-amber-400" />
+          <span>طلبات الشحن والمدفوعات ({pendingPaymentsCount} معلق) 💳</span>
+        </button>
+
+        <button
+          onClick={() => setAdminTab('qa')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all whitespace-nowrap ${adminTab === 'qa' ? 'bg-blue-900 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
+        >
+          <MessageSquare className="w-4 h-4 text-amber-400" />
+          الأسئلة والردود ({pendingQAQuestionsCount} معلق) 💬
+        </button>
+
+        <button
+          onClick={() => setAdminTab('students')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all whitespace-nowrap ${adminTab === 'students' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
+        >
+          <Users className="w-4 h-4" />
+          إدارة الطلاب ({studentsDB.length})
+        </button>
+
+        <button
+          onClick={() => setAdminTab('notifications')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all whitespace-nowrap ${adminTab === 'notifications' ? 'bg-amber-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
+        >
+          <Bell className="w-4 h-4" />
+          الإشعارات ({notifications.length}) 🔔
+        </button>
+      </div>
+
+      {/* Tab: Notifications */}
+      {adminTab === 'notifications' && (
+        <div className="space-y-8 animate-in fade-in" dir="rtl">
+          {/* Send New Notification Form */}
+          <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200/80 shadow-md space-y-5 max-w-2xl mx-auto">
+            <div className="border-b border-slate-100 pb-4">
+              <h3 className="font-black text-slate-900 text-lg flex items-center gap-2">
+                <Bell className="w-5 h-5 text-amber-500" />
+                إرسال إشعار جديد
+              </h3>
+              <p className="text-slate-500 text-xs mt-1">ابعث إشعاراً داخل المنصة لكل الطلاب أو لصف دراسي معين</p>
+            </div>
+
+            {notifSuccess && (
+              <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-2xl flex items-center gap-2 text-sm font-bold">
+                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                تم إرسال الإشعار بنجاح! سيراه الطلاب عند فتح المنصة 🎉
+              </div>
+            )}
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!notifTitle.trim()) return;
+                addNotification({ targetGrade: notifTargetGrade, title: notifTitle, body: notifBody, subject: notifSubject });
+                setNotifSuccess(true);
+                setNotifTitle('');
+                setNotifBody('');
+                setNotifTargetGrade('all');
+                setNotifSubject(adminIdentity === 'mr_sayed' ? 'arabic' : adminIdentity === 'eng_nour' ? 'programming' : 'general');
+                setTimeout(() => setNotifSuccess(false), 4000);
+              }}
+              className="space-y-4"
+            >
+              {/* Target Audience */}
+              <div>
+                <label className="block text-sm font-black text-slate-700 mb-1.5">الفئة المستهدفة</label>
+                <div className="relative">
+                  <select
+                    value={notifTargetGrade}
+                    onChange={(e) => setNotifTargetGrade(e.target.value)}
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 appearance-none cursor-pointer"
+                  >
+                    <option value="all">كل الطلاب</option>
+                    <option value="3sec">الصف الثالث الثانوي (3 ثانوي)</option>
+                    <option value="2sec">الصف الثاني الثانوي (2 ثانوي)</option>
+                    <option value="1sec">الصف الأول الثانوي (1 ثانوي)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Subject Tag */}
+              <div>
+                <label className="block text-sm font-black text-slate-700 mb-1.5">المادة (من أي مادة؟)</label>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {[
+                    { value: 'general', label: '📢 إشعار عام' },
+                    { value: 'programming', label: '💻 البرمجة', disabled: isSayedAdmin },
+                    { value: 'arabic', label: '📖 العربي', disabled: isNourAdmin }
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      disabled={opt.disabled}
+                      onClick={() => setNotifSubject(opt.value)}
+                      className={`px-4 py-2 rounded-xl text-xs font-black border transition-all ${
+                        opt.disabled
+                          ? 'opacity-40 cursor-not-allowed bg-slate-100 border-slate-200 text-slate-300'
+                          : notifSubject === opt.value
+                            ? opt.value === 'programming'
+                              ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                              : opt.value === 'arabic'
+                                ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-md'
+                                : 'bg-slate-800 text-white border-slate-800 shadow-md'
+                            : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Notification Title */}
+              <div>
+                <label className="block text-sm font-black text-slate-700 mb-1.5">عنوان الإشعار</label>
+                <input
+                  type="text"
+                  value={notifTitle}
+                  onChange={(e) => setNotifTitle(e.target.value)}
+                  placeholder="مثال: امتحان الشهر هيبدأ الأسبوع الجاي"
+                  required
+                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                />
+              </div>
+
+              {/* Notification Body */}
+              <div>
+                <label className="block text-sm font-black text-slate-700 mb-1.5">تفاصيل إضافية (اختياري)</label>
+                <textarea
+                  value={notifBody}
+                  onChange={(e) => setNotifBody(e.target.value)}
+                  rows={4}
+                  placeholder="اكتب تفاصيل الإشعار هنا..."
+                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-700 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
+                />
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  className="bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-black px-8 py-2.5 rounded-xl flex items-center gap-2 transition-all shadow-md"
+                >
+                  <Send className="w-4 h-4" />
+                  إرسال
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Sent Notifications History */}
+          <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-md max-w-2xl mx-auto">
+            <h4 className="font-black text-slate-700 text-base mb-4 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-slate-400" />
+              آخر الإشعارات المُرسلة
+            </h4>
+            {notifications.length === 0 ? (
+              <p className="text-slate-400 text-sm text-center py-6">لا توجد إشعارات مُرسلة بعد</p>
+            ) : (
+              <div className="space-y-3">
+                {notifications.map((n) => (
+                  <div key={n.id} className="bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-black text-slate-800 text-sm">{n.title}</span>
+                      <span className="text-[11px] text-slate-400 font-bold whitespace-nowrap">
+                        {n.date ? `${n.date} - ${n.time}` : n.time}
+                      </span>
+                    </div>
+                    {n.body && (
+                      <p className="text-slate-600 text-xs mt-1">{n.body}</p>
+                    )}
+                    <div className="mt-1">
+                      <span className="text-[10px] bg-amber-200 text-amber-800 font-bold px-2 py-0.5 rounded-lg">
+                        {n.targetGrade === 'all' ? 'كل الطلاب' : n.targetGrade === '3sec' ? 'ثالثة ثانوي' : n.targetGrade === '2sec' ? 'ثاني ثانوي' : 'أول ثانوي'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Tab 1: Videos Management */}
+      {adminTab === 'videos' && (
+        <div className="space-y-8 animate-in fade-in">
+          
+          {/* Create Lesson Form */}
+          <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200/80 shadow-md space-y-6 max-w-2xl mx-auto">
+            <div className="border-b border-slate-100 pb-4">
+              <h3 className="font-black text-slate-900 text-lg flex items-center gap-2">
+                <PlusCircle className="w-5 h-5 text-blue-600" />
+                رفع حصة فيديو جديدة + مستند PDF / Word أو امتحان تفاعلي
+              </h3>
+            </div>
+
+            <form onSubmit={handleCreateLesson} className="space-y-4">
+              <div>
+                <label className="block text-xs font-black text-slate-700 mb-1">عنوان الحصة البرمجية:</label>
+                <input
+                  type="text"
+                  required
+                  value={newLessonTitle}
+                  onChange={(e) => setNewLessonTitle(e.target.value)}
+                  placeholder="مثال: الحصة 1: أساسيات لغة Python..."
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs font-bold outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-black text-slate-700 mb-1">المادة الدراسية 📚:</label>
+                  <div className={`p-2 rounded-xl border text-xs font-black flex items-center gap-1.5 ${isSayedAdmin ? 'bg-amber-50 text-amber-900 border-amber-300' : 'bg-blue-50 text-blue-900 border-blue-300'}`}>
+                    <span>{isSayedAdmin ? '📖' : '💻'}</span>
+                    <span>{defaultAdminSubject}</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-slate-700 mb-1">الصف المستهدف:</label>
+                  <select
+                    value={newLessonGrade}
+                    onChange={(e) => setNewLessonGrade(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2.5 text-xs font-bold"
+                  >
+                    <option value="3sec">الصف الثالث الثانوي (3 ثانوي)</option>
+                    <option value="2sec">الصف الثاني الثانوي</option>
+                    <option value="1sec">الصف الأول الثانوي</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-slate-700 mb-1">السعر (0 = مجاني):</label>
+                  <input
+                    type="number"
+                    value={newLessonPrice}
+                    onChange={(e) => setNewLessonPrice(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-xs font-bold"
+                  />
+                </div>
+              </div>
+
+              {/* Video Upload Mode Switcher */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs font-black text-slate-700">
+                  <span>مصدر الفيديو:</span>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setVideoUploadMode('file')}
+                      className={`px-3 py-1 rounded-lg ${videoUploadMode === 'file' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700'}`}
+                    >
+                      رفع من الجهاز 📁
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setVideoUploadMode('url')}
+                      className={`px-3 py-1 rounded-lg ${videoUploadMode === 'url' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700'}`}
+                    >
+                      رابط فيديو 🔗
+                    </button>
+                  </div>
+                </div>
+
+                {videoUploadMode === 'file' ? (
+                  <div 
+                    onClick={() => videoInputRef.current && videoInputRef.current.click()}
+                    className="border-2 border-dashed border-blue-300 hover:border-blue-500 p-6 rounded-2xl bg-blue-50/50 text-center space-y-2 cursor-pointer transition-all"
+                  >
+                    <Upload className="w-8 h-8 text-blue-600 mx-auto animate-bounce" />
+                    <div className="text-xs font-black text-slate-800">اضغط لاختيار ملف الفيديو من جهازك (MP4, WebM)</div>
+                    <input
+                      ref={videoInputRef}
+                      type="file"
+                      accept="video/*"
+                      onChange={handleVideoFileChange}
+                      className="hidden"
+                    />
+                    {videoFile && (
+                      <div className="bg-emerald-50 text-emerald-800 p-2 rounded-xl text-xs font-bold">
+                        تم اختيار الفيديو: {videoFile.name} ✅
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <input
+                    type="text"
+                    value={videoUrlInput}
+                    onChange={(e) => setVideoUrlInput(e.target.value)}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs font-mono font-bold outline-none dir-ltr"
+                  />
+                )}
+              </div>
+
+              {/* Thumbnail Image Picker & Auto Frame Preview */}
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <label className="block text-xs font-black text-slate-700">الصورة المصغرة للحصة (اختياري 🖼️):</label>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => thumbInputRef.current && thumbInputRef.current.click()}
+                    className="bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 text-xs font-black px-4 py-2 rounded-xl flex items-center gap-2"
+                  >
+                    <ImageIcon className="w-4 h-4 text-blue-600" />
+                    <span>اختيار صورة مصغرة من الجهاز</span>
+                  </button>
+                  <input
+                    ref={thumbInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        setCustomThumbFile(file);
+                        const reader = new FileReader();
+                        reader.onload = (evt) => {
+                          setCustomThumbUrlData(evt.target.result);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="hidden"
+                  />
+                  {customThumbFile && (
+                    <div className="flex items-center gap-2">
+                      {customThumbUrlData && (
+                        <img src={customThumbUrlData} alt="Thumb preview" className="w-12 h-12 object-cover rounded-lg border border-emerald-400" />
+                      )}
+                      <span className="text-xs text-emerald-600 font-bold">تم اختيار الصورة بنجاح ✅</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Auto frame preview */}
+                {!customThumbFile && autoVideoFrameUrl && (
+                  <div className="bg-slate-50 p-2 rounded-xl border border-slate-200 flex items-center gap-3">
+                    <img src={autoVideoFrameUrl} alt="Auto Frame" className="w-20 h-12 object-cover rounded-lg border" />
+                    <span className="text-[11px] text-slate-600 font-bold">تم التقاط صورة من الفيديو المرفوع تلقائياً 📸</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Attachment Selection */}
+              <div className="space-y-3 pt-2 border-t border-slate-100">
+                <label className="block text-xs font-black text-slate-700">اختر المحتوى المرفق بالفيديو:</label>
+                
+                <div className="grid grid-cols-3 gap-2 text-xs font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setAttachmentType('pdf')}
+                    className={`py-2.5 px-3 rounded-xl border flex items-center justify-center gap-1.5 transition-all ${attachmentType === 'pdf' ? 'bg-rose-50 border-rose-500 text-rose-900 font-black' : 'bg-slate-50 border-slate-200'}`}
+                  >
+                    <FileText className="w-4 h-4 text-rose-600" />
+                    <span>مستند PDF</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setAttachmentType('word')}
+                    className={`py-2.5 px-3 rounded-xl border flex items-center justify-center gap-1.5 transition-all ${attachmentType === 'word' ? 'bg-blue-50 border-blue-500 text-blue-900 font-black' : 'bg-slate-50 border-slate-200'}`}
+                  >
+                    <FileText className="w-4 h-4 text-blue-600" />
+                    <span>مستند Word</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setAttachmentType('quiz')}
+                    className={`py-2.5 px-3 rounded-xl border flex items-center justify-center gap-1.5 transition-all ${attachmentType === 'quiz' ? 'bg-amber-50 border-amber-500 text-amber-900 font-black' : 'bg-slate-50 border-slate-200'}`}
+                  >
+                    <HelpCircle className="w-4 h-4 text-amber-600" />
+                    <span>امتحان إلكتروني 📝</span>
+                  </button>
+                </div>
+
+                {/* PDF & Word Document File Uploader */}
+                {(attachmentType === 'pdf' || attachmentType === 'word') && (
+                  <div className="space-y-2 pt-1">
+                    <label className="block text-xs font-black text-slate-700">اختيار ملزمة / مستند ({attachmentType.toUpperCase()}) من الجهاز:</label>
+                    <div 
+                      onClick={() => docInputRef.current && docInputRef.current.click()}
+                      className="border-2 border-dashed border-slate-300 hover:border-blue-500 p-4 rounded-2xl bg-slate-50 text-center space-y-1 cursor-pointer transition-all"
+                    >
+                      <FileText className="w-6 h-6 text-slate-600 mx-auto" />
+                      <div className="text-xs font-bold text-slate-700">اضغط لاختيار ملف الـ {attachmentType.toUpperCase()} من جهازك</div>
+                      <input
+                        ref={docInputRef}
+                        type="file"
+                        accept={attachmentType === 'word' ? '.doc,.docx' : '.pdf'}
+                        onChange={handleDocFileChange}
+                        className="hidden"
+                      />
+                      {attachmentFile && (
+                        <div className="bg-emerald-50 text-emerald-800 p-2 rounded-xl text-xs font-bold mt-2">
+                          تم اختيار المستند: {attachmentFile.name} ✅
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Multi-Question Builder */}
+                {attachmentType === 'quiz' && (
+                  <div className="bg-amber-50/60 p-4 rounded-2xl border border-amber-200 space-y-4 text-right">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black text-amber-900">تأليف الامتحان الإلكتروني المتعدد (عدد الأسئلة: {quizQuestionsList.length}):</span>
+                    </div>
+
+                    {/* Exam Duration Field */}
+                    <div className="flex items-center gap-3 bg-white p-3 rounded-xl border border-amber-300">
+                      <Clock className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                      <label className="text-xs font-black text-slate-700 flex-shrink-0">مدة الامتحان (دقيقة):</label>
+                      <input
+                        type="number"
+                        min={5}
+                        max={180}
+                        value={quizDurationMinutes}
+                        onChange={(e) => setQuizDurationMinutes(e.target.value)}
+                        className="w-20 bg-slate-50 border border-slate-300 rounded-lg px-2 py-1.5 text-xs font-black text-center"
+                      />
+                      <span className="text-[11px] text-slate-500 font-bold">دقيقة (5–180)</span>
+                    </div>
+
+                    <div className="space-y-2 max-h-36 overflow-y-auto">
+                      {quizQuestionsList.map((q, idx) => (
+                        <div key={idx} className="bg-white p-2.5 rounded-xl border border-amber-200 text-xs font-bold flex justify-between">
+                          <span>س{idx + 1}: {q.question}</span>
+                          <span className="text-emerald-600">الإجابة: ({q.options[q.correctIndex]})</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="bg-white p-3 rounded-xl border border-amber-300 space-y-2">
+                      <label className="block text-[11px] font-bold text-slate-700">إضافة سؤال جديد للامتحان:</label>
+                      <input
+                        type="text"
+                        value={newQTitle}
+                        onChange={(e) => setNewQTitle(e.target.value)}
+                        placeholder="نص السؤال..."
+                        className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-bold"
+                      />
+
+                      <div className="grid grid-cols-2 gap-2 text-[11px]">
+                        <input type="text" placeholder="خيار (أ)" value={newQOptA} onChange={(e) => setNewQOptA(e.target.value)} className="bg-slate-50 p-1.5 border rounded-lg" />
+                        <input type="text" placeholder="خيار (ب)" value={newQOptB} onChange={(e) => setNewQOptB(e.target.value)} className="bg-slate-50 p-1.5 border rounded-lg" />
+                        <input type="text" placeholder="خيار (ج)" value={newQOptC} onChange={(e) => setNewQOptC(e.target.value)} className="bg-slate-50 p-1.5 border rounded-lg" />
+                        <input type="text" placeholder="خيار (د)" value={newQOptD} onChange={(e) => setNewQOptD(e.target.value)} className="bg-slate-50 p-1.5 border rounded-lg" />
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1">
+                        <select
+                          value={newQCorrectIdx}
+                          onChange={(e) => setNewQCorrectIdx(e.target.value)}
+                          className="bg-slate-50 border p-1 rounded-lg text-xs font-bold"
+                        >
+                          <option value={0}>الإجابة الصحيحة: خيار (أ)</option>
+                          <option value={1}>الإجابة الصحيحة: خيار (ب)</option>
+                          <option value={2}>الإجابة الصحيحة: خيار (ج)</option>
+                          <option value={3}>الإجابة الصحيحة: خيار (د)</option>
+                        </select>
+
+                        <button
+                          type="button"
+                          onClick={handleAddQuestionToQuiz}
+                          className="btn-accent text-[11px] font-black px-3 py-1.5 rounded-lg flex items-center gap-1"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>إضافة السؤال</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {uploadError && (
+                <div className="bg-rose-50 text-rose-800 p-3 rounded-xl border border-rose-200 text-xs font-bold">
+                  {uploadError}
+                </div>
+              )}
+
+              {lessonSuccessMsg && (
+                <div className="bg-emerald-50 text-emerald-800 p-3 rounded-xl border border-emerald-200 text-xs font-bold">
+                  تم نشر الحصة بالمستند المرفق وبث التنبيه للطلاب بنجاح! 🚀
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="w-full btn-primary text-xs font-black py-3.5 rounded-xl justify-center shadow-lg shadow-blue-500/20"
+              >
+                نشر الحصة وإرسال إشعار الواتساب والـ SMS 🚀
+              </button>
+            </form>
+          </div>
+
+          {/* Lessons List CRUD Table */}
+          <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-md space-y-4">
+            <h3 className="font-black text-slate-900 text-base">قائمة الفيديوهات المرفوعة (تعديل السعر والاسم ومسح الحصة)</h3>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-right text-xs">
+                <thead className="bg-slate-100 text-slate-700 font-black border-b border-slate-200">
+                  <tr>
+                    <th className="p-3">عنوان الحصة</th>
+                    <th className="p-3">الصف الدراسي</th>
+                    <th className="p-3">السعر الحالي</th>
+                    <th className="p-3">المحاذات</th>
+                    <th className="p-3 text-center">إجراءات التعديل والحذف ✏️ 🗑️</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium">
+                  {lessons
+                    .filter(les => {
+                      const isArabic = les.subject === 'اللغة العربية' || les.subject?.includes('عرب');
+                      return isSayedAdmin ? isArabic : !isArabic;
+                    })
+                    .map(les => (
+                      <tr key={les.id} className="hover:bg-slate-50">
+                        <td className="p-3 font-bold text-slate-900">{les.title}</td>
+                        <td className="p-3 text-slate-600">{les.grade === '3sec' ? 'ثانوية عامة' : les.grade}</td>
+                        <td className="p-3 font-black text-emerald-600 text-sm">{les.price === 0 ? 'مجاني 🎁' : `${les.price} ج.م`}</td>
+                        <td className="p-3 text-slate-700 font-mono">{les.viewsCount || 0}</td>
+                        <td className="p-3 flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => handleOpenEditLessonModal(les)}
+                            className="px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 font-black hover:bg-amber-400 transition-all flex items-center gap-1 shadow-sm"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                            <span>تعديل الحصة والسعر ✏️</span>
+                          </button>
+                          
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`هل أنت تأكد من حذف حصة "${les.title}" نهائياً من المنصة؟`)) {
+                                adminDeleteLesson(les.id);
+                              }
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-rose-600 text-white font-bold hover:bg-rose-700 transition-all shadow-sm flex items-center gap-1"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>مسح الفيديو 🗑️</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* Tab 2: Coupons Management */}
+      {adminTab === 'coupons' && (
+        <div className="space-y-8 animate-in fade-in">
+          
+          <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200/80 shadow-md space-y-6 max-w-2xl mx-auto">
+            <h3 className="font-black text-slate-900 text-lg flex items-center gap-2">
+              <Ticket className="w-5 h-5 text-amber-500" />
+              إنشاء وتفعيل كود كوبون جديد للطلاب
+            </h3>
+
+            <form onSubmit={handleCreateCoupon} className="space-y-4">
+              <div>
+                <label className="block text-xs font-black text-slate-700 mb-1">كود الكوبون (مثال: FREE100):</label>
+                <input
+                  type="text"
+                  required
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value)}
+                  placeholder="BASHMO2026"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs font-mono font-black text-amber-600 outline-none dir-ltr uppercase"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-black text-slate-700 mb-1">نوع الخصم:</label>
+                  <select value={couponType} onChange={(e) => setCouponType(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-bold">
+                    <option value="percent">نسبة مئوية (%)</option>
+                    <option value="fixed">قيمة ثابتة (جنيه)</option>
+                    <option value="free">مجاني 100% 🎁</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-slate-700 mb-1">القيمة الخصمية:</label>
+                  <input type="number" value={couponValue} onChange={(e) => setCouponValue(e.target.value)} disabled={couponType === 'free'} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-bold" />
+                </div>
+              </div>
+
+              {couponSuccess && (
+                <div className="bg-emerald-50 text-emerald-800 p-3 rounded-xl border border-emerald-200 text-xs font-bold">
+                  تم إنشاء وتفعيل الكوبون بنجاح! 🎟️
+                </div>
+              )}
+
+              <button type="submit" className="w-full btn-accent text-xs font-black py-3.5 rounded-xl justify-center">
+                تفعيل الكوبون الآن 🎟️
+              </button>
+            </form>
+          </div>
+
+          {/* Active Coupons List Table */}
+          <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-md space-y-4">
+            <h3 className="font-black text-slate-900 text-base">جدول الكوبونات الفعالة حالياً بالمنصة</h3>
+            
+            <div className="overflow-x-auto">
+              <table className="w-full text-right text-xs">
+                <thead className="bg-slate-100 text-slate-700 font-black border-b border-slate-200">
+                  <tr>
+                    <th className="p-3">كود الكوبون</th>
+                    <th className="p-3">نوع الخصم</th>
+                    <th className="p-3">الاستخدامات</th>
+                    <th className="p-3">الحالة</th>
+                    <th className="p-3 text-center">حذف الكوبون 🗑️</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium">
+                  {couponsDB.map(coup => (
+                    <tr key={coup.id} className="hover:bg-slate-50">
+                      <td className="p-3 font-mono font-black text-amber-600 text-sm">{coup.code}</td>
+                      <td className="p-3 font-bold text-slate-900">
+                        {coup.type === 'free' ? 'مجاني 100% 🎁' : coup.type === 'percent' ? `خصم ${coup.value}%` : `خصم ${coup.value} ج.م`}
+                      </td>
+                      <td className="p-3 font-mono font-bold text-slate-700">{coup.usedCount} من {coup.maxUses}</td>
+                      <td className="p-3">
+                        <span className="badge badge-green">مفعل ⚡</span>
+                      </td>
+                      <td className="p-3 text-center">
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`مسح كود الكوبون "${coup.code}"؟`)) {
+                              adminDeleteCoupon(coup.id);
+                            }
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-rose-600 text-white font-bold hover:bg-rose-700 shadow-sm"
+                        >
+                          مسح الكوبون 🗑️
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* Tab 3: Payments Review */}
+      {adminTab === 'payments' && (
+        <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-md space-y-6 animate-in fade-in">
+          <div className="border-b border-slate-100 pb-4">
+            <h3 className="font-black text-slate-900 text-lg flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-purple-600" />
+              مراجعة إيصالات تحويلات الطلاب (InstaPay / فودافون كاش / فيزا / فوري)
+            </h3>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-right text-xs">
+              <thead className="bg-slate-100 text-slate-700 font-black border-b border-slate-200">
+                <tr>
+                  <th className="p-3">الطالب</th>
+                  <th className="p-3">طريقة التحويل</th>
+                  <th className="p-3">المبلغ</th>
+                  <th className="p-3">مرجع العملية</th>
+                  <th className="p-3">إيصال الشاشة (Proof)</th>
+                  <th className="p-3">الحالة</th>
+                  <th className="p-3 text-center">قرار الأدمن 🛡️</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium">
+                {paymentRequestsDB.map(req => (
+                  <tr key={req.id} className="hover:bg-slate-50">
+                    <td className="p-3 font-bold text-slate-900">
+                      <div>{req.studentName}</div>
+                      <div className="text-[10px] text-slate-500 font-mono">{req.studentPhone}</div>
+                    </td>
+                    <td className="p-3 font-bold uppercase text-purple-700">{req.method}</td>
+                    <td className="p-3 font-black text-emerald-600 text-sm">{req.amount} ج.م</td>
+                    <td className="p-3 font-mono font-bold text-slate-800 dir-ltr">{req.refNumber}</td>
+                    <td className="p-3">
+                      <button
+                        onClick={() => setPreviewProofImage(req.proofImage)}
+                        className="btn-outline text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1"
+                      >
+                        <ImageIcon className="w-3.5 h-3.5 text-purple-600" />
+                        <span>معاينة الإيصال 🖼️</span>
+                      </button>
+                    </td>
+                    <td className="p-3">
+                      {req.status === 'pending' && <span className="badge badge-amber">قيد المراجعة ⏳</span>}
+                      {req.status === 'approved' && <span className="badge badge-green">تمت الموافقة ✅</span>}
+                      {req.status === 'rejected' && <span className="badge badge-rose">مرفوض ❌</span>}
+                    </td>
+                    <td className="p-3 flex items-center justify-center gap-2">
+                      {req.status === 'pending' ? (
+                        <>
+                          <button
+                            onClick={() => adminApprovePayment(req.id)}
+                            className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white font-black hover:bg-emerald-700 transition-all flex items-center gap-1 shadow-sm"
+                          >
+                            <Check className="w-4 h-4" />
+                            <span>موافقة وإضافة الرصيد ✅</span>
+                          </button>
+
+                          <button
+                            onClick={() => adminRejectPayment(req.id)}
+                            className="px-3 py-1.5 rounded-xl bg-rose-600 text-white font-black hover:bg-rose-700 transition-all flex items-center gap-1 shadow-sm"
+                          >
+                            <XCircle className="w-4 h-4" />
+                            <span>رفض الطلب ❌</span>
+                          </button>
+                        </>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 font-bold">تم اتخاذ القرار</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 4: Q&A Student Questions Management */}
+      {adminTab === 'qa' && (
+        <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-md space-y-6 animate-in fade-in">
+          <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
+            <h3 className="font-black text-slate-900 text-lg flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-blue-600" />
+              أسئلة واستفسارات الطلاب البرمجية على الفيديوهات ({videoQuestions.length})
+            </h3>
+            <span className="text-xs font-bold text-slate-500">الرد يصل للطالب فوراً على صفحته</span>
+          </div>
+
+          <div className="space-y-4">
+            {videoQuestions.filter(q => {
+              const les = lessons.find(l => l.id === q.lessonId);
+              if (!les) return false;
+              const isArabic = les.subject === 'اللغة العربية' || les.subject?.includes('عرب');
+              return isSayedAdmin ? isArabic : !isArabic;
+            }).length === 0 ? (
+              <div className="text-center py-8 text-xs text-slate-400 font-bold">لا توجد أسئلة من الطلاب في المادة الخاصة بك حالياً.</div>
+            ) : (
+              videoQuestions.filter(q => {
+                const les = lessons.find(l => l.id === q.lessonId);
+                if (!les) return false;
+                const isArabic = les.subject === 'اللغة العربية' || les.subject?.includes('عرب');
+                return isSayedAdmin ? isArabic : !isArabic;
+              }).map(q => (
+                <div key={q.id} className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-3 text-right">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-black text-slate-900 text-sm">{q.studentName}</span>
+                      <span className="text-[10px] text-slate-500 font-mono">({q.studentPhone})</span>
+                    </div>
+
+                    {q.status === 'pending' ? (
+                      <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                        في انتظار الرد ⏳
+                      </span>
+                    ) : (
+                      <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                        تم الرد ✅
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="text-xs text-slate-800 font-bold bg-white p-3 rounded-xl border border-slate-200">
+                    ❓ {q.questionText}
+                  </p>
+
+                  {q.replyText ? (
+                    <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-200 text-xs font-bold text-emerald-900 space-y-1">
+                      <div>💬 رد الباشمهندس: {q.replyText}</div>
+                      <div className="text-[10px] text-emerald-700 font-medium">تاريخ الرد: {q.repliedAt}</div>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2 pt-1">
+                      <input
+                        type="text"
+                        placeholder="اكتب رد الباشمهندس هنا..."
+                        value={replyTexts[q.id] || ''}
+                        onChange={(e) => setReplyTexts(prev => ({ ...prev, [q.id]: e.target.value }))}
+                        className="flex-1 bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold outline-none"
+                      />
+                      <button
+                        onClick={() => handleReplySubmit(q.id)}
+                        className="btn-primary text-xs font-black px-4 py-2 rounded-xl flex items-center gap-1"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span>إرسال الرد 💬</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Tab 5: Student DB */}
+      {adminTab === 'students' && (
+        <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-md space-y-4 animate-in fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <h3 className="font-black text-slate-900 text-base">بيانات حسابات الطلاب وتعديل ومسح الحسابات</h3>
+            
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="بحث باسم أو رقم الطالب..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="bg-slate-50 border border-slate-300 rounded-xl pr-9 pl-4 py-2 text-xs font-bold w-64 outline-none"
+              />
+              <Search className="w-4 h-4 text-slate-400 absolute right-3 top-2.5" />
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-right text-xs">
+              <thead className="bg-slate-100 text-slate-700 font-black border-b border-slate-200">
+                <tr>
+                  <th className="p-3">كود الطالب</th>
+                  <th className="p-3">اسم الطالب</th>
+                  <th className="p-3">موبايل الطالب</th>
+                  <th className="p-3">موبايل ولي الأمر</th>
+                  <th className="p-3">الرصيد</th>
+                  <th className="p-3 text-center">إجراءات التعديل والمسح 🛠️</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium">
+                {studentsDB
+                  .filter(s => s.name.includes(searchTerm) || s.code.includes(searchTerm) || s.phone.includes(searchTerm))
+                  .map(st => (
+                    <tr key={st.id} className="hover:bg-slate-50">
+                      <td className="p-3 font-mono font-black text-amber-600">{st.code}</td>
+                      <td className="p-3 font-bold text-slate-900">{st.name}</td>
+                      <td className="p-3 text-slate-700 font-mono dir-ltr">{st.phone}</td>
+                      <td className="p-3 text-slate-700 font-mono dir-ltr">{st.parentPhone}</td>
+                      <td className="p-3 font-black text-emerald-600">{st.walletBalance} ج.م</td>
+                      <td className="p-3 flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => setStudentPerfModal(st)}
+                          className="px-3 py-1.5 rounded-xl bg-purple-100 text-purple-700 font-bold hover:bg-purple-200 transition-all flex items-center gap-1"
+                        >
+                          <BarChart2 className="w-3.5 h-3.5" />
+                          <span>مستوى</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleOpenEditStudentModal(st)}
+                          className="px-3 py-1.5 rounded-xl bg-blue-100 text-blue-700 font-bold hover:bg-blue-200 transition-all flex items-center gap-1"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                          <span>تعديل</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`مسح حساب الطالب "${st.name}" نهائياً؟`)) {
+                              adminDeleteStudent(st.id);
+                            }
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-rose-600 text-white font-bold hover:bg-rose-700 shadow-sm"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>مسح 🗑️</span>
+                        </button>
+                      </td>
+                    </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Proof Image Preview Modal */}
+      {previewProofImage && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white p-4 rounded-3xl max-w-md w-full space-y-4 text-center">
+            <h4 className="font-black text-slate-900 text-sm">معاينة صورة إيصال تحويل الشاشة 🖼️</h4>
+            <img src={previewProofImage} alt="Proof" className="w-full max-h-80 object-contain rounded-2xl border" />
+            <button
+              onClick={() => setPreviewProofImage(null)}
+              className="btn-primary text-xs font-black px-6 py-2 rounded-xl"
+            >
+              إغلاق المعاينة
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Lesson Modal */}
+      {editingLessonModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white p-6 md:p-8 rounded-3xl max-w-md w-full space-y-4 text-right relative">
+            <button onClick={() => setEditingLessonModal(null)} className="absolute top-4 left-4 p-1.5 rounded-xl bg-slate-100 text-slate-500">
+              <X className="w-4 h-4" />
+            </button>
+
+            <h4 className="font-black text-slate-900 text-base">تعديل بيانات وسعر الحصة البرمجية ✏️</h4>
+
+            <form onSubmit={handleSaveEditLesson} className="space-y-3 text-xs font-bold">
+              <div>
+                <label className="block mb-1">اسم الحصة البرمجية:</label>
+                <input type="text" value={editLessonTitle} onChange={(e) => setEditLessonTitle(e.target.value)} className="w-full border p-2.5 rounded-xl" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block mb-1">سعر الحصة (ج.م):</label>
+                  <input type="number" value={editLessonPrice} onChange={(e) => setEditLessonPrice(e.target.value)} className="w-full border p-2.5 rounded-xl" />
+                </div>
+
+                <div>
+                  <label className="block mb-1">الصف المستهدف:</label>
+                  <select value={editLessonGrade} onChange={(e) => setEditLessonGrade(e.target.value)} className="w-full border p-2.5 rounded-xl">
+                    <option value="3sec">3 ثانوي (ثانوية عامة)</option>
+                    <option value="2sec">2 ثانوي</option>
+                    <option value="1sec">1 ثانوي</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block mb-1">وصف الحصة:</label>
+                <textarea value={editLessonDesc} onChange={(e) => setEditLessonDesc(e.target.value)} className="w-full border p-2.5 rounded-xl h-20" />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button type="submit" className="flex-1 btn-primary text-xs py-3 rounded-xl">حفظ التعديلات بالسعر الجديد ✅</button>
+                <button type="button" onClick={() => setEditingLessonModal(null)} className="btn-outline text-xs py-3 px-4 rounded-xl">إلغاء</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Student Modal */}
+      {editingStudent && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white p-6 md:p-8 rounded-3xl max-w-md w-full space-y-4 text-right">
+            <h4 className="font-black text-slate-900 text-base">تعديل بيانات حساب الطالب ({editingStudent.code})</h4>
+            
+            <form onSubmit={handleSaveEditStudent} className="space-y-3 text-xs font-bold">
+              <div>
+                <label className="block mb-1">اسم الطالب الكامل:</label>
+                <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full border p-2 rounded-xl" />
+              </div>
+
+              <div>
+                <label className="block mb-1">موبايل الطالب:</label>
+                <input type="text" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className="w-full border p-2 rounded-xl dir-ltr" />
+              </div>
+
+              <div>
+                <label className="block mb-1">موبايل ولي الأمر:</label>
+                <input type="text" value={editParentPhone} onChange={(e) => setEditParentPhone(e.target.value)} className="w-full border p-2 rounded-xl dir-ltr" />
+              </div>
+
+              <div>
+                <label className="block mb-1">رصيد المحفظة (جنيه):</label>
+                <input type="number" value={editBalance} onChange={(e) => setEditBalance(e.target.value)} className="w-full border p-2 rounded-xl" />
+              </div>
+
+              <div>
+                <label className="block mb-1">كلمة المرور:</label>
+                <input type="text" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} className="w-full border p-2 rounded-xl" />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button type="submit" className="flex-1 btn-primary text-xs py-2.5 rounded-xl">حفظ التعديلات ✅</button>
+                <button type="button" onClick={() => setEditingStudent(null)} className="btn-outline text-xs py-2.5 px-4 rounded-xl">إلغاء</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Student Performance Modal */}
+      {studentPerfModal && (() => {
+        const studentExams = examHistory.filter(e => {
+          // Filter by subject
+          const les = lessons.find(l => l.attachedQuiz?.id === e.quizId || l.id === e.lessonId);
+          if (les) {
+            const isArabic = les.subject === 'اللغة العربية' || les.subject?.includes('عرب');
+            if (isSayedAdmin ? !isArabic : isArabic) return false;
+          }
+          return true; // For a real app, also filter by studentId
+        });
+        const avgPct = studentExams.length
+          ? Math.round(studentExams.reduce((sum, e) => sum + e.percentage, 0) / studentExams.length)
+          : null;
+        const passed = studentExams.filter(e => e.passed).length;
+        return (
+          <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+            <div className="bg-white max-w-lg w-full p-6 md:p-8 rounded-3xl border border-slate-200 shadow-2xl space-y-5 text-right relative max-h-[90vh] overflow-y-auto">
+              <button onClick={() => setStudentPerfModal(null)} className="absolute top-4 left-4 p-1.5 rounded-xl bg-slate-100 text-slate-500 hover:text-slate-900">
+                <X className="w-4 h-4" />
+              </button>
+
+              {/* Header */}
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <BarChart2 className="w-5 h-5 text-purple-600" />
+                  <h4 className="font-black text-slate-900 text-base">مستوى الطالب: {studentPerfModal.name}</h4>
+                </div>
+                <p className="text-[10px] text-slate-500 font-bold">كود: {studentPerfModal.code} | صف: {studentPerfModal.gradeName}</p>
+              </div>
+
+              {/* Summary Stats */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-blue-50 p-3 rounded-2xl border border-blue-100 text-center">
+                  <div className="text-xl font-black text-blue-700">{studentExams.length}</div>
+                  <div className="text-[10px] font-bold text-blue-600">إجمالي الامتحانات</div>
+                </div>
+                <div className="bg-emerald-50 p-3 rounded-2xl border border-emerald-100 text-center">
+                  <div className="text-xl font-black text-emerald-700">{passed}</div>
+                  <div className="text-[10px] font-bold text-emerald-600">اجتاز بنجاح</div>
+                </div>
+                <div className={`p-3 rounded-2xl border text-center ${avgPct !== null ? (avgPct >= 80 ? 'bg-emerald-50 border-emerald-100' : avgPct >= 60 ? 'bg-amber-50 border-amber-100' : 'bg-rose-50 border-rose-100') : 'bg-slate-50 border-slate-100'}`}>
+                  <div className={`text-xl font-black ${avgPct !== null ? (avgPct >= 80 ? 'text-emerald-700' : avgPct >= 60 ? 'text-amber-700' : 'text-rose-700') : 'text-slate-400'}`}>
+                    {avgPct !== null ? `${avgPct}%` : '—'}
+                  </div>
+                  <div className="text-[10px] font-bold text-slate-600">متوسط الدرجات</div>
+                </div>
+              </div>
+
+              {/* Student Info Quick View */}
+              <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2 text-xs">
+                <div className="grid grid-cols-2 gap-2">
+                  <div><span className="font-black text-slate-700">المحفظة:</span> <span className="text-emerald-600 font-bold">{studentPerfModal.walletBalance} ج.م</span></div>
+                  <div><span className="font-black text-slate-700">النقاط:</span> <span className="text-amber-600 font-bold">{studentPerfModal.points} نقطة</span></div>
+                  <div><span className="font-black text-slate-700">الاشتراك:</span> <span className="font-bold">{studentPerfModal.subscriptionType}</span></div>
+                  <div><span className="font-black text-slate-700">الموبايل:</span> <span className="font-mono">{studentPerfModal.phone}</span></div>
+                </div>
+              </div>
+
+              {/* Exam History Table */}
+              <div className="space-y-2">
+                <h5 className="font-black text-slate-800 text-sm">سجل الامتحانات:</h5>
+                {studentExams.length === 0 ? (
+                  <div className="text-center py-8 text-xs text-slate-400 font-bold">لم يتم تسجيل أي امتحان لهذا الطالب بعد.</div>
+                ) : (
+                  <div className="space-y-2">
+                    {studentExams.map(ex => (
+                      <div key={ex.id} className={`p-3 rounded-xl border flex items-center justify-between text-xs ${ex.passed ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
+                        <div className="space-y-0.5">
+                          <div className="font-black text-slate-900 line-clamp-1">{ex.quizTitle}</div>
+                          <div className="text-[10px] text-slate-500">{ex.date}</div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-black text-slate-800">{ex.score}/{ex.total}</span>
+                          <span className={`font-black px-2.5 py-0.5 rounded-full ${ex.percentage >= 80 ? 'bg-emerald-200 text-emerald-800' : ex.percentage >= 60 ? 'bg-amber-200 text-amber-800' : 'bg-rose-200 text-rose-800'}`}>
+                            {ex.percentage}%
+                          </span>
+                          <span className="text-sm">{ex.percentage >= 80 ? '🌟' : ex.percentage >= 60 ? '👍' : '❌'}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={() => setStudentPerfModal(null)}
+                className="w-full btn-primary text-xs font-black py-2.5 rounded-xl"
+              >
+                إغلاق
+              </button>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ═══ Broadcast Modal (WhatsApp to All Students) ═══ */}
+      {broadcastModal && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-lg w-full space-y-4 shadow-2xl border border-slate-200 animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-black">
+                  💬
+                </div>
+                <div>
+                  <h4 className="font-black text-sm text-slate-900">إرسال إشعار الحصة الجديدة للطلاب 📲</h4>
+                  <p className="text-[10px] text-slate-500 font-bold">{broadcastModal.lessonTitle}</p>
+                </div>
+              </div>
+              <button onClick={() => setBroadcastModal(null)} className="p-1 rounded-lg text-slate-400 hover:bg-slate-100">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl text-xs text-emerald-800 font-medium">
+              تم تجهيز روابط إرسال الواتساب لـ <strong>{broadcastModal.links.length} طالب</strong> مسجل بالسيستم! اضغط على اسم أي طالب لإرسال الرسالة فوراً:
+            </div>
+
+            <div className="max-h-60 overflow-y-auto space-y-2">
+              {broadcastModal.links.map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs">
+                  <div>
+                    <div className="font-black text-slate-900">{item.studentName}</div>
+                    <div className="text-[10px] text-slate-500 font-mono">{item.phone}</div>
+                  </div>
+                  <a
+                    href={item.whatsappUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-black px-3 py-1.5 rounded-xl text-[11px] flex items-center gap-1 shadow-sm transition-all"
+                  >
+                    <span>إرسال واتساب</span>
+                    <Send className="w-3 h-3" />
+                  </a>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setBroadcastModal(null)}
+                className="btn-primary text-xs font-black py-2.5 px-6 rounded-xl"
+              >
+                تم الإرسال / إغلاق
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+};
