@@ -22,7 +22,24 @@ import {
 } from 'lucide-react';
 
 export const WalletView = () => {
-  const { student, submitPaymentRequest, purchaseSubscription, paymentRequestsDB } = useApp();
+  const { student, submitPaymentRequest, purchaseSubscription, paymentRequestsDB, userRole } = useApp();
+
+  if (userRole === 'admin') {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 text-center space-y-4 max-w-xl mx-auto my-12 bg-white rounded-3xl border border-slate-200 shadow-xl">
+        <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center text-3xl font-black border border-amber-500/20 shadow-md">
+          🛡️
+        </div>
+        <h2 className="text-xl font-black text-slate-900">وضع معاينة الباشمهندس (الأدمن) 💻</h2>
+        <p className="text-xs text-slate-500 font-bold leading-relaxed max-w-md">
+          أنت الآن مسجل دخول كـ **أدمن**. هذه الصفحة (المحفظة والرصيد) مخصصة فقط لعرض ومتابعة أرصدة واشتراكات الطلاب.
+        </p>
+        <p className="text-xs text-slate-400 font-medium max-w-sm">
+          لشحن رصيد أي طالب، أو تفعيل اشتراكه، أو قبول طلبات الشحن والمدفوعات، يرجى الذهاب لتبويب **"لوحة الباشمهندس"** في الشريط العلوي لإدارة المنصة بالكامل.
+        </p>
+      </div>
+    );
+  }
 
   const [activeTab, setActiveTab] = useState('recharge');
   const [paymentMethod, setPaymentMethod] = useState('instapay');
