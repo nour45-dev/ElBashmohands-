@@ -6,6 +6,8 @@ import { MongoClient, ObjectId } from 'mongodb';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import cookieParser from 'cookie-parser';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -230,6 +232,28 @@ const initializeDatabase = async () => {
     }
   }
 };
+
+// Cloudflare R2 object storage client configuration
+const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
+const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
+const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
+const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
+const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
+
+let r2Client = null;
+if (R2_ACCOUNT_ID && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY) {
+  r2Client = new S3Client({
+    region: 'auto',
+    endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    credentials: {
+      accessKeyId: R2_ACCESS_KEY_ID,
+      secretAccessKey: R2_SECRET_ACCESS_KEY,
+    },
+  });
+  console.log('Cloudflare R2 storage client successfully initialized.');
+} else {
+  console.log('Cloudflare R2 credentials not configured. Direct uploads will not be available.');
+}
 
 const setupLocalJsonDB = () => {
   dbType = 'json';
@@ -1182,6 +1206,46 @@ app.post('/api/chat', async (req, res) => {
   } catch (error) {
     console.error('Proxy Error:', error);
     return res.status(500).json({ error: error.message || 'Server error occurred' });
+  }
+});
+
+// Generates S3/R2 presigned upload URLs for admin video, image, and document uploads
+app.post('/api/upload/presign', requireAdmin, async (req, res) => {
+  const { filename, contentType } = req.body;
+
+  if (!r2Client) {
+    return res.status(500).json({ error: 'Cloudflare R2 Client is not configured on this server.' });
+  }
+
+  if (!filename || !contentType) {
+    return res.status(400).json({ error: 'filename and contentType are required.' });
+  }
+
+  try {
+    let folder = 'videos';
+    if (contentType.startsWith('image/')) {
+      folder = 'thumbnails';
+    } else if (contentType === 'application/pdf' || contentType.includes('word') || contentType.includes('officedocument')) {
+      folder = 'attachments';
+    }
+    
+    const uniqueKey = `${folder}/${Date.now()}-${filename}`;
+    const command = new PutObjectCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: uniqueKey,
+      ContentType: contentType
+    });
+
+    // Link expires in 15 minutes (900 seconds)
+    const uploadUrl = await getSignedUrl(r2Client, command, { expiresIn: 900 });
+
+    const publicUrlBase = R2_PUBLIC_URL.endsWith('/') ? R2_PUBLIC_URL : `${R2_PUBLIC_URL}/`;
+    const videoUrl = `${publicUrlBase}${uniqueKey}`;
+
+    return res.json({ success: true, uploadUrl, videoUrl });
+  } catch (err) {
+    console.error('Presign URL error:', err);
+    return res.status(500).json({ error: 'Failed to generate upload URL: ' + err.message });
   }
 });
 
