@@ -14,11 +14,14 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1106.0",
+    "@aws-sdk/s3-request-presigner": "^3.1106.0",
     "@tailwindcss/vite": "^4.3.3",
     "bcryptjs": "^3.0.3",
     "canvas-confetti": "^1.9.4",
     "cookie-parser": "^1.4.7",
     "express": "^4.21.2",
+    "firebase": "^12.17.1",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.30.0",
     "mongodb": "^7.5.0",
