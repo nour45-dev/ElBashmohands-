@@ -704,7 +704,7 @@ export const AppProvider = ({ children }) => {
 💡 *ملاحظة الباشمهندس:* الطالب متميز جداً وملتزم بكورسات وتطبيقات البرمجة العملية.
 
 🔗 لمتابعة المحتوى والدروس على منصة الباشمهندس:
-https://bassthalk.com/elbashmohandis`;
+https://elbashmohands-production.up.railway.app/`;
   };
 
   // Safe Text Generator for WhatsApp Modal
