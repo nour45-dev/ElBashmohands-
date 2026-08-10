@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AppContext = createContext();
 
@@ -23,596 +23,384 @@ export const formatVideoEmbedUrl = (url) => {
   return cleanUrl;
 };
 
-export const initialStudentsDB = [
-  {
-    id: 'std_101',
-    code: 'ENG-101',
-    name: 'أحمد محمود العبد',
-    email: 'ahmed@bashmohandis.com',
-    phone: '01012345678',
-    parentPhone: '01198765432',
-    password: '123',
-    grade: '3sec',
-    gradeName: 'الصف الثالث الثانوي (تانوية عامة)',
-    avatar: null,
-    walletBalance: 0,
-    subscriptionStatus: 'active',
-    subscriptionType: 'شهري',
-    monthlyCreditsLeft: 8,
-    points: 120,
-    streakDays: 5,
-    rank: 1,
-    badges: [{ id: 'b1', name: 'عضو جديد 💻', icon: '💻', desc: 'انضم لمنصة الباشمهندس' }]
-  }
-];
-
-export const initialCouponsDB = [
-  {
-    id: 'coup_1',
-    code: 'BASHMO2026',
-    type: 'percent',
-    value: 50,
-    targetGrade: 'all',
-    maxUses: 100,
-    usedCount: 14,
-    active: true
-  },
-  {
-    id: 'coup_2',
-    code: 'FREE100',
-    type: 'free',
-    value: 100,
-    targetGrade: '3sec',
-    maxUses: 50,
-    usedCount: 8,
-    active: true
-  }
-];
-
-export const initialQuizzes = [];
-
-export const initialLessons = [
-  {
-    id: 'les_demo_1',
-    title: 'مقدمة في لغة Python وكتابة أول برنامج',
-    subject: 'برمجة وعلوم الحاسب',
-    grade: '3sec',
-    duration: '45 دقيقة',
-    price: 25,
-    videoType: 'url',
-    videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    thumbnail: 'https://images.unsplash.com/photo-1526379879527-8559ecfcaec0?auto=format&fit=crop&q=80&w=600',
-    description: 'شرح مبسط وممتع لأساسيات المتغيرات وعمليات الإدخال والإخراج في Python.',
-    attachmentType: 'pdf',
-    attachmentPdf: 'مذكرة_Python_الحصة_الأولى.pdf',
-    attachmentFileUrl: null,
-    viewsCount: 142,
-    isUnlocked: false,
-    attachedQuiz: {
-      id: 'qz_demo_1',
-      title: 'الامتحان الإلكتروني للحصة الأولى - لغة Python',
-      rewardPoints: 50,
-      durationMinutes: 20,
-      questions: [
-        {
-          id: 1,
-          question: 'أي من الكلمات التالية تستخدم لطباعة مخرجات في لغة Python؟',
-          options: ['echo', 'print()', 'Console.WriteLine()', 'printf()'],
-          correctIndex: 1
-        },
-        {
-          id: 2,
-          question: 'كيف يتم تعريف المتغير x بقيمة نصية في Python؟',
-          options: ['int x = "Hello"', 'x = "Hello"', 'var x = "Hello"', 'string x = "Hello"'],
-          correctIndex: 1
-        }
-      ]
-    }
-  },
-  {
-    id: 'les_demo_2',
-    title: 'شرح درس البلاغة - الكناية وأسرار الجمال',
-    subject: 'اللغة العربية',
-    grade: '3sec',
-    duration: '40 دقيقة',
-    price: 25,
-    videoType: 'url',
-    videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    thumbnail: 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&q=80&w=600',
-    description: 'شرح تفصيلي لدرس الكناية وأنواعها (عن صفة، عن موصوف، عن نسبة) وتدريبات البلاغة للمرحلة الثانوية.',
-    attachmentType: 'pdf',
-    attachmentPdf: 'مذكرة_البلاغة_الكناية.pdf',
-    attachmentFileUrl: null,
-    viewsCount: 98,
-    isUnlocked: false,
-    attachedQuiz: {
-      id: 'qz_demo_2',
-      title: 'امتحان البلاغة الإلكتروني - درس الكناية',
-      rewardPoints: 50,
-      durationMinutes: 15,
-      questions: [
-        {
-          id: 1,
-          question: 'قال الشاعر: "فما جازه جود ولا حل دونه ... ولكن يسير الجود حيث يسير" — ما نوع الكناية هنا؟',
-          options: ['كناية عن صفة', 'كناية عن موصوف', 'كناية عن نسبة', 'استعارة تصريحية'],
-          correctIndex: 2
-        }
-      ]
-    }
-  }
-];
-
-export const initialPaymentRequests = [
-  {
-    id: 'req_1001',
-    studentId: 'std_101',
-    studentName: 'أحمد محمود العبد',
-    studentPhone: '01012345678',
-    parentPhone: '01198765432',
-    amount: 150,
-    method: 'instapay',
-    refNumber: 'INSTA-88741259',
-    proofImage: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&q=80&w=400',
-    status: 'pending',
-    requestDate: new Date().toLocaleDateString('ar-EG')
-  }
-];
-
 export const AppProvider = ({ children }) => {
   const [currentGrade, setCurrentGrade] = useState('3sec');
-  
-  const [userRole, setUserRoleState] = useState(() => {
-    return localStorage.getItem('bashmohandis_role') || 'student';
-  });
+  const [userRole, setUserRole] = useState('student');
+  const [adminIdentity, setAdminIdentity] = useState('eng_nour');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loadingSession, setLoadingSession] = useState(true);
 
-  const [adminIdentity, setAdminIdentityState] = useState(() => {
-    return localStorage.getItem('bashmohandis_admin_identity') || 'eng_nour';
-  });
+  // Core Data Lists loaded from DB API
+  const [studentsDB, setStudentsDB] = useState([]);
+  const [currentStudent, setCurrentStudent] = useState(null);
+  const [lessons, setLessons] = useState([]);
+  const [quizzes, setQuizzes] = useState([]);
+  const [couponsDB, setCouponsDB] = useState([]);
+  const [paymentRequestsDB, setPaymentRequestsDB] = useState([]);
+  const [videoQuestions, setVideoQuestions] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [examHistory, setExamHistory] = useState([]);
+  const [examAttempts, setExamAttempts] = useState({});
 
-  const setAdminIdentity = (identity) => {
-    setAdminIdentityState(identity);
-    localStorage.setItem('bashmohandis_admin_identity', identity);
-  };
-  
-  const [isAuthenticated, setIsAuthenticatedState] = useState(() => {
-    return localStorage.getItem('bashmohandis_auth') === 'true';
-  });
-
-  // Teacher accounts for quick login from student login page
-  const TEACHER_ACCOUNTS = [
-    { email: 'nour@bashmohandis.com', phone: '01002169889', password: 'nour2026', identity: 'eng_nour', name: 'مهندس نور' },
-    { email: 'sayed@bashmohandis.com', phone: '01094273996', password: 'sayed2026', identity: 'mr_sayed', name: 'مستر سيد' }
-  ];
-
-  const [studentsDB, setStudentsDBState] = useState(() => {
-    const saved = localStorage.getItem('bashmohandis_studentsDB');
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) {}
-    }
-    return initialStudentsDB;
-  });
-
-  const setStudentsDB = (updater) => {
-    setStudentsDBState(prev => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      localStorage.setItem('bashmohandis_studentsDB', JSON.stringify(next));
-      return next;
-    });
-  };
-  
-  const [currentStudent, setCurrentStudentState] = useState(() => {
-    const saved = localStorage.getItem('bashmohandis_student');
-    if (saved) {
-      try { 
-        const parsed = JSON.parse(saved);
-        return { 
-          ...parsed, 
-          walletBalance: parsed.walletBalance || 0,
-          monthlyCreditsLeft: parsed.monthlyCreditsLeft !== undefined ? parsed.monthlyCreditsLeft : 8
-        };
-      } catch (e) {}
-    }
-    return initialStudentsDB[0];
-  });
-  
-  const [lessons, setLessonsState] = useState(() => {
-    const saved = localStorage.getItem('bashmohandis_lessons');
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) {}
-    }
-    return initialLessons;
-  });
-
-  const setLessons = (updater) => {
-    setLessonsState(prev => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      localStorage.setItem('bashmohandis_lessons', JSON.stringify(next));
-      return next;
-    });
-  };
-
-  const [quizzes, setQuizzes] = useState(initialQuizzes);
-
-  const [couponsDB, setCouponsDBState] = useState(() => {
-    const saved = localStorage.getItem('bashmohandis_couponsDB');
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) {}
-    }
-    return initialCouponsDB;
-  });
-
-  const setCouponsDB = (updater) => {
-    setCouponsDBState(prev => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      localStorage.setItem('bashmohandis_couponsDB', JSON.stringify(next));
-      return next;
-    });
-  };
-
-  const [paymentRequestsDB, setPaymentRequestsState] = useState(() => {
-    const saved = localStorage.getItem('bashmohandis_paymentRequests');
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) {}
-    }
-    return initialPaymentRequests;
-  });
-
-  const setPaymentRequestsDB = (updater) => {
-    setPaymentRequestsState(prev => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      localStorage.setItem('bashmohandis_paymentRequests', JSON.stringify(next));
-      return next;
-    });
-  };
-
-  const [examHistory, setExamHistoryState] = useState(() => {
-    const saved = localStorage.getItem('bashmohandis_examHistory');
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) {}
-    }
-    return [];
-  });
-
-  const setExamHistory = (updater) => {
-    setExamHistoryState(prev => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      localStorage.setItem('bashmohandis_examHistory', JSON.stringify(next));
-      return next;
-    });
-  };
-
-  const [examAttempts, setExamAttemptsState] = useState(() => {
-    const saved = localStorage.getItem('bashmohandis_examAttempts');
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) {}
-    }
-    return {};
-  });
-
-  const setExamAttempts = (updater) => {
-    setExamAttemptsState(prev => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      localStorage.setItem('bashmohandis_examAttempts', JSON.stringify(next));
-      return next;
-    });
-  };
-
+  // Local helper UI logs
   const [whatsappLogs, setWhatsappLogs] = useState([]);
   const [smsLogs, setSmsLogs] = useState([]);
-
-  // Video Q&A State
-  const [videoQuestions, setVideoQuestionsState] = useState(() => {
-    const saved = localStorage.getItem('bashmohandis_videoQuestions');
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) {}
-    }
-    return [
-      {
-        id: 'q_101',
-        lessonId: 'les_demo_1',
-        studentName: 'أحمد محمود العبد',
-        studentPhone: '01012345678',
-        questionText: 'يا باشمهندس ازاي أفرق بين List و Tuple في لغة Python؟',
-        replyText: 'أهلاً يا أحمد! الـ List قابلة للتعديل (mutable)، بينما الـ Tuple ثابته ولا يمكن تعديل عناصرها بعد إنشائها.',
-        repliedAt: 'منذ ساعتين',
-        status: 'answered'
-      }
-    ];
-  });
-
-  const setVideoQuestions = (updater) => {
-    setVideoQuestionsState(prev => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      localStorage.setItem('bashmohandis_videoQuestions', JSON.stringify(next));
-      return next;
-    });
-  };
-
-  const [notifications, setNotificationsState] = useState(() => {
-    const saved = localStorage.getItem('bashmohandis_notifications');
-    if (saved) {
-      try { return JSON.parse(saved); } catch (e) {}
-    }
-    return [
-      { id: 'n1', title: 'مرحباً بك في منصة الباشمهندس للبرمجة! 💻', body: 'التطبيق جاهز ومحمي بالكامل 100%.', time: 'الآن', unread: true }
-    ];
-  });
-
-  const setNotifications = (updater) => {
-    setNotificationsState(prev => {
-      const next = typeof updater === 'function' ? updater(prev) : updater;
-      localStorage.setItem('bashmohandis_notifications', JSON.stringify(next));
-      return next;
-    });
-  };
-
   const [activeWhatsAppModal, setActiveWhatsAppModal] = useState(null);
 
-  // Sync to localStorage
-  const setIsAuthenticated = (val) => {
-    setIsAuthenticatedState(val);
-    localStorage.setItem('bashmohandis_auth', val ? 'true' : 'false');
+  // 1. Session check on mount
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const res = await fetch('/api/auth/me', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          setIsAuthenticated(true);
+          setUserRole(data.role);
+          if (data.role === 'admin') {
+            setAdminIdentity(data.identity);
+            fetchAdminData();
+          } else {
+            setCurrentStudent(data.user);
+            setCurrentGrade(data.user.grade || '3sec');
+            fetchStudentData();
+          }
+        }
+      } catch (err) {
+        console.error('Session check failed:', err);
+      } finally {
+        setLoadingSession(false);
+      }
+    };
+    checkSession();
+    fetchPublicData();
+  }, [isAuthenticated, userRole]);
+
+  // Load public data (lessons list and notifications list)
+  const fetchPublicData = async () => {
+    try {
+      const resLessons = await fetch('/api/lessons');
+      if (resLessons.ok) {
+        const data = await resLessons.json();
+        setLessons(data);
+      }
+      const resNotifs = await fetch('/api/notifications');
+      if (resNotifs.ok) {
+        const data = await resNotifs.json();
+        setNotifications(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch public data:', err);
+    }
   };
 
-  const setUserRole = (role) => {
-    setUserRoleState(role);
-    localStorage.setItem('bashmohandis_role', role);
+  // Load student-specific data
+  const fetchStudentData = async () => {
+    try {
+      const resQuestions = await fetch('/api/questions', { credentials: 'include' });
+      if (resQuestions.ok) {
+        const data = await resQuestions.json();
+        setVideoQuestions(data);
+      }
+      const resExams = await fetch('/api/exams', { credentials: 'include' });
+      if (resExams.ok) {
+        const data = await resExams.json();
+        setExamHistory(data);
+        // Build attempts mapping
+        const attemptsMap = {};
+        data.forEach(ex => {
+          if (ex.quizId) attemptsMap[ex.quizId] = ex;
+        });
+        setExamAttempts(attemptsMap);
+      }
+    } catch (err) {
+      console.error('Failed to load student data:', err);
+    }
   };
 
-  const setCurrentStudent = (std) => {
-    setCurrentStudentState(std);
-    localStorage.setItem('bashmohandis_student', JSON.stringify(std));
+  // Load admin-only tables
+  const fetchAdminData = async () => {
+    try {
+      const resStudents = await fetch('/api/students', { credentials: 'include' });
+      if (resStudents.ok) {
+        const data = await resStudents.json();
+        setStudentsDB(data);
+      }
+      const resPayments = await fetch('/api/payments', { credentials: 'include' });
+      if (resPayments.ok) {
+        const data = await resPayments.json();
+        setPaymentRequestsDB(data);
+      }
+      const resCoupons = await fetch('/api/coupons', { credentials: 'include' });
+      if (resCoupons.ok) {
+        const data = await resCoupons.json();
+        setCouponsDB(data);
+      }
+      const resQuestions = await fetch('/api/questions', { credentials: 'include' });
+      if (resQuestions.ok) {
+        const data = await resQuestions.json();
+        setVideoQuestions(data);
+      }
+    } catch (err) {
+      console.error('Failed to load admin data:', err);
+    }
   };
 
   // Student Registration Handler
-  const registerStudent = ({ name, email, phone, parentPhone, grade, password, confirmPassword }) => {
-    const cleanName = (name || '').trim();
-    const cleanEmail = (email || '').trim();
-    const cleanPhone = (phone || '').trim();
-    const cleanPass = (password || '').trim();
-    const cleanConfirm = (confirmPassword || '').trim();
-
-    if (!cleanName || cleanName.length < 3) {
-      return { success: false, message: 'يرجى إدخال اسم الطالب الثلاثي بشكل صحيح.' };
-    }
-
-    if (!cleanEmail || !cleanEmail.includes('@')) {
-      return { success: false, message: 'يرجى إدخال بريد إلكتروني صحيح.' };
-    }
-
-    if (!cleanPhone || cleanPhone.length < 10) {
-      return { success: false, message: 'يرجى إدخال رقم هاتف الطالب المكون من 11 رقم.' };
-    }
-
-    if (cleanPass !== cleanConfirm) {
+  const registerStudent = async ({ name, email, phone, parentPhone, grade, password, confirmPassword }) => {
+    if (password !== confirmPassword) {
       return { success: false, message: 'كلمة المرور وتأكيد كلمة المرور غير متطابقين!' };
     }
 
-    const existing = studentsDB.find(s => s.phone === cleanPhone || s.email === cleanEmail);
-    if (existing) {
-      return { success: false, message: 'رقم الموبايل أو البريد هذا مسجل مسبقاً! يرجى تسجيل الدخول.' };
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, phone, parentPhone, grade, password }),
+        credentials: 'include'
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        return { success: false, message: errData.error || 'فشلت عملية إنشاء الحساب.' };
+      }
+
+      const data = await res.json();
+      setIsAuthenticated(true);
+      setUserRole('student');
+      setCurrentStudent(data.user);
+      setCurrentGrade(data.user.grade || '3sec');
+      
+      return { success: true, studentCode: data.user.code, message: `تم إنشاء حسابك بنجاح! كود الطالب الخاص بك هو: ${data.user.code}` };
+    } catch (err) {
+      return { success: false, message: 'خطأ في الاتصال بالخادم.' };
     }
-
-    const nextCodeNumber = studentsDB.length + 101;
-    const newStudentCode = `ENG-${nextCodeNumber}`;
-
-    const uniqueId = 'std_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6) + '_' + (studentsDB.length + 101);
-
-    const newStudentObj = {
-      id: uniqueId,
-      code: newStudentCode,
-      name: cleanName,
-      email: cleanEmail,
-      phone: cleanPhone,
-      parentPhone: (parentPhone || '').trim(),
-      password: cleanPass,
-      grade: grade || '3sec',
-      gradeName: grade === '1sec' ? 'الصف الأول الثانوي' : grade === '2sec' ? 'الصف الثاني الثانوي' : 'الصف الثالث الثانوي (تانوية عامة)',
-      avatar: null,
-      walletBalance: 0,
-      subscriptionStatus: 'none',
-      subscriptionType: 'غير مشترك',
-      monthlyCreditsLeft: 0,
-      points: 0,
-      streakDays: 1,
-      rank: studentsDB.length + 1,
-      badges: [{ id: 'b_new', name: 'عضو جديد 🚀', icon: '🚀', desc: 'انضم لمنصة الباشمهندس للبرمجة' }]
-    };
-
-    setStudentsDB(prev => [newStudentObj, ...prev]);
-    setCurrentStudent(newStudentObj);
-    setCurrentGrade(newStudentObj.grade);
-    setUserRole('student');
-    setIsAuthenticated(true);
-
-    return { success: true, studentCode: newStudentCode, message: `تم إنشاء حسابك بنجاح! كود الطالب الخاص بك هو: ${newStudentCode}` };
   };
 
   // Login Handler
-  const loginUser = (role, credentials) => {
-    if (role === 'admin') {
-      const inputPass = (credentials.adminCode || '').trim();
-      const identity = credentials.adminIdentity || 'eng_nour';
-      if (inputPass === '0123456') {
-        setUserRole('admin');
-        setAdminIdentity(identity);
-        setIsAuthenticated(true);
-        const nameText = identity === 'mr_sayed' ? 'مستر سيد عبد العاطي 📖' : 'مهندس نور 💻';
-        return { success: true, message: `أهلاً وسهلاً بك يا ${nameText}! تم تسجيل الدخول إلى لوحة التحكم الإدارية.` };
-      } else {
-        return { success: false, message: 'كلمة سر الأدمن غير صحيحة! (كلمة المرور الرسمية: 0123456)' };
+  const loginUser = async (role, credentials) => {
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role, credentials }),
+        credentials: 'include'
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        return { success: false, message: errData.error || 'بيانات الدخول غير صحيحة.' };
       }
-    }
 
-    if (role === 'parent') {
-      const search = (credentials.parentStudentCode || '').trim().toUpperCase();
-      if (!search) {
-        return { success: false, message: 'يرجى إدخال اسم أو كود الطالب لمتابعة حسابه.' };
-      }
-      const matched = studentsDB.find(s => s.code === search || s.phone === search || s.name.includes(search));
-      if (matched) {
-        setCurrentStudent(matched);
-        setUserRole('parent');
-        setIsAuthenticated(true);
-        return { success: true, matchedStudent: matched, message: `تم الوصول لحساب الطالب: ${matched.name}` };
-      } else {
-        return { success: false, message: 'لم يتم العثور على طالب بهذا الكود أو الاسم. تأكد من إدخال بيانات صحيحة.' };
-      }
-    }
-
-    const identifier = (credentials.phoneInput || '').trim();
-    const pass = (credentials.passInput || '').trim();
-
-    if (!identifier || !pass) {
-      return { success: false, message: 'يرجى إدخال البريد الإلكتروني أو رقم الموبايل وكلمة المرور.' };
-    }
-
-    // Helper to normalize phone numbers (removes spaces, replaces +20 or 20 prefix with 0)
-    const normalizePhone = (p) => {
-      if (!p) return '';
-      const clean = p.replace(/\s+/g, '');
-      if (clean.startsWith('+20')) return '0' + clean.substring(3);
-      if (clean.startsWith('20') && clean.length > 10) return '0' + clean.substring(2);
-      if (clean.startsWith('+2')) return '0' + clean.substring(2);
-      return clean;
-    };
-
-    const cleanIdentifier = normalizePhone(identifier);
-
-    // Check teacher accounts first
-    const foundTeacher = TEACHER_ACCOUNTS.find(
-      t => (t.email.toLowerCase() === identifier.toLowerCase() || normalizePhone(t.phone) === cleanIdentifier) && t.password === pass
-    );
-    if (foundTeacher) {
-      setUserRole('admin');
-      setAdminIdentity(foundTeacher.identity);
+      const data = await res.json();
       setIsAuthenticated(true);
-      return { success: true, message: `أهلاً وسهلاً يا ${foundTeacher.name}! تم تسجيل الدخول.` };
-    }
+      setUserRole(data.role);
 
-    const foundStudent = studentsDB.find(
-      s => normalizePhone(s.phone) === cleanIdentifier || s.email.toLowerCase() === identifier.toLowerCase()
-    );
-    if (!foundStudent) {
-      return { success: false, message: 'البريد أو رقم الموبايل غير مسجل! يرجى إنشاء حساب جديد أولاً.' };
+      if (data.role === 'admin') {
+        setAdminIdentity(data.identity);
+        await fetchAdminData();
+        return { success: true, message: `أهلاً وسهلاً بك يا ${data.name}! تم تسجيل الدخول.` };
+      } else if (data.role === 'parent') {
+        setCurrentStudent(data.matchedStudent);
+        await fetchStudentData();
+        return { success: true, matchedStudent: data.matchedStudent, message: `تم الوصول لحساب الطالب: ${data.matchedStudent.name}` };
+      } else {
+        setCurrentStudent(data.user);
+        setCurrentGrade(data.user.grade || '3sec');
+        await fetchStudentData();
+        return { success: true, message: `أهلاً بعودتك يا ${data.user.name}` };
+      }
+    } catch (err) {
+      return { success: false, message: 'خطأ في الاتصال بالخادم.' };
     }
-
-    if (foundStudent.password !== pass) {
-      return { success: false, message: 'كلمة المرور غير صحيحة! يرجى التأكد منها.' };
-    }
-
-    setCurrentStudent(foundStudent);
-    setCurrentGrade(foundStudent.grade);
-    setUserRole('student');
-    setIsAuthenticated(true);
-    return { success: true, message: `أهلاً بعودتك يا ${foundStudent.name}` };
   };
 
-  const logoutUser = () => {
+  // Logout Handler
+  const logoutUser = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch (e) {}
     setIsAuthenticated(false);
-    localStorage.removeItem('bashmohandis_auth');
+    setUserRole('student');
+    setCurrentStudent(null);
+    setExamHistory([]);
+    setExamAttempts({});
   };
 
   const switchGrade = (gradeId) => {
     if (userRole === 'admin') {
       setCurrentGrade(gradeId);
     } else {
-      setCurrentGrade(currentStudent.grade || gradeId);
+      setCurrentGrade(currentStudent?.grade || gradeId);
     }
   };
 
   // Submit Payment Recharge Request (Requires Admin Approval)
-  const submitPaymentRequest = ({ amount, method, refNumber, proofImage }) => {
+  const submitPaymentRequest = async ({ amount, method, refNumber, proofImage }) => {
     if (!refNumber || refNumber.length < 4) {
       return { success: false, message: 'يرجى إدخال مرجع عملية التحويل بشكل صحيح.' };
     }
 
-    const newRequest = {
-      id: 'req_' + Date.now(),
-      studentId: currentStudent.id,
-      studentName: currentStudent.name,
-      studentPhone: currentStudent.phone,
-      parentPhone: currentStudent.parentPhone,
-      amount: Number(amount) || 100,
-      method: method || 'instapay',
-      refNumber: refNumber.trim(),
-      proofImage: proofImage || 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&q=80&w=400',
-      status: 'pending',
-      requestDate: new Date().toLocaleDateString('ar-EG')
-    };
+    try {
+      const res = await fetch('/api/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, method, refNumber, proofImage }),
+        credentials: 'include'
+      });
 
-    setPaymentRequestsDB(prev => [newRequest, ...prev]);
+      if (!res.ok) {
+        const errData = await res.json();
+        return { success: false, message: errData.error || 'فشل إرسال طلب الدفع.' };
+      }
 
-    return { 
-      success: true, 
-      message: 'تم إرسال طلب الشحن وصورة الإيصال بنجاح للإدارة! سيتم إضافة الرصيد فور مراجعة التحويل ⏳' 
-    };
+      const newRequest = await res.json();
+      setPaymentRequestsDB(prev => [newRequest, ...prev]);
+
+      return { 
+        success: true, 
+        message: 'تم إرسال طلب الشحن وصورة الإيصال بنجاح للإدارة! سيتم إضافة الرصيد فور مراجعة التحويل ⏳' 
+      };
+    } catch (err) {
+      return { success: false, message: 'خطأ في الاتصال بالخادم.' };
+    }
   };
 
   // Admin Approve Payment Request
-  const adminApprovePayment = (requestId) => {
+  const adminApprovePayment = async (requestId) => {
     const req = paymentRequestsDB.find(r => r.id === requestId);
     if (!req) return;
 
-    setStudentsDB(prev => prev.map(st => {
-      if (st.id === req.studentId) {
-        const newBalance = st.walletBalance + req.amount;
-        if (st.id === currentStudent.id) {
-          setCurrentStudent({ ...st, walletBalance: newBalance });
-        }
-        return { ...st, walletBalance: newBalance };
+    try {
+      const res = await fetch(`/api/payments/${requestId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'approved' }),
+        credentials: 'include'
+      });
+
+      if (res.ok) {
+        setStudentsDB(prev => prev.map(st => {
+          if (st.id === req.studentId) {
+            const newBalance = st.walletBalance + req.amount;
+            return { ...st, walletBalance: newBalance };
+          }
+          return st;
+        }));
+        setPaymentRequestsDB(prev => prev.map(r => r.id === requestId ? { ...r, status: 'approved' } : r));
+
+        triggerWhatsAppSend({
+          isFullParentReport: false,
+          studentName: req.studentName,
+          parentPhone: req.parentPhone,
+          studentPhone: req.studentPhone,
+          title: `تأكيد موافقة شحن رصيد بقيمة ${req.amount} ج.م`
+        }, 'parent');
+
+        triggerSmsSend({
+          title: `تم تأكيد إضافة ${req.amount} جنيه لرصيدك بمحفظة الباشمهندس`,
+          studentName: req.studentName,
+          parentPhone: req.parentPhone,
+          studentPhone: req.studentPhone
+        }, 'student');
       }
-      return st;
-    }));
-
-    setPaymentRequestsDB(prev => prev.map(r => r.id === requestId ? { ...r, status: 'approved' } : r));
-
-    triggerWhatsAppSend({
-      isFullParentReport: false,
-      studentName: req.studentName,
-      parentPhone: req.parentPhone,
-      studentPhone: req.studentPhone,
-      title: `تأكيد موافقة شحن رصيد بقيمة ${req.amount} ج.م`
-    }, 'parent');
-
-    triggerSmsSend({
-      title: `تم تأكيد إضافة ${req.amount} جنيه لرصيدك بمحفظة الباشمهندس`,
-      studentName: req.studentName,
-      parentPhone: req.parentPhone,
-      studentPhone: req.studentPhone
-    }, 'student');
+    } catch (err) {
+      console.error('Approve payment failed:', err);
+    }
   };
 
   // Admin Reject Payment Request
-  const adminRejectPayment = (requestId, reason = 'بيانات التحويل أو صورة الإيصال غير واضحة.') => {
-    setPaymentRequestsDB(prev => prev.map(r => r.id === requestId ? { ...r, status: 'rejected', rejectReason: reason } : r));
+  const adminRejectPayment = async (requestId, reason = 'بيانات التحويل أو صورة الإيصال غير واضحة.') => {
+    try {
+      const res = await fetch(`/api/payments/${requestId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'rejected' }),
+        credentials: 'include'
+      });
+
+      if (res.ok) {
+        setPaymentRequestsDB(prev => prev.map(r => r.id === requestId ? { ...r, status: 'rejected', rejectReason: reason } : r));
+      }
+    } catch (err) {
+      console.error('Reject payment failed:', err);
+    }
   };
 
-  // Admin Lesson Edit Handler (Full Edit Title, Price, Grade, Attachment & Quiz)
-  const adminUpdateLesson = (lessonId, updatedData) => {
-    setLessons(prev => prev.map(les => les.id === lessonId ? { ...les, ...updatedData } : les));
+  // Admin Lesson Edit Handler
+  const adminUpdateLesson = async (lessonId, updatedData) => {
+    try {
+      const res = await fetch(`/api/lessons/${lessonId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedData),
+        credentials: 'include'
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setLessons(prev => prev.map(les => les.id === lessonId ? updated : les));
+      }
+    } catch (err) {
+      console.error('Update lesson failed:', err);
+    }
   };
 
   // Admin Coupon Delete Handler
-  const adminDeleteCoupon = (couponId) => {
-    setCouponsDB(prev => prev.filter(c => c.id !== couponId));
+  const adminDeleteCoupon = async (couponId) => {
+    try {
+      const res = await fetch(`/api/coupons/${couponId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      if (res.ok) {
+        setCouponsDB(prev => prev.filter(c => c.id !== couponId));
+      }
+    } catch (err) {
+      console.error('Delete coupon failed:', err);
+    }
   };
 
   // Admin Student Management: Edit Student
-  const adminUpdateStudent = (studentId, updatedData) => {
-    setStudentsDB(prev => prev.map(st => st.id === studentId ? { ...st, ...updatedData } : st));
-    if (currentStudent && currentStudent.id === studentId) {
-      setCurrentStudent(prev => ({ ...prev, ...updatedData }));
+  const adminUpdateStudent = async (studentId, updatedData) => {
+    try {
+      const res = await fetch(`/api/students/${studentId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedData),
+        credentials: 'include'
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setStudentsDB(prev => prev.map(st => st.id === studentId ? updated : st));
+        if (currentStudent && currentStudent.id === studentId) {
+          setCurrentStudent(updated);
+        }
+      }
+    } catch (err) {
+      console.error('Update student failed:', err);
     }
   };
 
   // Admin Student Management: Delete Student
-  const adminDeleteStudent = (studentId) => {
-    setStudentsDB(prev => prev.filter(st => st.id !== studentId));
+  const adminDeleteStudent = async (studentId) => {
+    try {
+      const res = await fetch(`/api/students/${studentId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      if (res.ok) {
+        setStudentsDB(prev => prev.filter(st => st.id !== studentId));
+      }
+    } catch (err) {
+      console.error('Delete student failed:', err);
+    }
   };
 
-  // Manual Recharge via Code (fallback)
-  const rechargeWallet = (codeOrAmount, paymentMethod = 'code') => {
+  // Manual Recharge via Code (fallback - purely clientside or updates student balance)
+  const rechargeWallet = async (codeOrAmount, paymentMethod = 'code') => {
     let amount = 0;
     const cleanCode = (codeOrAmount || '').trim().toUpperCase();
     if (cleanCode.includes('50') || cleanCode === 'SAYED50') amount = 50;
@@ -623,67 +411,118 @@ export const AppProvider = ({ children }) => {
       return { success: false, message: 'كود الشحن غير صحيح أو مستعمل مسبقاً.' };
     }
 
-    setCurrentStudent(prev => ({
-      ...prev,
-      walletBalance: prev.walletBalance + amount
-    }));
+    try {
+      const newBalance = (currentStudent.walletBalance || 0) + amount;
+      const res = await fetch(`/api/students/${currentStudent.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ walletBalance: newBalance }),
+        credentials: 'include'
+      });
 
-    return { success: true, amount, message: `تم شحن ${amount} جنيه بنجاح إلى محفظتك! 🎟️` };
+      if (res.ok) {
+        const updated = await res.json();
+        setCurrentStudent(updated);
+        return { success: true, amount, message: `تم شحن ${amount} جنيه بنجاح إلى محفظتك! 🎟️` };
+      }
+      return { success: false, message: 'فشلت عملية الشحن التلقائية.' };
+    } catch (err) {
+      return { success: false, message: 'خطأ في الاتصال بالخادم.' };
+    }
   };
 
   // Purchase Monthly (8 Video Credits) or Annual Subscription
-  const purchaseSubscription = (planType, price) => {
+  const purchaseSubscription = async (planType, price) => {
     if (currentStudent.walletBalance < price) {
       return { success: false, message: `رصيد المحفظة لا يكفي الاشتراك (${price} ج.م). يرجى شحن المحفظة أولاً.` };
     }
 
     const isMonthly = planType === 'شهري';
     const newCredits = isMonthly ? 8 : 999;
+    const newBalance = currentStudent.walletBalance - price;
 
-    setCurrentStudent(prev => ({
-      ...prev,
-      walletBalance: prev.walletBalance - price,
-      subscriptionStatus: 'active',
-      subscriptionType: planType,
-      monthlyCreditsLeft: newCredits
-    }));
+    try {
+      const res = await fetch(`/api/students/${currentStudent.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          walletBalance: newBalance,
+          subscriptionStatus: 'active',
+          subscriptionType: planType,
+          monthlyCreditsLeft: newCredits
+        }),
+        credentials: 'include'
+      });
 
-    return { 
-      success: true, 
-      message: isMonthly 
-        ? `تم تفعيل الاشتراك الشهري بنجاح! تم منحك رصيد 8 حصص اختيارية تختار فتحها بنفسك 🎓`
-        : `تم تفعيل الاشتراك السنوي الشامل بنجاح! تم فتح كافة حصص الصف كاملاً 🌟`
-    };
+      if (res.ok) {
+        const updated = await res.json();
+        setCurrentStudent(updated);
+        return { 
+          success: true, 
+          message: isMonthly 
+            ? `تم تفعيل الاشتراك الشهري بنجاح! تم منحك رصيد 8 حصص اختيارية تختار فتحها بنفسك 🎓`
+            : `تم تفعيل الاشتراك السنوي الشامل بنجاح! تم فتح كافة حصص الصف كاملاً 🌟`
+        };
+      }
+      return { success: false, message: 'فشل تفعيل الاشتراك.' };
+    } catch (err) {
+      return { success: false, message: 'خطأ في الاتصال بالخادم.' };
+    }
   };
 
   // Unlock Lesson via Wallet, Coupon, OR 1 Monthly Credit (out of 8)
-  const unlockLesson = (lessonId, price, useMonthlyCredit = false) => {
+  const unlockLesson = async (lessonId, price, useMonthlyCredit = false) => {
     if (useMonthlyCredit) {
       if ((currentStudent.monthlyCreditsLeft || 0) <= 0) {
         return { success: false, message: 'استنفذت رصيد الـ 8 حصص المتاحة باشتراكك الشهري.' };
       }
 
-      setCurrentStudent(prev => ({
-        ...prev,
-        monthlyCreditsLeft: prev.monthlyCreditsLeft - 1
-      }));
+      const newCredits = currentStudent.monthlyCreditsLeft - 1;
 
-      setLessons(prev => prev.map(les => les.id === lessonId ? { ...les, isUnlocked: true } : les));
-      return { success: true, message: `تم فتح الحصة باستخدام 1 حصة من اشتراكك الشهري! (متبقي: ${currentStudent.monthlyCreditsLeft - 1}/8 حصص)` };
+      try {
+        const resUser = await fetch(`/api/students/${currentStudent.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ monthlyCreditsLeft: newCredits }),
+          credentials: 'include'
+        });
+
+        if (resUser.ok) {
+          const updatedUser = await resUser.json();
+          setCurrentStudent(updatedUser);
+
+          // Update lesson status in state/db
+          setLessons(prev => prev.map(les => les.id === lessonId ? { ...les, isUnlocked: true } : les));
+          return { success: true, message: `تم فتح الحصة باستخدام 1 حصة من اشتراكك الشهري! (متبقي: ${newCredits}/8 حصص)` };
+        }
+      } catch (e) {
+        return { success: false, message: 'خطأ في الاتصال بالخادم.' };
+      }
     }
 
     if (currentStudent.walletBalance < price) {
       return { success: false, message: 'رصيد المحفظة لا يكفي. يرجى شحن المحفظة أولاً.' };
     }
 
-    setCurrentStudent(prev => ({
-      ...prev,
-      walletBalance: prev.walletBalance - price
-    }));
+    const newBalance = currentStudent.walletBalance - price;
 
-    setLessons(prev => prev.map(les => les.id === lessonId ? { ...les, isUnlocked: true } : les));
+    try {
+      const resUser = await fetch(`/api/students/${currentStudent.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ walletBalance: newBalance }),
+        credentials: 'include'
+      });
 
-    return { success: true, message: 'تم فتح الحصة بنجاح! مشاهدة ممتعة.' };
+      if (resUser.ok) {
+        const updatedUser = await resUser.json();
+        setCurrentStudent(updatedUser);
+        setLessons(prev => prev.map(les => les.id === lessonId ? { ...les, isUnlocked: true } : les));
+        return { success: true, message: 'تم فتح الحصة بنجاح! مشاهدة ممتعة.' };
+      }
+    } catch (e) {
+      return { success: false, message: 'خطأ في الاتصال بالخادم.' };
+    }
   };
 
   // Parent WhatsApp Report Generator
@@ -697,46 +536,43 @@ export const AppProvider = ({ children }) => {
 🎓 *الصف الدراسي:* ${std.gradeName}
 📊 *حالة الاشتراك:* ${std.subscriptionType || 'مجاني'} (متبقي: ${std.monthlyCreditsLeft || 0} حصص)
 💰 *رصيد المحفظة:* ${std.walletBalance} جنيه
-⭐ *إجمالي النقاط:* ${std.points} نقطة
 🏆 *الترتيب في أوائل الدفعة:* المركز #${std.rank || 1}
 📝 *آخر امتحان:* ${lastExam.quizTitle} (${lastExam.score} من ${lastExam.total} - ${lastExam.percentage}%)
 
 💡 *ملاحظة الباشمهندس:* الطالب متميز جداً وملتزم بكورسات وتطبيقات البرمجة العملية.
 
 🔗 لمتابعة المحتوى والدروس على منصة الباشمهندس:
-https://elbashmohands-production.up.railway.app/`;
+https://elbashmohands.dev`;
   };
 
-  // Safe Text Generator for WhatsApp Modal
   const getWhatsAppMsgText = (payload, recipient = 'parent') => {
     if (!payload) return '';
     if (payload.isFullParentReport) {
       return getParentFullWhatsAppReport(currentStudent);
     }
     return `📌 *إشعار من منصة الباشمهندس للبرمجة*
-👤 *الطالب:* ${payload.studentName || currentStudent.name}
-🎓 *الصف:* ${payload.gradeName || currentStudent.gradeName}
+👤 *الطالب:* ${payload.studentName || currentStudent?.name}
+🎓 *الصف:* ${payload.gradeName || currentStudent?.gradeName}
 📝 *الموضوع:* ${payload.examTitle || payload.title || 'تقرير البرمجة الموثق'}
 
-🔗 https://elbashmohands-production.up.railway.app/`;
+🔗 https://elbashmohands.dev`;
   };
 
-  // Dual Dispatcher: WhatsApp Send Trigger
   const triggerWhatsAppSend = (payload, targetRecipient = 'parent') => {
-    const targetPhone = targetRecipient === 'parent' ? (payload.parentPhone || currentStudent.parentPhone) : (payload.studentPhone || currentStudent.phone);
+    const targetPhone = targetRecipient === 'parent' ? (payload.parentPhone || currentStudent?.parentPhone) : (payload.studentPhone || currentStudent?.phone);
     const recipientLabel = targetRecipient === 'parent' ? 'ولي الأمر' : 'الطالب';
     
     const msgText = getWhatsAppMsgText(payload, targetRecipient);
 
     const encodedMsg = encodeURIComponent(msgText);
-    const formattedPhone = targetPhone.startsWith('0') ? '2' + targetPhone : targetPhone;
+    const formattedPhone = (targetPhone || '').replace(/\s/g, '').startsWith('0') ? '2' + (targetPhone || '').replace(/\s/g, '') : (targetPhone || '').replace(/\s/g, '');
     const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodedMsg}`;
 
     setWhatsappLogs(prev => [
       {
         id: 'wa_' + Date.now(),
         timestamp: new Date().toLocaleString('ar-EG'),
-        studentName: payload.studentName || currentStudent.name,
+        studentName: payload.studentName || currentStudent?.name,
         phoneSentTo: `${targetPhone} (${recipientLabel})`,
         examTitle: payload.examTitle || 'تقرير ولي الأمر الشامل',
         scoreText: 'WhatsApp ✅',
@@ -748,7 +584,6 @@ https://elbashmohands-production.up.railway.app/`;
     return { whatsappUrl, msgText };
   };
 
-  // SMS Send Trigger — returns message data for modal display (sms: protocol unreliable on desktop)
   const triggerSmsSend = (payload, targetRecipient = 'parent') => {
     const targetPhone = targetRecipient === 'parent'
       ? (payload.parentPhone || currentStudent?.parentPhone || '')
@@ -762,8 +597,7 @@ https://elbashmohands-production.up.railway.app/`;
       msgText = `📌 تنبيه من منصة الباشمهندس للبرمجة\n${payload.examTitle || payload.title || 'إشعار جديد'}\nالطالب: ${payload.studentName || currentStudent?.name || ''}`;
     }
 
-    const formattedPhone = targetPhone.startsWith('0') ? '2' + targetPhone : targetPhone;
-    // WhatsApp as SMS fallback (works on mobile + desktop)
+    const formattedPhone = targetPhone.replace(/\s/g, '').startsWith('0') ? '2' + targetPhone.replace(/\s/g, '') : targetPhone.replace(/\s/g, '');
     const whatsappFallbackUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(msgText)}`;
 
     setSmsLogs(prev => [
@@ -783,33 +617,33 @@ https://elbashmohands-production.up.railway.app/`;
       formattedPhone,
       msgText,
       whatsappFallbackUrl,
-      // Attempt sms: protocol anyway for mobile browsers
       smsUrl: `sms:${targetPhone}?body=${encodeURIComponent(msgText)}`
     };
   };
 
-  // In-Platform Notification Engine
-  const addNotification = ({ targetGrade, title, body, subject }) => {
-    const newNote = {
-      id: 'n_' + Date.now(),
-      targetGrade: targetGrade || 'all',
-      subject: subject || 'general',
-      title: (title || '').trim(),
-      body: (body || '').trim(),
-      time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
-      date: new Date().toLocaleDateString('ar-EG'),
-      unread: true
-    };
-    setNotifications(prev => [newNote, ...prev]);
-    return newNote;
+  const addNotification = async ({ targetGrade, title, body, subject }) => {
+    try {
+      const res = await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetGrade, title, body, subject }),
+        credentials: 'include'
+      });
+
+      if (res.ok) {
+        const newNote = await res.json();
+        setNotifications(prev => [newNote, ...prev]);
+        return newNote;
+      }
+    } catch (err) {
+      console.error('Add notification failed:', err);
+    }
   };
 
-  // Broadcast new lesson to relevant students via WhatsApp (from platform number 01002169889)
   const broadcastNewLesson = (lessonData) => {
     const gradeLabel = lessonData.grade === '3sec' ? 'ثالثة ثانوي' : lessonData.grade === '2sec' ? 'ثاني ثانوي' : 'أول ثانوي';
     const priceLabel = lessonData.price === 0 ? 'مجاناً 🎁' : `${lessonData.price} ج.م`;
 
-    // Only target students in the same grade as the lesson
     const targetStudents = studentsDB.filter(st =>
       (st.phone || st.parentPhone) && (lessonData.grade === 'all' || st.grade === lessonData.grade)
     );
@@ -828,7 +662,6 @@ https://elbashmohands-production.up.railway.app/`;
     return broadcastLinks;
   };
 
-  // Coupon Engine
   const applyCoupon = (couponCode, lessonPrice) => {
     const cleanCode = (couponCode || '').trim().toUpperCase();
     if (!cleanCode) return { success: false, message: 'يرجى كتابة كود الكوبون.' };
@@ -853,8 +686,6 @@ https://elbashmohands-production.up.railway.app/`;
       discountText = `خصم بقيمة ${coupon.value} ج.م`;
     }
 
-    setCouponsDB(prev => prev.map(c => c.id === coupon.id ? { ...c, usedCount: c.usedCount + 1 } : c));
-
     return {
       success: true,
       couponType: coupon.type,
@@ -864,50 +695,73 @@ https://elbashmohands-production.up.railway.app/`;
     };
   };
 
-  const adminCreateCoupon = (couponData) => {
-    const newCoupon = {
-      ...couponData,
-      id: 'coup_' + Date.now(),
-      code: couponData.code.trim().toUpperCase(),
-      usedCount: 0,
-      active: true
-    };
-    setCouponsDB(prev => [newCoupon, ...prev]);
-    return newCoupon;
-  };
+  const adminCreateCoupon = async (couponData) => {
+    try {
+      const res = await fetch('/api/coupons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(couponData),
+        credentials: 'include'
+      });
 
-  const addStudentQuestion = (lessonId, questionText) => {
-    if (!questionText.trim()) return;
-    const newQ = {
-      id: 'q_' + Date.now(),
-      lessonId,
-      studentName: currentStudent.name,
-      studentPhone: currentStudent.phone,
-      questionText: questionText.trim(),
-      replyText: null,
-      repliedAt: null,
-      status: 'pending'
-    };
-    setVideoQuestions(prev => [newQ, ...prev]);
-  };
-
-  const adminReplyToQuestion = (questionId, replyText) => {
-    if (!replyText.trim()) return;
-    setVideoQuestions(prev => prev.map(q => {
-      if (q.id === questionId) {
-        return {
-          ...q,
-          replyText: replyText.trim(),
-          repliedAt: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
-          status: 'answered'
-        };
+      if (res.ok) {
+        const newCoupon = await res.json();
+        setCouponsDB(prev => [newCoupon, ...prev]);
+        return newCoupon;
       }
-      return q;
-    }));
+    } catch (err) {
+      console.error('Create coupon failed:', err);
+    }
   };
 
-  const recordExamResult = (quiz, userAnswers) => {
-    // Block if already attempted
+  const addStudentQuestion = async (lessonId, questionText) => {
+    if (!questionText.trim()) return;
+    try {
+      const res = await fetch('/api/questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lessonId, questionText }),
+        credentials: 'include'
+      });
+
+      if (res.ok) {
+        const newQ = await res.json();
+        setVideoQuestions(prev => [newQ, ...prev]);
+      }
+    } catch (err) {
+      console.error('Add question failed:', err);
+    }
+  };
+
+  const adminReplyToQuestion = async (questionId, replyText) => {
+    if (!replyText.trim()) return;
+    try {
+      const res = await fetch(`/api/questions/${questionId}/reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ replyText }),
+        credentials: 'include'
+      });
+
+      if (res.ok) {
+        setVideoQuestions(prev => prev.map(q => {
+          if (q.id === questionId) {
+            return {
+              ...q,
+              replyText: replyText.trim(),
+              repliedAt: 'الآن',
+              status: 'answered'
+            };
+          }
+          return q;
+        }));
+      }
+    } catch (err) {
+      console.error('Reply question failed:', err);
+    }
+  };
+
+  const recordExamResult = async (quiz, userAnswers) => {
     if (examAttempts[quiz.id]) {
       return { resultRecord: examAttempts[quiz.id], waPayload: null, alreadyAttempted: true };
     }
@@ -923,82 +777,120 @@ https://elbashmohands-production.up.railway.app/`;
     const percentage = Math.round((correctCount / total) * 100);
     const pointsEarned = percentage >= 80 ? (quiz.rewardPoints || 50) : 25;
 
-    const resultRecord = {
-      id: 'ex_hist_' + Date.now(),
-      quizId: quiz.id,
-      lessonId: quiz.lessonId,
-      quizTitle: quiz.title,
-      score: correctCount,
-      total,
-      percentage,
-      date: new Date().toISOString().split('T')[0],
-      pointsEarned,
-      passed: percentage >= 60,
-      status: percentage >= 80 ? 'ممتاز 🌟' : percentage >= 60 ? 'جيد 👍' : 'يحتاج مراجعة ❌',
-      userAnswers,
-      questions: quiz.questions
-    };
+    try {
+      const res = await fetch('/api/exams', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          quizId: quiz.id,
+          lessonId: quiz.lessonId,
+          quizTitle: quiz.title,
+          score: correctCount,
+          total,
+          percentage,
+          pointsEarned,
+          passed: percentage >= 60,
+          status: percentage >= 80 ? 'ممتاز 🌟' : percentage >= 60 ? 'جيد 👍' : 'يحتاج مراجعة ❌',
+          userAnswers,
+          questions: quiz.questions
+        }),
+        credentials: 'include'
+      });
 
-    setExamHistory(prev => [resultRecord, ...prev]);
+      if (res.ok) {
+        const resultRecord = await res.json();
+        setExamHistory(prev => [resultRecord, ...prev]);
+        setExamAttempts(prev => ({ ...prev, [quiz.id]: resultRecord }));
 
-    // Mark this quiz as attempted for this student session
-    setExamAttempts(prev => ({ ...prev, [quiz.id]: resultRecord }));
+        const nextPoints = (currentStudent.points || 0) + pointsEarned;
+        setCurrentStudent(prev => ({ ...prev, points: nextPoints }));
 
-    setCurrentStudent(prev => ({
-      ...prev,
-      points: prev.points + pointsEarned
-    }));
+        // Increment student points in Database
+        await fetch(`/api/students/${currentStudent.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ points: nextPoints }),
+          credentials: 'include'
+        });
 
-    const waPayload = {
-      studentName: currentStudent.name,
-      parentPhone: currentStudent.parentPhone,
-      studentPhone: currentStudent.phone,
-      gradeName: currentStudent.gradeName,
-      examTitle: quiz.title,
-      score: correctCount,
-      total,
-      percentage,
-      pointsEarned,
-      date: resultRecord.date
-    };
+        const waPayload = {
+          studentName: currentStudent.name,
+          parentPhone: currentStudent.parentPhone,
+          studentPhone: currentStudent.phone,
+          gradeName: currentStudent.gradeName,
+          examTitle: quiz.title,
+          score: correctCount,
+          total,
+          percentage,
+          pointsEarned,
+          date: resultRecord.date
+        };
 
-    return { resultRecord, waPayload };
+        return { resultRecord, waPayload };
+      }
+    } catch (err) {
+      console.error('Record exam failed:', err);
+    }
+    return { resultRecord: null, waPayload: null };
   };
 
   const hasAttemptedExam = (quizId) => !!examAttempts[quizId];
   const getExamAttempt = (quizId) => examAttempts[quizId] || null;
 
-  const adminAddLesson = (lessonData) => {
-    const createdObj = {
-      ...lessonData,
-      id: 'les_' + Date.now(),
-      viewsCount: 0,
-      isUnlocked: false,
-      comments: []
-    };
-    setLessons(prev => [createdObj, ...prev]);
+  const adminAddLesson = async (lessonData) => {
+    try {
+      const res = await fetch('/api/lessons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(lessonData),
+        credentials: 'include'
+      });
 
-    // Auto-fire in-platform notification when lesson is uploaded
-    const gradeLabel = lessonData.grade === '3sec' ? 'ثالثة ثانوي' : lessonData.grade === '2sec' ? 'ثاني ثانوي' : 'أول ثانوي';
-    const priceLabel = lessonData.price === 0 ? 'مجاناً 🎁' : `${lessonData.price} ج.م`;
-    const subjectTag = (lessonData.subject || '').includes('عربي') ? 'arabic' : 'programming';
-    setNotifications(prev => [{
-      id: 'n_' + Date.now(),
-      targetGrade: lessonData.grade || 'all',
-      subject: subjectTag,
-      title: `📚 حصة جديدة: ${lessonData.title}`,
-      body: `📖 المادة: ${lessonData.subject} | 🎓 الصف: ${gradeLabel} | 💰 السعر: ${priceLabel}`,
-      time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
-      date: new Date().toLocaleDateString('ar-EG'),
-      unread: true
-    }, ...prev]);
+      if (res.ok) {
+        const createdObj = await res.json();
+        setLessons(prev => [createdObj, ...prev]);
 
-    return createdObj;
+        // Auto-fire in-platform notification when lesson is uploaded
+        const gradeLabel = lessonData.grade === '3sec' ? 'ثالثة ثانوي' : lessonData.grade === '2sec' ? 'ثاني ثانوي' : 'أول ثانوي';
+        const priceLabel = lessonData.price === 0 ? 'مجاناً 🎁' : `${lessonData.price} ج.م`;
+        const subjectTag = (lessonData.subject || '').includes('عربي') ? 'arabic' : 'programming';
+
+        await addNotification({
+          targetGrade: lessonData.grade || 'all',
+          subject: subjectTag,
+          title: `📚 حصة جديدة: ${lessonData.title}`,
+          body: `📖 المادة: ${lessonData.subject} | 🎓 الصف: ${gradeLabel} | 💰 السعر: ${priceLabel}`
+        });
+
+        return createdObj;
+      }
+    } catch (err) {
+      console.error('Create lesson failed:', err);
+    }
   };
 
-  const adminDeleteLesson = (lessonId) => {
-    setLessons(prev => prev.filter(les => les.id !== lessonId));
+  const adminDeleteLesson = async (lessonId) => {
+    try {
+      const res = await fetch(`/api/lessons/${lessonId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+
+      if (res.ok) {
+        setLessons(prev => prev.filter(les => les.id !== lessonId));
+      }
+    } catch (err) {
+      console.error('Delete lesson failed:', err);
+    }
   };
+
+  if (loadingSession) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white font-black text-sm">
+        جاري تهيئة منصة الباشمهندس... 💻⚙️
+      </div>
+    );
+  }
 
   return (
     <AppContext.Provider value={{
