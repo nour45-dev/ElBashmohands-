@@ -65,21 +65,21 @@ export const LoginView = () => {
   const [errorMessage, setErrorMessage] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
 
-  const handleStudentLogin = (e) => {
+  const handleStudentLogin = async (e) => {
     e.preventDefault();
     setErrorMessage(null);
-    const res = loginUser('student', { phoneInput, passInput });
+    const res = await loginUser('student', { phoneInput, passInput });
     if (!res.success) {
       setErrorMessage(res.message);
     }
   };
 
-  const handleStudentSignup = (e) => {
+  const handleStudentSignup = async (e) => {
     e.preventDefault();
     setErrorMessage(null);
     setSuccessMessage(null);
 
-    const res = registerStudent({
+    const res = await registerStudent({
       name: signupName,
       email: signupEmail,
       phone: signupPhone,
@@ -96,19 +96,19 @@ export const LoginView = () => {
     }
   };
 
-  const handleParentLogin = (e) => {
+  const handleParentLogin = async (e) => {
     e.preventDefault();
     setErrorMessage(null);
-    const res = loginUser('parent', { parentStudentCode });
+    const res = await loginUser('parent', { parentStudentCode });
     if (!res.success) {
       setErrorMessage(res.message);
     }
   };
 
-  const handleAdminLogin = (e) => {
+  const handleAdminLogin = async (e) => {
     e.preventDefault();
     setErrorMessage(null);
-    const res = loginUser('admin', { adminCode });
+    const res = await loginUser('admin', { adminCode, adminIdentity: selectedAdminIdentity });
     if (!res.success) {
       setErrorMessage(res.message);
     }
