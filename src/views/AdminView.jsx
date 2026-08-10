@@ -139,6 +139,63 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
   const [uploadError, setUploadError] = useState(null);
   const [lessonSuccessMsg, setLessonSuccessMsg] = useState(false);
 
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [currentUploadFileName, setCurrentUploadFileName] = useState('');
+
+  const uploadFileToR2 = (file, uploadUrl) => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('PUT', uploadUrl, true);
+      xhr.setRequestHeader('Content-Type', file.type);
+
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const progress = Math.round((event.loaded / event.total) * 100);
+          setUploadProgress(progress);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status === 200) {
+          resolve();
+        } else {
+          reject(new Error(`فشل الرفع برمز حالة: ${xhr.status}`));
+        }
+      };
+
+      xhr.onerror = () => {
+        reject(new Error('حدث خطأ في الاتصال بالشبكة أثناء الرفع.'));
+      };
+
+      xhr.send(file);
+    });
+  };
+
+  const uploadFileHelper = async (file) => {
+    if (!file) return null;
+
+    const res = await fetch('/api/upload/presign', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        filename: file.name,
+        contentType: file.type
+      })
+    });
+
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.error || 'فشل في استلام رابط الرفع من السيرفر.');
+    }
+
+    const { uploadUrl, videoUrl } = await res.json();
+    await uploadFileToR2(file, uploadUrl);
+    return videoUrl;
+  };
+
   // Coupon Form State
   const [couponCode, setCouponCode] = useState('');
   const [couponType, setCouponType] = useState('percent');
@@ -256,7 +313,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
     setNewQOptD('');
   };
 
-  const handleCreateLesson = (e) => {
+  const handleCreateLesson = async (e) => {
     e.preventDefault();
     setUploadError(null);
 
@@ -265,75 +322,103 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
       return;
     }
 
-    let finalVideoUrl = '';
-    let videoType = videoUploadMode;
+    setIsUploading(true);
+    setUploadProgress(0);
 
-    if (videoUploadMode === 'file') {
-      if (!videoFile) {
-        setUploadError('يرجى اختيار ملف الفيديو من الجهاز.');
-        return;
+    try {
+      let finalVideoUrl = '';
+      let videoType = videoUploadMode;
+
+      if (videoUploadMode === 'file') {
+        if (!videoFile) {
+          setUploadError('يرجى اختيار ملف الفيديو من الجهاز.');
+          setIsUploading(false);
+          return;
+        }
+        setCurrentUploadFileName('ملف الفيديو 🎬');
+        finalVideoUrl = await uploadFileHelper(videoFile);
+        videoType = 'file';
+      } else {
+        if (!videoUrlInput.trim()) {
+          setUploadError('يرجى كتابة رابط الفيديو.');
+          setIsUploading(false);
+          return;
+        }
+        finalVideoUrl = videoUrlInput.trim();
       }
-      finalVideoUrl = URL.createObjectURL(videoFile);
-    } else {
-      if (!videoUrlInput.trim()) {
-        setUploadError('يرجى كتابة رابط الفيديو.');
-        return;
+
+      // Upload attachment file if present
+      let docFileUrl = null;
+      if (attachmentFile) {
+        setCurrentUploadFileName('الملخص / المستند المرفق 📄');
+        setUploadProgress(0);
+        docFileUrl = await uploadFileHelper(attachmentFile);
       }
-      finalVideoUrl = videoUrlInput.trim();
-    }
 
-    let attachedQuizObj = null;
-    if (attachmentType === 'quiz') {
-      attachedQuizObj = {
-        id: 'qz_' + Date.now(),
-        title: `الامتحان الإلكتروني التفاعلي للحصة - ${newLessonTitle}`,
-        rewardPoints: 50,
-        durationMinutes: Number(quizDurationMinutes) || 20,
-        questions: quizQuestionsList
-      };
-    }
-
-    const docFileUrl = attachmentFile ? URL.createObjectURL(attachmentFile) : null;
-
-    // Resolve Thumbnail: Custom file > Auto-extracted frame snapshot > Default subject fallback
-    const customThumbUrl = customThumbFile ? URL.createObjectURL(customThumbFile) : null;
-    const defaultSubjectThumb = newLessonSubject === 'اللغة العربية'
-      ? 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&q=80&w=500'
-      : 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=500';
-
-    const finalThumbnail = customThumbUrlData || customThumbUrl || autoVideoFrameUrl || defaultSubjectThumb;
-
-    const createdObj = adminAddLesson({
-      title: newLessonTitle,
-      subject: newLessonSubject,
-      grade: newLessonGrade,
-      duration: '45 دقيقة',
-      price: Number(newLessonPrice),
-      videoType: videoType,
-      videoUrl: finalVideoUrl,
-      thumbnail: finalThumbnail,
-      videoFileName: videoFile ? videoFile.name : 'فيديو مرفوع',
-      description: newLessonDesc || `حصة ${newLessonSubject} مرفوعة من لوحة التحكم الإدارية.`,
-      attachmentType: attachmentType,
-      attachmentPdf: attachmentFile ? attachmentFile.name : (attachmentType === 'word' ? 'ملخص_الحصة.docx' : 'مذكرة_الحصة.pdf'),
-      attachmentFileUrl: docFileUrl,
-      attachedQuiz: attachedQuizObj
-    });
-
-    setLessonSuccessMsg(true);
-
-    // Broadcast to all students via WhatsApp
-    if (broadcastNewLesson) {
-      const links = broadcastNewLesson(createdObj);
-      setBroadcastModal({ lessonTitle: createdObj.title, links });
-    }
-    
-    setTimeout(() => {
-      if (setSelectedLessonId && setCurrentTab) {
-        setSelectedLessonId(createdObj.id);
-        setCurrentTab('lesson-detail');
+      // Upload custom thumbnail or use auto/default
+      let finalThumbnail = '';
+      if (customThumbFile) {
+        setCurrentUploadFileName('الصورة المصغرة 🖼️');
+        setUploadProgress(0);
+        finalThumbnail = await uploadFileHelper(customThumbFile);
+      } else {
+        const defaultSubjectThumb = newLessonSubject === 'اللغة العربية'
+          ? 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&q=80&w=500'
+          : 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=500';
+        finalThumbnail = autoVideoFrameUrl || defaultSubjectThumb;
       }
-    }, 1500);
+
+      let attachedQuizObj = null;
+      if (attachmentType === 'quiz') {
+        attachedQuizObj = {
+          id: 'qz_' + Date.now(),
+          title: `الامتحان الإلكتروني التفاعلي للحصة - ${newLessonTitle}`,
+          rewardPoints: 50,
+          durationMinutes: Number(quizDurationMinutes) || 20,
+          questions: quizQuestionsList
+        };
+      }
+
+      const createdObj = adminAddLesson({
+        title: newLessonTitle,
+        subject: newLessonSubject,
+        grade: newLessonGrade,
+        duration: '45 دقيقة',
+        price: Number(newLessonPrice),
+        videoType: videoType,
+        videoUrl: finalVideoUrl,
+        thumbnail: finalThumbnail,
+        videoFileName: videoFile ? videoFile.name : 'فيديو مرفوع',
+        description: newLessonDesc || `حصة ${newLessonSubject} مرفوعة من لوحة التحكم الإدارية.`,
+        attachmentType: attachmentType,
+        attachmentPdf: attachmentFile ? attachmentFile.name : (attachmentType === 'word' ? 'ملخص_الحصة.docx' : 'مذكرة_الحصة.pdf'),
+        attachmentFileUrl: docFileUrl,
+        attachedQuiz: attachedQuizObj
+      });
+
+      setLessonSuccessMsg(true);
+
+      // Broadcast to all students via WhatsApp
+      if (broadcastNewLesson) {
+        const links = broadcastNewLesson(createdObj);
+        setBroadcastModal({ lessonTitle: createdObj.title, links });
+      }
+      
+      setTimeout(() => {
+        if (setSelectedLessonId && setCurrentTab) {
+          setSelectedLessonId(createdObj.id);
+          setCurrentTab('lesson-detail');
+        }
+      }, 1500);
+
+    } catch (err) {
+      console.error(err);
+      setUploadError('حدث خطأ أثناء رفع الملفات للـ Firebase: ' + err.message);
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+      setCurrentUploadFileName('');
+    }
   };
 
   const handleCreateCoupon = (e) => {
@@ -922,6 +1007,21 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
                 )}
               </div>
 
+              {isUploading && (
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 text-right space-y-2">
+                  <div className="flex items-center justify-between text-xs font-black text-slate-700">
+                    <span>نسبة الرفع المئوية: {uploadProgress}%</span>
+                    <span className="animate-pulse text-blue-600">جاري رفع {currentUploadFileName}... ⏳</span>
+                  </div>
+                  <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                    <div 
+                      className="bg-blue-600 h-full rounded-full transition-all duration-300"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
               {uploadError && (
                 <div className="bg-rose-50 text-rose-800 p-3 rounded-xl border border-rose-200 text-xs font-bold">
                   {uploadError}
@@ -936,9 +1036,10 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
 
               <button
                 type="submit"
-                className="w-full btn-primary text-xs font-black py-3.5 rounded-xl justify-center shadow-lg shadow-blue-500/20"
+                disabled={isUploading}
+                className={`w-full text-xs font-black py-3.5 rounded-xl justify-center shadow-lg flex items-center gap-2 ${isUploading ? 'bg-slate-400 text-slate-200 cursor-not-allowed' : 'btn-primary shadow-blue-500/20'}`}
               >
-                نشر الحصة وإرسال إشعار الواتساب والـ SMS 🚀
+                {isUploading ? 'جاري رفع الملفات للمنصة... ⏳' : 'نشر الحصة وإرسال إشعار الواتساب والـ SMS 🚀'}
               </button>
             </form>
           </div>
