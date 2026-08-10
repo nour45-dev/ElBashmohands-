@@ -1136,7 +1136,7 @@ app.post('/api/chat', async (req, res) => {
         };
       }
 
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
       const response = await fetch(geminiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1182,6 +1182,21 @@ app.post('/api/chat', async (req, res) => {
   } catch (error) {
     console.error('Proxy Error:', error);
     return res.status(500).json({ error: error.message || 'Server error occurred' });
+  }
+});
+
+// Diagnostics endpoint to list available Gemini models for this API key
+app.get('/api/diag', async (req, res) => {
+  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+  if (!GEMINI_API_KEY) {
+    return res.status(400).json({ error: 'GEMINI_API_KEY is not defined in environment variables.' });
+  }
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_API_KEY}`);
+    const data = await response.json();
+    return res.json(data);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
 });
 
