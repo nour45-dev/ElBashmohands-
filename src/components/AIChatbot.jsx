@@ -55,21 +55,21 @@ export const AIChatbot = () => {
     setInput('');
     setIsLoading(true);
 
+    // Build history payload
+    const historyPayload = messages.map(m => ({
+      role: m.sender === 'user' ? 'user' : 'assistant',
+      content: m.text
+    }));
+
+    // Add system prompt and current message
+    const fullMessages = [
+      { role: 'system', content: SYSTEM_PROMPT },
+      ...historyPayload,
+      { role: 'user', content: textToProcess }
+    ];
+
     try {
-      // Build history payload
-      const historyPayload = messages.map(m => ({
-        role: m.sender === 'user' ? 'user' : 'assistant',
-        content: m.text
-      }));
-
-      // Add system prompt and current message
-      const fullMessages = [
-        { role: 'system', content: SYSTEM_PROMPT },
-        ...historyPayload,
-        { role: 'user', content: textToProcess }
-      ];
-
-      // Safe API call to backend proxy
+      // 1. Try secure backend proxy first
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -82,24 +82,113 @@ export const AIChatbot = () => {
       });
 
       if (!response.ok) {
-        throw new Error(`API returned status ${response.status}`);
+        throw new Error(`Proxy error status ${response.status}`);
       }
 
       const data = await response.json();
-      const botText = data.response || 'عذراً، لم أتمكن من الرد حالياً. جرب مرة أخرى!';
+      if (data.error) {
+        throw new Error(data.error);
+      }
 
+      const botText = data.response || 'عذراً، لم أتمكن من الرد حالياً.';
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
         text: botText
       }]);
+
     } catch (err) {
-      console.error('Chatbot request failed:', err);
-      setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
-        sender: 'bot',
-        text: '⚠️ حصلت مشكلة بسيطة في الاتصال بالذكاء الاصطناعي. اتأكد من النت وجرب تاني، أو اسأل الباشمهندس على طول واتساب على 01002169889.'
-      }]);
+      console.warn('Backend proxy failed or unavailable. Attempting direct browser fallback...', err);
+      
+      try {
+        // 2. Direct browser fallback when backend server is not running (e.g. dev mode)
+        if (provider === 'gemini') {
+          // Direct Gemini call (requires VITE_GEMINI_API_KEY environment variable locally)
+          const localGeminiKey = import.meta.env.VITE_GEMINI_API_KEY;
+          if (!localGeminiKey) {
+            throw new Error('Gemini local VITE_GEMINI_API_KEY is not defined.');
+          }
+
+          const chatMessages = fullMessages.filter(m => m.role !== 'system');
+          const systemMessage = fullMessages.find(m => m.role === 'system');
+
+          const contents = chatMessages.map(m => ({
+            role: m.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: m.content }]
+          }));
+
+          const payload = {
+            contents,
+            generationConfig: { maxOutputTokens: 800, temperature: 0.7 }
+          };
+
+          if (systemMessage) {
+            payload.systemInstruction = {
+              parts: [{ text: systemMessage.content }]
+            };
+          }
+
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${localGeminiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          if (!response.ok) {
+            throw new Error(`Direct Gemini call returned ${response.status}`);
+          }
+
+          const data = await response.json();
+          const botText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'عذراً، حدث خطأ في معالجة الرد.';
+
+          setMessages(prev => [...prev, {
+            id: Date.now().toString(),
+            sender: 'bot',
+            text: botText
+          }]);
+
+        } else {
+          // Direct OpenRouter call (using local env or default fallback key)
+          const localOrKey = import.meta.env.VITE_OPENROUTER_API_KEY || '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';
+          
+          const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${localOrKey}`,
+              'Content-Type': 'application/json',
+              'HTTP-Referer': 'https://elbashmohands.dev',
+              'X-Title': 'Bashmohandis Education Platform'
+            },
+            body: JSON.stringify({
+              model: 'openai/gpt-4o-mini',
+              messages: fullMessages,
+              max_tokens: 800,
+              temperature: 0.7
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error(`Direct OpenRouter call returned ${response.status}`);
+          }
+
+          const data = await response.json();
+          const botText = data.choices?.[0]?.message?.content || 'عذراً، حدث خطأ.';
+
+          setMessages(prev => [...prev, {
+            id: Date.now().toString(),
+            sender: 'bot',
+            text: botText
+          }]);
+        }
+
+      } catch (fallbackErr) {
+        console.error('All chatbot pathways failed:', fallbackErr);
+        setMessages(prev => [...prev, {
+          id: (Date.now() + 1).toString(),
+          sender: 'bot',
+          text: '⚠️ حصلت مشكلة بسيطة في الاتصال بالذكاء الاصطناعي. اتأكد من النت وجرب تاني، أو اسأل الباشمهندس على طول واتساب على 01002169889.'
+        }]);
+      }
     } finally {
       setIsLoading(false);
     }
