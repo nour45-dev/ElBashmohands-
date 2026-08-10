@@ -290,10 +290,13 @@ const requireOwnershipOrAdmin = (req, res, next) => {
   });
 };
 
-// Admin authentication keys / profiles on the server-side
+// Admin authentication passwords (read from env or fallback locally)
+const ADMIN_NOUR_PASS = process.env.ADMIN_NOUR_PASS || 'nour2026';
+const ADMIN_SAYED_PASS = process.env.ADMIN_SAYED_PASS || 'sayed2026';
+
 const TEACHER_ACCOUNTS = [
-  { email: 'nour@bashmohandis.com', phone: '01002169889', passwordHash: bcrypt.hashSync('nour2026', 10), identity: 'eng_nour', name: 'مهندس نور' },
-  { email: 'sayed@bashmohandis.com', phone: '01094273996', passwordHash: bcrypt.hashSync('sayed2026', 10), identity: 'mr_sayed', name: 'مستر سيد' }
+  { email: 'nour@bashmohandis.com', phone: '01002169889', passwordHash: bcrypt.hashSync(ADMIN_NOUR_PASS, 10), identity: 'eng_nour', name: 'مهندس نور' },
+  { email: 'sayed@bashmohandis.com', phone: '01094273996', passwordHash: bcrypt.hashSync(ADMIN_SAYED_PASS, 10), identity: 'mr_sayed', name: 'مستر سيد' }
 ];
 
 // ==========================================
@@ -412,8 +415,8 @@ app.post('/api/auth/login', async (req, res) => {
     const teacher = TEACHER_ACCOUNTS.find(t => t.identity === identity);
     if (!teacher) return res.status(400).json({ error: 'معرف الأستاذ غير موجود.' });
 
-    // Compare Password (using master pass 0123456 or explicit hashed password)
-    if (inputPass === '0123456' || bcrypt.compareSync(inputPass, teacher.passwordHash)) {
+    // Compare Password (using explicit hashed password)
+    if (bcrypt.compareSync(inputPass, teacher.passwordHash)) {
       const token = jwt.sign({ id: identity, role: 'admin', identity }, ACTIVE_JWT_SECRET, { expiresIn: '1d' });
       res.cookie('token', token, { httpOnly: true, secure: isProd, sameSite: 'strict', maxAge: 24 * 60 * 60 * 1000 });
       return res.json({ success: true, role: 'admin', identity, name: teacher.name });
@@ -449,20 +452,34 @@ app.post('/api/auth/login', async (req, res) => {
   }
 
   // Student Login
-  const loginSearch = (credentials.studentCode || '').trim();
-  const inputPass = (credentials.password || '').trim();
+  const loginSearch = (credentials.phoneInput || credentials.studentCode || '').trim();
+  const inputPass = (credentials.passInput || credentials.password || '').trim();
 
   if (!loginSearch || !inputPass) {
     return res.status(400).json({ error: 'يرجى إدخال كود الطالب/رقم الهاتف وكلمة المرور.' });
   }
 
+  // Helper to normalize phone numbers (removes spaces, replaces +20 or 20 prefix with 0)
+  const normalizePhone = (p) => {
+    if (!p) return '';
+    const clean = p.replace(/\s+/g, '');
+    if (clean.startsWith('+20')) return '0' + clean.substring(3);
+    if (clean.startsWith('20') && clean.length > 10) return '0' + clean.substring(2);
+    if (clean.startsWith('+2')) return '0' + clean.substring(2);
+    return clean;
+  };
+
+  const cleanIdentifier = normalizePhone(loginSearch);
+
   try {
     let matched = null;
     
     // Quick Teacher bypass check from student login UI
-    const isTeacherPhone = TEACHER_ACCOUNTS.find(t => t.phone === loginSearch);
+    const isTeacherPhone = TEACHER_ACCOUNTS.find(
+      t => normalizePhone(t.phone) === cleanIdentifier || t.email.toLowerCase() === loginSearch.toLowerCase()
+    );
     if (isTeacherPhone) {
-      if (bcrypt.compareSync(inputPass, isTeacherPhone.passwordHash) || inputPass === '0123456') {
+      if (bcrypt.compareSync(inputPass, isTeacherPhone.passwordHash)) {
         const token = jwt.sign({ id: isTeacherPhone.identity, role: 'admin', identity: isTeacherPhone.identity }, ACTIVE_JWT_SECRET, { expiresIn: '1d' });
         res.cookie('token', token, { httpOnly: true, secure: isProd, sameSite: 'strict', maxAge: 24 * 60 * 60 * 1000 });
         return res.json({ success: true, role: 'admin', identity: isTeacherPhone.identity, name: isTeacherPhone.name });
@@ -470,10 +487,10 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     if (dbType === 'mongodb') {
-      matched = await db.collection('students').findOne({ $or: [{ code: loginSearch }, { phone: loginSearch }] });
+      matched = await db.collection('students').findOne({ $or: [{ code: loginSearch }, { phone: cleanIdentifier }] });
     } else {
       const data = getLocalData();
-      matched = data.students.find(s => s.code === loginSearch || s.phone === loginSearch);
+      matched = data.students.find(s => s.code === loginSearch || normalizePhone(s.phone) === cleanIdentifier);
     }
 
     if (!matched) {
@@ -836,9 +853,14 @@ app.patch('/api/students/:id', requireOwnershipOrAdmin, async (req, res) => {
     updates.password = await bcrypt.hash(updates.password, 10);
   }
 
-  // Prevent users from manually altering wallet balance without admin clearance
-  if (updates.walletBalance !== undefined && req.user.role !== 'admin') {
-    delete updates.walletBalance;
+  // If not admin, the student can ONLY modify specific fields (name, password, avatar, phone)
+  if (req.user.role !== 'admin') {
+    const allowedKeys = ['name', 'password', 'avatar', 'phone'];
+    Object.keys(updates).forEach(key => {
+      if (!allowedKeys.includes(key)) {
+        delete updates[key];
+      }
+    });
   }
 
   try {
