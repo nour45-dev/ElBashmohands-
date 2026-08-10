@@ -6,7 +6,7 @@ const SYSTEM_PROMPT = `أنت "مساعد الباشمهندس الذكي"، ص�
 أسلوبك ودود، يشجع الطلاب، مرح، ولا يتحدث بالفصحى الجامدة إلا عند شرح قواعد اللغة العربية أو إعطاء أمثلة شعرية.
 
 معلومات المنصة:
-- الدومين الرسمي للمنصة: https://elbashmohands.up.railway.app/
+- الدومين الرسمي للمنصة: https://elbashmohands.dev
 - الأسعار: اشتراك شهري 150 ج.م (8 حصص اختيارية)، سنوي 350 ج.م (فتح كل الحصص بلا حدود)
 - طرق الدفع: InstaPay، فودافون كاش، فوري، بنك مصر
 - رقم الباشمهندس الموحد للتحويل والدعم الفني: 01002169889
@@ -149,7 +149,10 @@ export const AIChatbot = () => {
 
         } else {
           // Direct OpenRouter call (using local env or default fallback key)
-          const localOrKey = import.meta.env.VITE_OPENROUTER_API_KEY || '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';
+          const localOrKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+          if (!localOrKey) {
+            throw new Error('OpenRouter local VITE_OPENROUTER_API_KEY is not defined.');
+          }
           
           const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
