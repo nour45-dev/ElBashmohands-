@@ -13,12 +13,14 @@ export const NotificationBanner = () => {
     (n) => n.unread && (n.targetGrade === 'all' || n.targetGrade === grade)
   );
 
+  const unreadCount = relevantNotifs.length;
+
   useEffect(() => {
-    if (relevantNotifs.length > 0 && userRole === 'student') {
+    if (unreadCount > 0 && userRole === 'student') {
       setVisible(true);
       setCurrentIdx(0);
     }
-  }, [notifications.length, userRole]);
+  }, [unreadCount, userRole]);
 
   if (!visible || relevantNotifs.length === 0 || userRole !== 'student') return null;
 
