@@ -300,7 +300,7 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
             className="w-full text-right px-4 py-3 rounded-xl text-xs font-extrabold bg-slate-50 text-slate-900 flex items-center gap-2"
           >
             <Wallet className="w-4 h-4 text-amber-600" />
-            المحفظة والرصيد ({student.walletBalance} ج.م)
+            المحفظة والرصيد {student ? `(${student.walletBalance} ج.م)` : ''}
           </button>
 
           {(userRole === 'parent' || userRole === 'admin') && (
