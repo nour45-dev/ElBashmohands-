@@ -396,8 +396,10 @@ export const AppProvider = ({ children }) => {
     const nextCodeNumber = studentsDB.length + 101;
     const newStudentCode = `ENG-${nextCodeNumber}`;
 
+    const uniqueId = 'std_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6) + '_' + (studentsDB.length + 101);
+
     const newStudentObj = {
-      id: 'std_' + Date.now(),
+      id: uniqueId,
       code: newStudentCode,
       name: cleanName,
       email: cleanEmail,
@@ -802,19 +804,26 @@ https://bassthalk.com/elbashmohandis`;
     return newNote;
   };
 
-  // Broadcast new lesson to ALL registered students via WhatsApp
+  // Broadcast new lesson to relevant students via WhatsApp (from platform number 01002169889)
   const broadcastNewLesson = (lessonData) => {
-    const broadcastLinks = studentsDB
-      .filter(st => st.phone)
-      .map(st => {
-        const msg = `🎉 *حصة جديدة على منصة الباشمهندس!*\n\n📚 *${lessonData.title}*\n🎓 الصف: ${lessonData.grade === '3sec' ? 'ثالثة ثانوي' : lessonData.grade === '2sec' ? 'ثاني ثانوي' : 'أول ثانوي'}\n💰 السعر: ${lessonData.price === 0 ? 'مجاناً 🎁' : `${lessonData.price} ج.م`}\n\n🔗 ادخل المنصة وشاهد الحصة الآن!`;
-        const formatted = st.phone.startsWith('0') ? '2' + st.phone : st.phone;
-        return {
-          studentName: st.name,
-          phone: st.phone,
-          whatsappUrl: `https://wa.me/${formatted}?text=${encodeURIComponent(msg)}`
-        };
-      });
+    const gradeLabel = lessonData.grade === '3sec' ? 'ثالثة ثانوي' : lessonData.grade === '2sec' ? 'ثاني ثانوي' : 'أول ثانوي';
+    const priceLabel = lessonData.price === 0 ? 'مجاناً 🎁' : `${lessonData.price} ج.م`;
+
+    // Only target students in the same grade as the lesson
+    const targetStudents = studentsDB.filter(st =>
+      (st.phone || st.parentPhone) && (lessonData.grade === 'all' || st.grade === lessonData.grade)
+    );
+
+    const broadcastLinks = targetStudents.map(st => {
+      const targetPhone = st.phone || st.parentPhone;
+      const msg = `🎉 *حصة جديدة على منصة الباشمهندس!*\n\n📚 *${lessonData.title}*\n📖 المادة: ${lessonData.subject || 'برمجة'}\n🎓 الصف: ${gradeLabel}\n💰 السعر: ${priceLabel}\n\n🔗 ادخل المنصة وشاهد الحصة الآن!\n📱 للتواصل: 01002169889`;
+      const formatted = (targetPhone || '').replace(/\s/g, '').startsWith('0') ? '2' + (targetPhone || '').replace(/\s/g, '') : (targetPhone || '').replace(/\s/g, '');
+      return {
+        studentName: st.name,
+        phone: targetPhone,
+        whatsappUrl: `https://wa.me/${formatted}?text=${encodeURIComponent(msg)}`
+      };
+    });
 
     return broadcastLinks;
   };
@@ -968,6 +977,22 @@ https://bassthalk.com/elbashmohandis`;
       comments: []
     };
     setLessons(prev => [createdObj, ...prev]);
+
+    // Auto-fire in-platform notification when lesson is uploaded
+    const gradeLabel = lessonData.grade === '3sec' ? 'ثالثة ثانوي' : lessonData.grade === '2sec' ? 'ثاني ثانوي' : 'أول ثانوي';
+    const priceLabel = lessonData.price === 0 ? 'مجاناً 🎁' : `${lessonData.price} ج.م`;
+    const subjectTag = (lessonData.subject || '').includes('عربي') ? 'arabic' : 'programming';
+    setNotifications(prev => [{
+      id: 'n_' + Date.now(),
+      targetGrade: lessonData.grade || 'all',
+      subject: subjectTag,
+      title: `📚 حصة جديدة: ${lessonData.title}`,
+      body: `📖 المادة: ${lessonData.subject} | 🎓 الصف: ${gradeLabel} | 💰 السعر: ${priceLabel}`,
+      time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+      date: new Date().toLocaleDateString('ar-EG'),
+      unread: true
+    }, ...prev]);
+
     return createdObj;
   };
 
