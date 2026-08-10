@@ -324,7 +324,7 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
           )}
         </div>
       )}
-
+ 
     </header>
   );
 };
