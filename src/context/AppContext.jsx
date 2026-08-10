@@ -718,7 +718,7 @@ https://elbashmohands-production.up.railway.app/`;
 🎓 *الصف:* ${payload.gradeName || currentStudent.gradeName}
 📝 *الموضوع:* ${payload.examTitle || payload.title || 'تقرير البرمجة الموثق'}
 
-🔗 https://bassthalk.com/elbashmohandis`;
+🔗 https://elbashmohands-production.up.railway.app/`;
   };
 
   // Dual Dispatcher: WhatsApp Send Trigger
