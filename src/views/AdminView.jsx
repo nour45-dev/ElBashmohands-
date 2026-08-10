@@ -62,6 +62,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
   } = useApp();
 
   const isSayedAdmin = adminIdentity === 'mr_sayed';
+  const isNourAdmin = adminIdentity === 'eng_nour';
   const defaultAdminSubject = isSayedAdmin ? 'اللغة العربية' : 'برمجة وعلوم الحاسب';
 
   // Broadcast Modal State
@@ -359,18 +360,26 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
     setReplyTexts(prev => ({ ...prev, [questionId]: '' }));
   };
 
-  // Bulk WhatsApp Broadcast to All Students in DB
+  // Bulk WhatsApp Broadcast to All Students in DB — يُرسل من رقم المنصة 01002169889
   const handleBulkWhatsAppBroadcast = () => {
-    studentsDB.forEach(std => {
-      triggerWhatsAppSend({
-        isFullParentReport: true,
-        studentName: std.name,
-        parentPhone: std.parentPhone,
-        studentPhone: std.phone,
-        gradeName: std.gradeName
-      }, 'parent');
-    });
-    alert(`تم إرسال وتقارير المتابعة عبر الواتساب لـ ${studentsDB.length} طالب وولي أمر مسجل في السيستم!`);
+    if (studentsDB.length === 0) {
+      alert('لا يوجد طلاب مسجلين بعد!');
+      return;
+    }
+    const links = studentsDB
+      .filter(std => std.parentPhone || std.phone)
+      .map(std => {
+        const targetPhone = std.parentPhone || std.phone;
+        const gradeLabel = std.grade === '3sec' ? 'ثالثة ثانوي' : std.grade === '2sec' ? 'ثاني ثانوي' : 'أول ثانوي';
+        const msg = `📌 *تقرير متابعة من منصة الباشمهندس*\n\nالطالب/ة: *${std.name}*\nالصف: ${gradeLabel}\nالرصيد: ${std.walletBalance || 0} ج.م\n\n🔗 تابع تقدم ابنك على منصتنا الآن!`;
+        const formatted = (targetPhone || '').replace(/\s/g, '').startsWith('0') ? '2' + (targetPhone || '').replace(/\s/g, '') : (targetPhone || '').replace(/\s/g, '');
+        return {
+          studentName: std.name,
+          phone: targetPhone,
+          whatsappUrl: `https://wa.me/${formatted}?text=${encodeURIComponent(msg)}`
+        };
+      });
+    setBroadcastModal({ lessonTitle: '📊 تقرير متابعة لجميع الطلاب', links });
   };
 
   // Bulk SMS Broadcast to All Students in DB
@@ -1541,8 +1550,13 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
               </button>
             </div>
 
+            <div className="bg-blue-50 border border-blue-200 p-3 rounded-2xl text-xs text-blue-900 font-bold flex items-start gap-2">
+              <span className="text-base">📱</span>
+              <span>تأكد إنك بتبعت من رقم المنصة: <strong dir="ltr">01002169889</strong> — افتح كل رابط من موبايلك وابعت الرسالة</span>
+            </div>
+
             <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl text-xs text-emerald-800 font-medium">
-              تم تجهيز روابط إرسال الواتساب لـ <strong>{broadcastModal.links.length} طالب</strong> مسجل بالسيستم! اضغط على اسم أي طالب لإرسال الرسالة فوراً:
+              تم تجهيز روابط إرسال الواتساب لـ <strong>{broadcastModal.links.length} طالب</strong> مسجل بالسيستم! اضغط على زر الإرسال لكل طالب:
             </div>
 
             <div className="max-h-60 overflow-y-auto space-y-2">
