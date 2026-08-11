@@ -58,9 +58,15 @@ class ErrorBoundary extends Component {
 }
 
 const MainContent = () => {
-  const { isAuthenticated } = useApp();
-  const [currentTab, setCurrentTab] = useState('home');
+  const { isAuthenticated, userRole } = useApp();
+  const [currentTab, setCurrentTab] = useState(userRole === 'parent' ? 'parent-view' : 'home');
   const [selectedLessonId, setSelectedLessonId] = useState('');
+
+  React.useEffect(() => {
+    if (userRole === 'parent' && currentTab !== 'parent-view') {
+      setCurrentTab('parent-view');
+    }
+  }, [userRole, currentTab]);
 
   // Forced Login Entry Screen if not authenticated
   if (!isAuthenticated) {
