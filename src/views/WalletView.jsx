@@ -30,12 +30,12 @@ export const WalletView = () => {
         <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center text-3xl font-black border border-amber-500/20 shadow-md">
           🛡️
         </div>
-        <h2 className="text-xl font-black text-slate-900">وضع معاينة الباشمهندس (الأدمن) 💻</h2>
+        <h2 className="text-xl font-black text-slate-900">وضع معاينة المعلم (الأدمن) 💻</h2>
         <p className="text-xs text-slate-500 font-bold leading-relaxed max-w-md">
           أنت الآن مسجل دخول كـ **أدمن**. هذه الصفحة (المحفظة والرصيد) مخصصة فقط لعرض ومتابعة أرصدة واشتراكات الطلاب.
         </p>
         <p className="text-xs text-slate-400 font-medium max-w-sm">
-          لشحن رصيد أي طالب، أو تفعيل اشتراكه، أو قبول طلبات الشحن والمدفوعات، يرجى الذهاب لتبويب **"لوحة الباشمهندس"** في الشريط العلوي لإدارة المنصة بالكامل.
+          لشحن رصيد أي طالب، أو تفعيل اشتراكه، أو قبول طلبات الشحن والمدفوعات، يرجى الذهاب لتبويب **"لوحة المعلم"** في الشريط العلوي لإدارة المنصة بالكامل.
         </p>
       </div>
     );
@@ -46,7 +46,6 @@ export const WalletView = () => {
   const [selectedAmount, setSelectedAmount] = useState(150);
   const [refNumber, setRefNumber] = useState('');
   
-  // Proof Receipt Image Picker
   const proofInputRef = useRef(null);
   const [proofFile, setProofFile] = useState(null);
 
@@ -104,7 +103,7 @@ export const WalletView = () => {
         <div className="space-y-3 text-right z-10">
           <div className="inline-flex items-center gap-2 bg-amber-500/20 text-amber-300 text-xs font-black px-3.5 py-1.5 rounded-full border border-amber-500/30">
             <Wallet className="w-4 h-4 text-amber-400" />
-            <span>محفظة الباشمهندس الإلكترونية والاشتراكات 💳</span>
+            <span>محفظة المعلم الإلكترونية والاشتراكات 💳</span>
           </div>
 
           <h1 className="text-3xl md:text-4xl font-black">
@@ -194,7 +193,7 @@ export const WalletView = () => {
               </button>
             </div>
 
-            {/* Custom Guidance Instructions Box for Each Selected Method */}
+            {/* Custom Guidance Instructions Box */}
             <div className="bg-slate-900 text-white p-5 rounded-2xl space-y-3 text-right">
               
               {paymentMethod === 'instapay' && (
@@ -227,7 +226,7 @@ export const WalletView = () => {
                     <CreditCard className="w-4 h-4" />
                     <span>خطوات الشحن عبر الفيزا / البنك الأهلي / بنك مصر:</span>
                   </div>
-                  <p className="text-slate-300">1. استخدم كود الخصم المباشر أو التحويل البنكي السريع لحساب الباشمهندس.</p>
+                  <p className="text-slate-300">1. استخدم كود الخصم المباشر أو التحويل البنكي السريع لحساب المعلم.</p>
                   <p className="text-slate-300">2. رقم الحساب أو الموبايل المرتبط بالفيزا: <span className="font-mono text-blue-300 font-black text-sm select-all">01002169889</span></p>
                   <p className="text-slate-300">3. ارفع سكرين شوت عملية الخصم أو إيصال السداد البنكي.</p>
                 </div>
