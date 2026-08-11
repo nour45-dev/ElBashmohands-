@@ -24,15 +24,15 @@ export const GamificationView = () => {
         <div className="bg-slate-950/80 backdrop-blur-md p-4 rounded-2xl border border-white/10 text-right min-w-[220px] space-y-2 shadow-xl">
           <div className="flex items-center justify-between border-b border-slate-800 pb-2">
             <span className="text-xs text-slate-400 font-bold">ترتيبك الحالي:</span>
-            <span className="text-sm font-black text-amber-400">المركز #{student.rank} 🏆</span>
+            <span className="text-sm font-black text-amber-400">المركز #{student?.rank ?? '-'} 🏆</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-xs text-slate-400 font-bold">رصيد النقاط:</span>
-            <span className="text-sm font-black text-blue-400">{student.points} نقطة ⚡</span>
+            <span className="text-sm font-black text-blue-400">{student?.points ?? 0} نقطة ⚡</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-xs text-slate-400 font-bold">الشعلة اليومية:</span>
-            <span className="text-sm font-black text-amber-500">{student.streakDays} أيام متتالية 🔥</span>
+            <span className="text-sm font-black text-amber-500">{student?.streakDays ?? 0} أيام متتالية 🔥</span>
           </div>
         </div>
       </div>
@@ -102,7 +102,7 @@ export const GamificationView = () => {
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {student.badges.map(badge => (
+          {(student?.badges || []).map(badge => (
             <div key={badge.id} className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 flex items-start gap-3">
               <div className="w-12 h-12 rounded-2xl bg-amber-100 border border-amber-300 text-amber-700 flex items-center justify-center text-xl shadow-sm">
                 {badge.icon}
