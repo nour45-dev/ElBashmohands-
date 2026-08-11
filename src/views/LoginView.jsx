@@ -55,6 +55,7 @@ export const LoginView = () => {
   const [signupConfirmPass, setSignupConfirmPass] = useState('');
 
   // Parent Login Fields
+  const [parentPhoneInput, setParentPhoneInput] = useState('');
   const [parentStudentCode, setParentStudentCode] = useState('');
 
   // Admin Login Fields
@@ -99,7 +100,7 @@ export const LoginView = () => {
   const handleParentLogin = async (e) => {
     e.preventDefault();
     setErrorMessage(null);
-    const res = await loginUser('parent', { parentStudentCode });
+    const res = await loginUser('parent', { parentPhone: parentPhoneInput, parentStudentCode });
     if (!res.success) {
       setErrorMessage(res.message);
     }
@@ -131,14 +132,14 @@ export const LoginView = () => {
             className="inline-flex items-center gap-2 bg-blue-500/20 border border-blue-500/30 text-blue-300 px-4 py-1.5 rounded-full text-xs font-black shadow-lg cursor-pointer select-none"
           >
             <Sparkles className="w-4 h-4 text-amber-400" />
-            <span>منصة الباشمهندس للبرمجة وتكنولوجيا المعلومات 💻⚡</span>
+            <span>منصة مَنارة التعليمية 💡⚡</span>
           </div>
 
           <h1 className="text-3xl md:text-4xl font-black text-white">
-            مرحباً بك في منصة الباشمهندس
+            مرحباً بك في منصة مَنارة
           </h1>
           <p className="text-xs text-slate-400 font-medium">
-            سجل دخولك الآن لمتابعة كورسات وحصص البرمجة وتحديات الكود المشفر.
+            بوابتك لتفوق اللغة العربية واحتراف البرمجة • كورسات تفاعلية وتصحيح ذكي
           </p>
         </div>
 
@@ -202,7 +203,6 @@ export const LoginView = () => {
                   }
                 }}
               />
-              
               <button
                 type="button"
                 onClick={() => {
@@ -444,11 +444,26 @@ export const LoginView = () => {
             <form onSubmit={handleParentLogin} className="space-y-4 animate-in fade-in">
               <div className="text-right border-b border-slate-800 pb-3">
                 <h3 className="font-black text-white text-base">دخول أولياء الأمور</h3>
-                <p className="text-[11px] text-slate-400 mt-0.5">متابعة درجات الطالب وتقارير أداء كورس البرمجة</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">متابعة درجات الطالب وتقارير أداء كورس العربي والبرمجة</p>
               </div>
 
               <div>
-                <label className="block text-xs font-black text-slate-300 mb-1">اسم الطالب أو كوده (مثل ENG-101):</label>
+                <label className="block text-xs font-black text-slate-300 mb-1">رقم هاتف ولي الأمر:</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    value={parentPhoneInput}
+                    onChange={(e) => setParentPhoneInput(e.target.value)}
+                    placeholder="أدخل رقم هاتفك كولي أمر..."
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pr-10 pl-4 py-3 text-xs font-bold text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  />
+                  <Smartphone className="w-4 h-4 text-slate-500 absolute right-3.5 top-3.5" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-slate-300 mb-1">اسم الطالب أو كوده (مثل 1001 أو أحمد محمود):</label>
                 <div className="relative">
                   <input
                     type="text"
