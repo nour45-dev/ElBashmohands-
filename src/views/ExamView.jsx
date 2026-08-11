@@ -20,7 +20,6 @@ import {
   Play
 } from 'lucide-react';
 
-// ─── Review Modal ────────────────────────────────────────────────────────────
 const ReviewModal = ({ attempt, onClose }) => (
   <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
     <div className="bg-white max-w-xl w-full p-6 md:p-8 rounded-3xl border border-slate-200 shadow-2xl space-y-5 text-right relative max-h-[90vh] overflow-y-auto">
@@ -87,7 +86,6 @@ const ReviewModal = ({ attempt, onClose }) => (
   </div>
 );
 
-// ─── Main ExamView ────────────────────────────────────────────────────────────
 export const ExamView = ({ setCurrentTab }) => {
   const {
     quizzes,
@@ -108,12 +106,12 @@ export const ExamView = ({ setCurrentTab }) => {
         <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center text-3xl font-black border border-amber-500/20 shadow-md">
           📝
         </div>
-        <h2 className="text-xl font-black text-slate-900">وضع معاينة الباشمهندس (الأدمن) 💻</h2>
+        <h2 className="text-xl font-black text-slate-900">وضع معاينة المعلم (الأدمن) 💻</h2>
         <p className="text-xs text-slate-500 font-bold leading-relaxed max-w-md">
           أنت الآن مسجل دخول كـ **أدمن**. هذه الصفحة (الامتحانات والواجبات) مخصصة فقط للطلاب لحل الامتحانات وتلقي الدرجات والتحصيل العلمي.
         </p>
         <p className="text-xs text-slate-400 font-medium max-w-sm">
-          لإضافة امتحان تفاعلي جديد، أو مراجعة نتائج الطلاب وتعديل الأسئلة، يرجى الانتقال إلى تبويب **"لوحة الباشمهندس"** في الشريط العلوي لإدارة المنصة بالكامل.
+          لإضافة امتحان تفاعلي جديد، أو مراجعة نتائج الطلاب وتعديل الأسئلة، يرجى الانتقال إلى تبويب **"لوحة المعلم"** في الشريط العلوي لإدارة المنصة بالكامل.
         </p>
       </div>
     );
@@ -130,7 +128,6 @@ export const ExamView = ({ setCurrentTab }) => {
   const isSayedAdmin = userRole === 'admin' && adminIdentity === 'mr_sayed';
   const isNourAdmin = userRole === 'admin' && adminIdentity === 'eng_nour';
 
-  // Build full quiz list from lessons + standalone quizzes
   const allLessonsWithQuiz = lessons.filter(l => {
     if (isSayedAdmin) {
       const isArabic = l.subject === 'اللغة العربية' || l.subject?.includes('عرب');
@@ -158,7 +155,6 @@ export const ExamView = ({ setCurrentTab }) => {
     }))
   ];
 
-  // Timer countdown
   useEffect(() => {
     if (!activeQuiz || quizCompleted) return;
     if (timeLeft <= 0) { handleSubmitExam(); return; }
@@ -167,7 +163,7 @@ export const ExamView = ({ setCurrentTab }) => {
   }, [activeQuiz, quizCompleted, timeLeft]);
 
   const handleStartExam = (quiz) => {
-    if (hasAttemptedExam(quiz.id)) return; // safety guard
+    if (hasAttemptedExam(quiz.id)) return;
     setActiveQuiz(quiz);
     setCurrentQuestionIdx(0);
     setUserAnswers({});
@@ -199,7 +195,6 @@ export const ExamView = ({ setCurrentTab }) => {
 
   const isLowTime = timeLeft <= 60;
 
-  // ─── Quiz List Screen ───────────────────────────────────────────────────
   if (!activeQuiz) {
     return (
       <div className="space-y-8 pb-16">
@@ -237,7 +232,7 @@ export const ExamView = ({ setCurrentTab }) => {
 
           {dynamicQuizzes.length === 0 ? (
             <div className="bg-white p-8 rounded-3xl border text-center font-bold text-xs text-slate-500">
-              لا توجد امتحانات إلكترونية حالياً. قم بإضافة امتحان من لوحة التحكم كباشمهندس وسيظهر هنا فوراً!
+              لا توجد امتحانات إلكترونية حالياً. قم بإضافة امتحان من لوحة التحكم كمعلم وسيظهر هنا فوراً!
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -287,7 +282,6 @@ export const ExamView = ({ setCurrentTab }) => {
                     <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
                       {attempted ? (
                         <div className="flex items-center gap-2 w-full">
-                          {/* Review mistakes button */}
                           <button
                             onClick={() => setReviewAttempt(attempt)}
                             className="flex-1 flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-black px-4 py-2.5 rounded-xl border border-slate-200 transition-all"
@@ -296,7 +290,6 @@ export const ExamView = ({ setCurrentTab }) => {
                             مراجعة الأخطاء والإجابات
                           </button>
 
-                          {/* Lock badge */}
                           <div className="flex items-center gap-1 text-[11px] font-black text-slate-400 border border-slate-200 px-3 py-2.5 rounded-xl">
                             <Lock className="w-3.5 h-3.5" />
                             <span>مُحلول</span>
@@ -355,7 +348,6 @@ export const ExamView = ({ setCurrentTab }) => {
                       {hist.status}
                     </span>
 
-                    {/* Review button per history item */}
                     {hist.questions && hist.questions.length > 0 && (
                       <button
                         onClick={() => setReviewAttempt(hist)}
@@ -397,7 +389,6 @@ export const ExamView = ({ setCurrentTab }) => {
     );
   }
 
-  // ─── Active Exam Interface ──────────────────────────────────────────────
   const currentQ = activeQuiz.questions[currentQuestionIdx];
 
   return (
@@ -457,7 +448,6 @@ export const ExamView = ({ setCurrentTab }) => {
           </div>
 
           <div className="flex gap-3 justify-center">
-            {/* Review mistakes */}
             <button
               onClick={() => setReviewAttempt(resultSummary.resultRecord)}
               className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-black px-5 py-3 rounded-xl border border-slate-200 transition-all"
@@ -477,7 +467,6 @@ export const ExamView = ({ setCurrentTab }) => {
       ) : (
         /* Question Card */
         <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200/80 shadow-md space-y-6">
-          {/* Progress bar */}
           <div className="w-full bg-slate-100 rounded-full h-2">
             <div
               className="bg-blue-600 h-2 rounded-full transition-all"
@@ -543,7 +532,6 @@ export const ExamView = ({ setCurrentTab }) => {
         </div>
       )}
 
-      {/* Review modal while inside active-exam result */}
       {reviewAttempt && (
         <ReviewModal attempt={reviewAttempt} onClose={() => setReviewAttempt(null)} />
       )}
