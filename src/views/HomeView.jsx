@@ -67,9 +67,9 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
             <div className="space-y-3">
               <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-tight text-white">
                 تفوّق في{' '}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">البرمجة</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-300">اللغة العربية</span>
                 {' '}و{' '}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-300">العربي</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">البرمجة</span>
                 {' '}🚀
               </h1>
 
