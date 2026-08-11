@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { ElmLogo } from './ElmLogo';
 import { 
   BookOpen, 
   Video, 
@@ -41,18 +42,7 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
         
         {/* Brand Logo & Title */}
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => setCurrentTab('home')}>
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-700 via-blue-600 to-amber-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20 transform hover:scale-105 transition-all">
-            <Zap className="w-6 h-6 fill-amber-400 text-amber-400" />
-          </div>
-
-          <div>
-            <div className="text-base font-black text-slate-900 leading-none">
-              منصة مَنارة
-            </div>
-            <div className="text-[10px] font-extrabold text-blue-600 mt-1">
-              بوابتك لتفوق العربي واحتراف البرمجة 💡⚡
-            </div>
-          </div>
+          <ElmLogo variant="horizontal" />
         </div>
 
         {/* Desktop Navigation Items */}
