@@ -25,7 +25,6 @@ import {
   XCircle
 } from 'lucide-react';
 
-// ─── Timer component ────────────────────────────────────────────────────────
 const ExamTimer = ({ totalSeconds, onExpire }) => {
   const [remaining, setRemaining] = useState(totalSeconds);
   const intervalRef = useRef(null);
@@ -61,7 +60,6 @@ const ExamTimer = ({ totalSeconds, onExpire }) => {
   );
 };
 
-// ─── Quiz Review Modal (after submission) ───────────────────────────────────
 const QuizReviewModal = ({ attempt, onClose }) => {
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
@@ -129,7 +127,6 @@ const QuizReviewModal = ({ attempt, onClose }) => {
   );
 };
 
-// ─── Main LessonView ─────────────────────────────────────────────────────────
 export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => {
   const { 
     lessons, 
@@ -153,7 +150,6 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
   const [couponFeedback, setCouponFeedback] = useState(null);
   const [unlockMessage, setUnlockMessage] = useState(null);
 
-  // Quiz Modal State
   const [showQuizModal, setShowQuizModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [userQuizAnswers, setUserQuizAnswers] = useState({});
@@ -161,7 +157,6 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
   const [quizScoreResult, setQuizScoreResult] = useState(null);
   const [timerExpired, setTimerExpired] = useState(false);
 
-  // Playlist Subject Filter ('programming' or 'arabic')
   const [playlistSubject, setPlaylistSubject] = useState('programming');
 
   const isSayedAdmin = userRole === 'admin' && adminIdentity === 'mr_sayed';
@@ -178,7 +173,6 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
     ? (subjectFilteredAllLessons.find(les => les.id === lessonId) || subjectFilteredAllLessons[0])
     : null;
 
-  // Sync playlist subject when lesson changes
   useEffect(() => {
     if (lesson) {
       const isArab = lesson.subject === 'اللغة العربية' || lesson.subject?.includes('عرب');
@@ -194,7 +188,7 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
         </div>
         <h3 className="font-black text-xl text-slate-900">لا توجد حصص مرفوعة حالياً</h3>
         <p className="text-xs text-slate-500 font-medium leading-relaxed">
-          المنصة جاهزة 100%. قم بالدخول كباشمهندس (الأدمن) لرفع أول حصة برمجة وتجربة تشغيل ملف الفيديو المرفوع من جهازك!
+          المنصة جاهزة 100%. قم بالدخول كمعلم (الأدمن) لرفع أول حصة برمجة وتجربة تشغيل ملف الفيديو المرفوع من جهازك!
         </p>
         <button
           onClick={() => setCurrentTab('home')}
@@ -208,7 +202,6 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
 
   const lessonQuestions = videoQuestions ? videoQuestions.filter(q => q.lessonId === lesson.id) : [];
 
-  // Filter lessons for sidebar playlist: Grade + Subject
   const gradeFilteredLessons = (userRole === 'admin' ? subjectFilteredAllLessons : subjectFilteredAllLessons.filter(les => les.grade === student?.grade))
     .filter(les => {
       const isArab = les.subject === 'اللغة العربية' || les.subject?.includes('عرب');
@@ -220,27 +213,20 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
     ? gradeFilteredLessons[currentIdx + 1]
     : null;
 
-  // Exam state helpers
   const quiz = lesson.attachedQuiz;
   const alreadyAttempted = quiz ? hasAttemptedExam(quiz.id) : false;
   const attemptRecord = quiz ? getExamAttempt(quiz.id) : null;
 
-  // Next video unlocked if: no exam for this lesson, OR exam was attempted AND passed
   const canGoNextVideo = !quiz || (alreadyAttempted && attemptRecord?.passed);
-
-  // Admin bypasses paywall automatically! Student needs free or unlocked.
   const isVideoAccessible = (userRole === 'admin') || (lesson.price === 0) || lesson.isUnlocked;
 
-  // Format embed URL for YouTube / web videos
   const formattedEmbedUrl = formatVideoEmbedUrl(lesson.videoUrl);
 
-  // Unlock via Wallet cash balance
   const handleUnlockWithWallet = () => {
     const res = unlockLesson(lesson.id, lesson.price, false);
     setUnlockMessage(res.message);
   };
 
-  // Unlock via 1 Monthly Subscription Credit (out of 8)
   const handleUnlockWithMonthlyCredit = () => {
     const res = unlockLesson(lesson.id, lesson.price, true);
     setUnlockMessage(res.message);
@@ -263,7 +249,6 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
     setQuestionInput('');
   };
 
-  // Open quiz modal (only if not already attempted)
   const handleOpenQuiz = () => {
     if (alreadyAttempted) return;
     setUserQuizAnswers({});
@@ -272,7 +257,6 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
     setShowQuizModal(true);
   };
 
-  // Submit quiz answers (called manually or by timer expiry)
   const handleQuizSubmit = (autoSubmit = false) => {
     if (!quiz || quizSubmitted) return;
     const { resultRecord, waPayload } = recordExamResult(quiz, userQuizAnswers);
@@ -290,7 +274,6 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
     handleQuizSubmit(true);
   };
 
-  // EXAM_DURATION: 20 min per exam (1200 seconds), adjustable
   const EXAM_DURATION = 20 * 60;
 
   return (
@@ -326,7 +309,7 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
             
             {/* Security Watermark */}
             <div className="absolute top-4 right-4 z-20 pointer-events-none opacity-40 bg-slate-900/80 backdrop-blur-md px-3 py-1 rounded-lg text-[10px] font-mono text-amber-300 border border-amber-500/30 animate-pulse">
-              🛡️ {userRole === 'admin' ? 'وضع معاينة الباشمهندس' : `رقم الطالب: ${student.phone} | ${student.name}`}
+              🛡️ {userRole === 'admin' ? 'وضع معاينة المعلم' : `رقم الطالب: ${student.phone} | ${student.name}`}
             </div>
 
             {isVideoAccessible ? (
@@ -435,7 +418,7 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
             <div className="bg-slate-900 px-4 py-2.5 border-t border-slate-800 flex items-center justify-between text-[11px] font-bold text-slate-400">
               <div className="flex items-center gap-1.5 text-amber-400">
                 <ShieldAlert className="w-4 h-4" />
-                <span>حماية مشغل فيديو الباشمهندس مفعلة: يمنع التحميل أو تسجيل الشاشة.</span>
+                <span>حماية مشغل فيديو المعلم مفعلة: يمنع التحميل أو تسجيل الشاشة.</span>
               </div>
               <span className="text-slate-400">{lesson.duration}</span>
             </div>
@@ -460,7 +443,6 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
                   if (canGoNextVideo) {
                     setSelectedLessonId(nextLesson.id);
                   } else {
-                    // Scroll to the quiz section and highlight it
                     setActiveSubTab('notes');
                     const quizEl = document.getElementById('quiz-section');
                     if (quizEl) quizEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -509,7 +491,6 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
             {activeSubTab === 'notes' && (
               <div className="space-y-4 animate-in fade-in">
                 
-                {/* PDF or Word Attachment */}
                 {lesson.attachmentPdf && (
                   <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -541,11 +522,9 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
                   </div>
                 )}
 
-                {/* Attached Quiz */}
                 {quiz && (
                   <div id="quiz-section">
                     {alreadyAttempted ? (
-                      /* Already attempted — show result + review */
                       <div className="bg-gradient-to-r from-slate-800 to-slate-900 text-white p-5 rounded-2xl shadow-md space-y-3 border border-slate-700">
                         <div className="flex items-center justify-between">
                           <div className="space-y-1">
@@ -563,7 +542,7 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
                           <div className="text-3xl">{attemptRecord?.percentage >= 80 ? '🌟' : attemptRecord?.percentage >= 60 ? '👍' : '❌'}</div>
                         </div>
 
-                        <div className={`text-[10px] font-bold px-3 py-1.5 rounded-xl w-fit ${attemptRecord?.passed ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'}`}>
+                        <div className={`text-[10px] font-bold px-3 py-1.5 rounded-xl w-fit ${attemptRecord?.passed ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border-rose-500/30'}`}>
                           {attemptRecord?.passed ? '✅ تم اجتياز الامتحان — يمكنك الانتقال للفيديو التالي' : '❌ لم تجتز الامتحان — راجع الأخطاء بالأسفل'}
                         </div>
 
@@ -576,7 +555,6 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
                         </button>
                       </div>
                     ) : (
-                      /* Not yet attempted */
                       <div className="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 p-5 rounded-2xl shadow-md flex items-center justify-between">
                         <div className="space-y-1">
                           <div className="text-xs font-black flex items-center gap-1.5">
@@ -631,7 +609,7 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
 
                 <div className="space-y-3 pt-2">
                   {lessonQuestions.length === 0 ? (
-                    <div className="text-center py-6 text-xs text-slate-400 font-bold">لا توجد أسئلة سابقة. اسأل الباشمهندس وسيجيبك فوراً! 💬</div>
+                    <div className="text-center py-6 text-xs text-slate-400 font-bold">لا توجد أسئلة سابقة. اسأل المعلم وسيجيبك فوراً! 💬</div>
                   ) : (
                     lessonQuestions.map(q => (
                       <div key={q.id} className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 text-right space-y-2">
@@ -652,7 +630,7 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
                         {q.replyText && (
                           <div className="bg-blue-50/80 p-3 rounded-xl border border-blue-200 space-y-1 text-xs mt-2">
                             <div className="font-black text-blue-900 flex items-center gap-1">
-                              <span>رد الباشمهندس الرسمي:</span>
+                              <span>رد المعلم الرسمي:</span>
                               <span className="text-[10px] text-slate-500">({q.repliedAt})</span>
                             </div>
                             <p className="text-slate-800 font-bold leading-relaxed">{q.replyText}</p>
@@ -693,7 +671,7 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
             <div className="space-y-3">
               {gradeFilteredLessons.length === 0 ? (
                 <div className="text-center py-6 text-xs text-slate-400 font-bold">
-                  لا توجد حصص في مادة {playlistSubject === 'arabic' ? 'اللغة العربية' : 'البرمجة'} لهذا الصف حالياً.
+                  لا توجد حصص في مادة {playlistSubject === 'arabic' ? 'اللغة العربية' : 'البرمجة'} لهذا صف حالياً.
                 </div>
               ) : (
                 gradeFilteredLessons.map(les => (
@@ -711,7 +689,6 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
                       <div className="text-[10px] text-slate-500 font-bold">{les.duration} • {les.price === 0 ? 'مجاني' : `${les.price} ج.م`}</div>
                     </div>
                   </div>
-                  {/* Show exam status badge per lesson */}
                   {les.attachedQuiz && hasAttemptedExam(les.attachedQuiz.id) && (
                     <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                   )}
@@ -736,7 +713,6 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
                 </p>
               </div>
 
-              {/* Live Timer (only while quiz is active) */}
               {!quizSubmitted && (
                 <ExamTimer totalSeconds={EXAM_DURATION} onExpire={handleTimerExpire} />
               )}
@@ -777,7 +753,6 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
                 </button>
               </div>
             ) : (
-              /* Result after submission */
               <div className="text-center py-6 space-y-4">
                 <div className="text-5xl">{quizScoreResult?.percentage >= 80 ? '🌟' : quizScoreResult?.percentage >= 60 ? '👍' : '❌'}</div>
                 <h4 className="font-black text-xl text-slate-900">
@@ -818,9 +793,8 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
             )}
           </div>
         </div>
-      )}
-
-      {/* ── Review Modal (mistakes review) ── */}
+      )}    
+      
       {showReviewModal && attemptRecord && (
         <QuizReviewModal
           attempt={attemptRecord}
