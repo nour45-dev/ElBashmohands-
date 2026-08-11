@@ -24,7 +24,9 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
     notifications,
     setNotifications,
     currentGrade, 
-    switchGrade 
+    switchGrade,
+    theme,
+    toggleTheme
   } = useApp();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -249,6 +251,15 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
                 {userRole === 'admin' ? 'الإدارة المركزية' : `كود: ${student.code}`}
               </div>
             </div>
+
+            {/* Theme Toggle Button */}
+            <button 
+              onClick={toggleTheme}
+              title={theme === 'light' ? 'الوضع الداكن 🌙' : 'الوضع المضيء ☀️'}
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all ml-1 text-sm leading-none"
+            >
+              {theme === 'light' ? '🌙' : '☀️'}
+            </button>
 
             <button 
               onClick={logoutUser}
