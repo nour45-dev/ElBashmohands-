@@ -242,3 +242,155 @@ button {
 .animate-float {
   animation: float 4s infinite ease-in-out;
 }
+
+/* ==========================================
+   🌓 LIGHT MODE OVERRIDES
+   ========================================== */
+.light-mode {
+  --bg-app: #f1f5f9;
+  --bg-card: #ffffff;
+  --text-main: #0f172a;
+  --bg-dark-card: #e2e8f0;
+}
+
+.light-mode body {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+.light-mode .bg-slate-950 {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+.light-mode .bg-slate-900 {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #e2e8f0 !important;
+}
+
+.light-mode .bg-slate-900\/90 {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border-color: #e2e8f0 !important;
+}
+
+.light-mode .bg-slate-900\/95 {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: #e2e8f0 !important;
+}
+
+.light-mode .bg-slate-900\/60 {
+  background-color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.light-mode .bg-slate-900\/10 {
+  background-color: rgba(15, 23, 42, 0.05) !important;
+}
+
+.light-mode .text-white {
+  color: #0f172a !important;
+}
+
+.light-mode .text-slate-300 {
+  color: #334155 !important;
+}
+
+.light-mode .text-slate-400 {
+  color: #475569 !important;
+}
+
+.light-mode .text-slate-200 {
+  color: #1e293b !important;
+}
+
+.light-mode .text-slate-500 {
+  color: #64748b !important;
+}
+
+.light-mode .text-slate-600 {
+  color: #475569 !important;
+}
+
+.light-mode .text-slate-700 {
+  color: #334155 !important;
+}
+
+.light-mode .text-slate-900 {
+  color: #0f172a !important;
+}
+
+.light-mode .border-slate-800 {
+  border-color: #e2e8f0 !important;
+}
+
+.light-mode .border-slate-700 {
+  border-color: #cbd5e1 !important;
+}
+
+.light-mode .border-slate-200\/80 {
+  border-color: #cbd5e1 !important;
+}
+
+.light-mode .bg-slate-100 {
+  background-color: #e2e8f0 !important;
+}
+
+.light-mode .text-blue-300 {
+  color: #1d4ed8 !important;
+}
+
+.light-mode .text-blue-400 {
+  color: #2563eb !important;
+}
+
+.light-mode .bg-white\/5 {
+  background-color: rgba(15, 23, 42, 0.04) !important;
+}
+
+.light-mode .border-white\/10 {
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+.light-mode .bg-white\/10 {
+  background-color: rgba(15, 23, 42, 0.06) !important;
+  border-color: rgba(15, 23, 42, 0.15) !important;
+}
+
+.light-mode .text-slate-300.font-bold {
+  color: #0f172a !important;
+}
+
+.light-mode .bg-blue-600\/20 {
+  background-color: rgba(37, 99, 235, 0.1) !important;
+}
+
+.light-mode .bg-amber-600\/20 {
+  background-color: rgba(245, 158, 11, 0.1) !important;
+}
+
+.light-mode .from-slate-900 {
+  --tw-gradient-from: #f8fafc !important;
+}
+
+.light-mode .via-blue-950 {
+  --tw-gradient-via: #dbeafe !important;
+}
+
+.light-mode .to-slate-900 {
+  --tw-gradient-to: #f1f5f9 !important;
+}
+
+.light-mode .bg-slate-900\/50 {
+  background-color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.light-mode .bg-slate-800 {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #e2e8f0 !important;
+}
+
+.light-mode .bg-slate-850 {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
