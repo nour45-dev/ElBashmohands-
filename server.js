@@ -58,7 +58,7 @@ const initialData = {
       points: 120,
       streakDays: 5,
       rank: 1,
-      badges: [{ id: 'b1', name: 'عضو جديد 💻', icon: '💻', desc: 'انضم لمنصة الباشمهندس' }]
+      badges: [{ id: 'b1', name: 'عضو جديد 💻', icon: '💻', desc: 'انضم لمنصة المعلم' }]
     }
   ],
   lessons: [
@@ -181,7 +181,7 @@ const initialData = {
     }
   ],
   notifications: [
-    { id: 'n1', title: 'مرحباً بك في منصة الباشمهندس للبرمجة! 💻', body: 'التطبيق جاهز ومحمي بالكامل 100%.', time: 'الآن', unread: true }
+    { id: 'n1', title: 'مرحباً بك في منصة منصة عِلم التعليمية! 💻', body: 'التطبيق جاهز ومحمي بالكامل 100%.', time: 'الآن', unread: true }
   ],
   exams: []
 };
@@ -200,18 +200,22 @@ const initializeDatabase = async () => {
       console.log('Successfully connected to MongoDB!');
       
       // Seed collections if they are empty
-      const studentColl = db.collection('students');
-      const count = await studentColl.countDocuments();
-      if (count === 0) {
-        console.log('Seeding MongoDB with initial data...');
-        await db.collection('students').insertMany(initialData.students);
-        await db.collection('lessons').insertMany(initialData.lessons);
-        await db.collection('coupons').insertMany(initialData.coupons);
-        await db.collection('payments').insertMany(initialData.payments);
-        await db.collection('questions').insertMany(initialData.questions);
-        await db.collection('notifications').insertMany(initialData.notifications);
-        console.log('MongoDB Seeded successfully.');
-      }
+      const seedCollectionIfEmpty = async (colName, seedData) => {
+        const col = db.collection(colName);
+        const count = await col.countDocuments();
+        if (count === 0 && seedData && seedData.length > 0) {
+          console.log(`Seeding empty collection: ${colName}...`);
+          await col.insertMany(seedData);
+        }
+      };
+
+      await seedCollectionIfEmpty('students', initialData.students);
+      await seedCollectionIfEmpty('lessons', initialData.lessons);
+      await seedCollectionIfEmpty('coupons', initialData.coupons);
+      await seedCollectionIfEmpty('payments', initialData.payments);
+      await seedCollectionIfEmpty('questions', initialData.questions);
+      await seedCollectionIfEmpty('notifications', initialData.notifications);
+      console.log('MongoDB initialization and seeding check completed.');
     } catch (err) {
       console.error('FATAL: Failed to connect to MongoDB in production/configured state!');
       console.error(err);
@@ -390,7 +394,7 @@ app.post('/api/auth/register', async (req, res) => {
         points: 0,
         streakDays: 1,
         rank: count + 1,
-        badges: [{ id: 'b_new', name: 'عضو جديد 🚀', icon: '🚀', desc: 'انضم لمنصة الباشمهندس للبرمجة' }],
+        badges: [{ id: 'b_new', name: 'عضو جديد 🚀', icon: '🚀', desc: 'انضم لمنصة منصة عِلم التعليمية' }],
         deviceId: deviceId || null
       };
 
@@ -438,7 +442,7 @@ app.post('/api/auth/register', async (req, res) => {
         points: 0,
         streakDays: 1,
         rank: data.students.length + 1,
-        badges: [{ id: 'b_new', name: 'عضو جديد 🚀', icon: '🚀', desc: 'انضم لمنصة الباشمهندس للبرمجة' }],
+        badges: [{ id: 'b_new', name: 'عضو جديد 🚀', icon: '🚀', desc: 'انضم لمنصة منصة عِلم التعليمية' }],
         deviceId: deviceId || null
       };
 
@@ -1126,7 +1130,6 @@ app.get('/api/questions', verifyToken, async (req, res) => {
       if (req.user.role === 'admin') {
         questions = localQ;
       } else {
-        // Fallback or user check
         questions = localQ.filter(q => q.studentPhone === req.user.phone);
       }
     }
@@ -1143,7 +1146,6 @@ app.post('/api/questions', verifyToken, async (req, res) => {
   }
 
   try {
-    // Get student details
     let student = null;
     if (dbType === 'mongodb') {
       student = await db.collection('students').findOne({ id: req.user.id });
@@ -1345,7 +1347,6 @@ app.post('/api/chat', async (req, res) => {
       const systemMessage = messages.find(m => m.role === 'system');
       const chatMessages = messages.filter(m => m.role !== 'system');
 
-      // Convert messages to Gemini format
       const contents = chatMessages.map(m => ({
         role: m.role === 'assistant' ? 'model' : 'user',
         parts: [{ text: m.content }]
@@ -1382,7 +1383,6 @@ app.post('/api/chat', async (req, res) => {
       return res.json({ response: botResponse });
 
     } else {
-      // Default to OpenRouter
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -1441,7 +1441,6 @@ app.post('/api/upload/presign', requireAdmin, async (req, res) => {
       ContentType: contentType
     });
 
-    // Link expires in 15 minutes (900 seconds)
     const uploadUrl = await getSignedUrl(r2Client, command, { expiresIn: 900 });
 
     const publicUrlBase = R2_PUBLIC_URL.endsWith('/') ? R2_PUBLIC_URL : `${R2_PUBLIC_URL}/`;
