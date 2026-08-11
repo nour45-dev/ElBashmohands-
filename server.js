@@ -1,3 +1,6 @@
+# server.js
+
+```javascript
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -344,9 +347,13 @@ app.post('/api/auth/register', async (req, res) => {
       const existing = await db.collection('students').findOne({ $or: [{ phone: cleanPhone }, { email: cleanEmail }] });
       if (existing) return res.status(400).json({ error: 'رقم الموبايل أو البريد هذا مسجل مسبقاً! يرجى تسجيل الدخول.' });
 
-      const count = await db.collection('students').countDocuments();
-      const codeNumber = count + 101;
-      const studentCode = `ENG-${codeNumber}`;
+      let codeStart = 3000;
+      if (grade === '1sec') codeStart = 1001;
+      else if (grade === '2sec') codeStart = 2000;
+      else if (grade === '3sec') codeStart = 3000;
+
+      const count = await db.collection('students').countDocuments({ grade });
+      const studentCode = String(codeStart + count);
       const uniqueId = 'std_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
 
       const hashedPassword = await bcrypt.hash(password.trim(), 10);
@@ -387,8 +394,13 @@ app.post('/api/auth/register', async (req, res) => {
       const existing = data.students.find(s => s.phone === cleanPhone || s.email === cleanEmail);
       if (existing) return res.status(400).json({ error: 'رقم الموبايل أو البريد هذا مسجل مسبقاً! يرجى تسجيل الدخول.' });
 
-      const codeNumber = data.students.length + 101;
-      const studentCode = `ENG-${codeNumber}`;
+      let codeStart = 3000;
+      if (grade === '1sec') codeStart = 1001;
+      else if (grade === '2sec') codeStart = 2000;
+      else if (grade === '3sec') codeStart = 3000;
+
+      const count = data.students.filter(s => s.grade === grade).length;
+      const studentCode = String(codeStart + count);
       const uniqueId = 'std_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
 
       const hashedPassword = await bcrypt.hash(password.trim(), 10);
@@ -450,16 +462,30 @@ app.post('/api/auth/login', async (req, res) => {
   }
 
   if (role === 'parent') {
-    const search = (credentials.parentStudentCode || '').trim().toUpperCase();
-    if (!search) return res.status(400).json({ error: 'يرجى إدخال كود الطالب لمتابعة حسابه.' });
+    const parentPhone = (credentials.parentPhone || '').trim();
+    const studentSearch = (credentials.parentStudentCode || '').trim();
+
+    if (!parentPhone) return res.status(400).json({ error: 'يرجى إدخال رقم هاتف ولي الأمر الخاص بك.' });
+    if (!studentSearch) return res.status(400).json({ error: 'يرجى إدخال اسم الطالب أو كوده لمتابعة حسابه.' });
+
+    const cleanParentPhone = normalizePhone(parentPhone);
 
     try {
       let matched = null;
       if (dbType === 'mongodb') {
-        matched = await db.collection('students').findOne({ $or: [{ code: search }, { phone: search }] });
+        matched = await db.collection('students').findOne({
+          parentPhone: cleanParentPhone,
+          $or: [
+            { code: studentSearch.toUpperCase() },
+            { name: { $regex: studentSearch, $options: 'i' } }
+          ]
+        });
       } else {
         const data = getLocalData();
-        matched = data.students.find(s => s.code === search || s.phone === search);
+        matched = data.students.find(s => 
+          normalizePhone(s.parentPhone) === cleanParentPhone &&
+          (s.code === studentSearch.toUpperCase() || s.name.toLowerCase().includes(studentSearch.toLowerCase()))
+        );
       }
 
       if (matched) {
@@ -468,7 +494,7 @@ app.post('/api/auth/login', async (req, res) => {
         const { password: _, ...cleanUser } = matched;
         return res.json({ success: true, role: 'parent', matchedStudent: cleanUser });
       } else {
-        return res.status(404).json({ error: 'لم يتم العثور على طالب بهذا الكود أو رقم الهاتف.' });
+        return res.status(404).json({ error: 'لم يتم العثور على طالب مطابق لهذه البيانات. تأكد من إدخال رقم هاتف ولي الأمر الصحيح المسجل بحساب الطالب، واسمه أو كوده بدقة.' });
       }
     } catch (e) {
       return res.status(500).json({ error: 'خطأ في السيرفر.' });
@@ -526,6 +552,25 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(400).json({ error: 'كلمة المرور غير صحيحة.' });
     }
 
+    const clientDeviceId = credentials.deviceId;
+    if (clientDeviceId) {
+      if (!matched.deviceId) {
+        if (dbType === 'mongodb') {
+          await db.collection('students').updateOne({ id: matched.id }, { $set: { deviceId: clientDeviceId } });
+        } else {
+          const data = getLocalData();
+          const sIdx = data.students.findIndex(s => s.id === matched.id);
+          if (sIdx !== -1) {
+            data.students[sIdx].deviceId = clientDeviceId;
+            writeLocalData(data);
+          }
+        }
+        matched.deviceId = clientDeviceId;
+      } else if (matched.deviceId !== clientDeviceId) {
+        return res.status(403).json({ code: 'DEVICE_LOCKED', error: 'هذا الحساب مسجل على جهاز آخر بالفعل. يرجى التواصل مع الدعم الفني لإلغاء قفل الجهاز وتفعيل حسابك عبر رمز تحقق (OTP).' });
+      }
+    }
+
     const token = jwt.sign({ id: matched.id, role: 'student', name: matched.name }, ACTIVE_JWT_SECRET, { expiresIn: '1d' });
     res.cookie('token', token, { httpOnly: true, secure: isProd, sameSite: 'strict', maxAge: 24 * 60 * 60 * 1000 });
 
@@ -539,6 +584,68 @@ app.post('/api/auth/login', async (req, res) => {
 app.post('/api/auth/logout', (req, res) => {
   res.clearCookie('token');
   return res.json({ success: true });
+});
+
+app.post('/api/auth/verify-device-otp', async (req, res) => {
+  const { phoneOrCode, otp, deviceId } = req.body;
+  if (!phoneOrCode || !otp || !deviceId) {
+    return res.status(400).json({ error: 'البيانات غير مكتملة.' });
+  }
+
+  const cleanIdentifier = (phoneOrCode || '').trim();
+  const normalizePhone = (p) => {
+    if (!p) return '';
+    const clean = p.replace(/\s+/g, '');
+    if (clean.startsWith('+20')) return '0' + clean.substring(3);
+    if (clean.startsWith('20') && clean.length > 10) return '0' + clean.substring(2);
+    if (clean.startsWith('+2')) return '0' + clean.substring(2);
+    return clean;
+  };
+  const cleanPhone = normalizePhone(cleanIdentifier);
+
+  try {
+    let matched = null;
+    if (dbType === 'mongodb') {
+      matched = await db.collection('students').findOne({ $or: [{ code: cleanIdentifier }, { phone: cleanPhone }] });
+    } else {
+      const data = getLocalData();
+      matched = data.students.find(s => s.code === cleanIdentifier || normalizePhone(s.phone) === cleanPhone);
+    }
+
+    if (!matched) {
+      return res.status(404).json({ error: 'الحساب غير مسجل.' });
+    }
+
+    if (!matched.pendingOtp || matched.pendingOtp !== otp.trim()) {
+      return res.status(400).json({ error: 'رمز التحقق (OTP) غير صحيح أو منتهي الصلاحية.' });
+    }
+
+    if (dbType === 'mongodb') {
+      await db.collection('students').updateOne(
+        { id: matched.id },
+        { $set: { deviceId, pendingOtp: null } }
+      );
+    } else {
+      const data = getLocalData();
+      const sIdx = data.students.findIndex(s => s.id === matched.id);
+      if (sIdx !== -1) {
+        data.students[sIdx].deviceId = deviceId;
+        data.students[sIdx].pendingOtp = null;
+        writeLocalData(data);
+      }
+    }
+
+    matched.deviceId = deviceId;
+    matched.pendingOtp = null;
+
+    const token = jwt.sign({ id: matched.id, role: 'student', name: matched.name }, ACTIVE_JWT_SECRET, { expiresIn: '1d' });
+    res.cookie('token', token, { httpOnly: true, secure: isProd, sameSite: 'strict', maxAge: 24 * 60 * 60 * 1000 });
+
+    const { password: _, ...cleanUser } = matched;
+    return res.json({ success: true, role: 'student', user: cleanUser });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 app.get('/api/auth/me', async (req, res) => {
@@ -925,6 +1032,58 @@ app.delete('/api/students/:id', requireAdmin, async (req, res) => {
   }
 });
 
+app.post('/api/students/:id/generate-otp', requireAdmin, async (req, res) => {
+  const studentId = req.params.id;
+  const otp = String(Math.floor(100000 + Math.random() * 900000));
+  try {
+    if (dbType === 'mongodb') {
+      const result = await db.collection('students').updateOne(
+        { id: studentId },
+        { $set: { pendingOtp: otp } }
+      );
+      if (result.matchedCount === 0) return res.status(404).json({ error: 'الطالب غير موجود.' });
+    } else {
+      const data = getLocalData();
+      const student = data.students.find(s => s.id === studentId);
+      if (student) {
+        student.pendingOtp = otp;
+        writeLocalData(data);
+      } else {
+        return res.status(404).json({ error: 'الطالب غير موجود.' });
+      }
+    }
+    return res.json({ success: true, otp });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/students/:id/reset-device', requireAdmin, async (req, res) => {
+  const studentId = req.params.id;
+  try {
+    if (dbType === 'mongodb') {
+      const result = await db.collection('students').updateOne(
+        { id: studentId },
+        { $set: { deviceId: null, pendingOtp: null } }
+      );
+      if (result.matchedCount === 0) return res.status(404).json({ error: 'الطالب غير موجود.' });
+    } else {
+      const data = getLocalData();
+      const student = data.students.find(s => s.id === studentId);
+      if (student) {
+        student.deviceId = null;
+        student.pendingOtp = null;
+        writeLocalData(data);
+      } else {
+        return res.status(404).json({ error: 'الطالب غير موجود.' });
+      }
+    }
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // ==========================================
 // 💬 QUESTIONS ROUTES
 // ==========================================
@@ -1069,6 +1228,28 @@ app.post('/api/notifications', requireAdmin, async (req, res) => {
     }
 
     return res.json(newNote);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/notifications/:id', requireAdmin, async (req, res) => {
+  const notifId = req.params.id;
+  try {
+    if (dbType === 'mongodb') {
+      const result = await db.collection('notifications').deleteOne({ id: notifId });
+      if (result.deletedCount === 0) return res.status(404).json({ error: 'الإشعار غير موجود.' });
+    } else {
+      const data = getLocalData();
+      const idx = data.notifications.findIndex(n => n.id === notifId);
+      if (idx !== -1) {
+        data.notifications.splice(idx, 1);
+        writeLocalData(data);
+      } else {
+        return res.status(404).json({ error: 'الإشعار غير موجود.' });
+      }
+    }
+    return res.json({ success: true });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
@@ -1278,3 +1459,5 @@ initializeDatabase().then(() => {
     console.log(`Server running on port ${PORT} in ${NODE_ENV} mode.`);
   });
 });
+
+```
