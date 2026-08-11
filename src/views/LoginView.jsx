@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 export const LoginView = () => {
-  const { loginUser, registerStudent } = useApp();
+  const { loginUser, registerStudent, verifyDeviceOtp } = useApp();
 
   const [activeTab, setActiveTab] = useState('student-login'); // 'student-login', 'student-signup', 'parent-login', 'admin-login'
 
@@ -44,6 +44,8 @@ export const LoginView = () => {
   // Student Login Fields
   const [phoneInput, setPhoneInput] = useState('');
   const [passInput, setPassInput] = useState('');
+  const [deviceLocked, setDeviceLocked] = useState(false);
+  const [otpInput, setOtpInput] = useState('');
 
   // Student Signup Fields
   const [signupName, setSignupName] = useState('');
@@ -71,6 +73,23 @@ export const LoginView = () => {
     setErrorMessage(null);
     const res = await loginUser('student', { phoneInput, passInput });
     if (!res.success) {
+      if (res.isLocked) {
+        setDeviceLocked(true);
+      }
+      setErrorMessage(res.message);
+    }
+  };
+
+  const handleOtpSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    const res = await verifyDeviceOtp(phoneInput, otpInput);
+    if (res.success) {
+      setSuccessMessage(res.message);
+      setDeviceLocked(false);
+      setOtpInput('');
+    } else {
       setErrorMessage(res.message);
     }
   };
@@ -235,11 +254,64 @@ export const LoginView = () => {
           
           {/* Tab 1: Student Login */}
           {activeTab === 'student-login' && (
-            <form onSubmit={handleStudentLogin} className="space-y-4 animate-in fade-in">
-              <div className="text-right border-b border-slate-800 pb-3">
-                <h3 className="font-black text-white text-base">تسجيل دخول الطالب</h3>
-                <p className="text-[11px] text-slate-400 mt-0.5">ادخل بريدك الإلكتروني أو رقم موبايلك وكلمة المرور للدخول</p>
-              </div>
+            deviceLocked ? (
+              <form onSubmit={handleOtpSubmit} className="space-y-4 animate-in fade-in">
+                <div className="text-right border-b border-slate-800 pb-3">
+                  <h3 className="font-black text-amber-400 text-base">قفل الجهاز نشط 🔐</h3>
+                  <p className="text-[11px] text-slate-400 mt-0.5 font-bold">هذا الحساب مسجل بجهاز آخر بالفعل. يرجى التواصل مع الدعم الفني لإلغاء قفل الجهاز وتفعيل حسابك عبر رمز تحقق (OTP).</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-slate-300 mb-1">أدخل رمز التفعيل (OTP):</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      required
+                      value={otpInput}
+                      onChange={(e) => setOtpInput(e.target.value)}
+                      placeholder="أدخل الرمز المكون من 6 أرقام..."
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pr-10 py-3 text-xs font-mono font-black text-amber-400 focus:ring-2 focus:ring-amber-500 outline-none text-center"
+                    />
+                    <Lock className="w-4 h-4 text-slate-500 absolute right-3.5 top-3.5" />
+                  </div>
+                </div>
+
+                {errorMessage && (
+                  <div className="bg-rose-500/10 text-rose-300 border border-rose-500/30 p-3 rounded-xl text-xs font-bold flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+                    <span>{errorMessage}</span>
+                  </div>
+                )}
+
+                {successMessage && (
+                  <div className="bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 p-3 rounded-xl text-xs font-bold flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                    <span>{successMessage}</span>
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    className="flex-1 btn-primary text-xs font-black py-3.5 rounded-xl justify-center shadow-lg shadow-blue-500/20"
+                  >
+                    تفعيل الجهاز والدخول 🚀
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setDeviceLocked(false); setErrorMessage(null); }}
+                    className="px-4 py-3.5 bg-slate-850 text-white rounded-xl text-xs font-black hover:bg-slate-700 transition-all border border-slate-700"
+                  >
+                    رجوع
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleStudentLogin} className="space-y-4 animate-in fade-in">
+                <div className="text-right border-b border-slate-800 pb-3">
+                  <h3 className="font-black text-white text-base">تسجيل دخول الطالب</h3>
+                  <p className="text-[11px] text-slate-400 mt-0.5">ادخل بريدك الإلكتروني أو رقم موبايلك وكلمة المرور للدخول</p>
+                </div>
 
               <div>
                 <label className="block text-xs font-black text-slate-300 mb-1">البريد الإلكتروني أو رقم الموبايل:</label>
@@ -294,6 +366,7 @@ export const LoginView = () => {
                 تسجيل الدخول للمنصة 🚀
               </button>
             </form>
+            )
           )}
 
           {/* Tab 2: Student Sign Up */}
