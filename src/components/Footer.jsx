@@ -1,5 +1,6 @@
 import React from 'react';
 import { Phone, Mail, MapPin, ShieldCheck, Heart, Sparkles } from 'lucide-react';
+import { ElmLogo } from './ElmLogo';
 
 export const Footer = ({ setCurrentTab }) => {
   return (
@@ -11,10 +12,7 @@ export const Footer = ({ setCurrentTab }) => {
           {/* Col 1: Brand Info */}
           <div className="space-y-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-amber-500 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg shadow-amber-500/20">
-                ⚡
-              </div>
-              <span className="text-xl font-black text-white">منصة الباشمهندس</span>
+              <ElmLogo variant="horizontal" />
             </div>
             <p className="text-xs text-slate-400 leading-relaxed font-medium">
               المنصة التعليمية الأولى المتخصصة في البرمجة واللغة العربية للمرحلة الثانوية العامة. تبسيط كامل للمناهج، امتحانات تفاعلية، وتقارير واتساب فورية.
@@ -68,7 +66,7 @@ export const Footer = ({ setCurrentTab }) => {
           <div className="space-y-3">
             <h4 className="text-xs font-black text-white uppercase tracking-wider">حماية المنصة</h4>
             <p className="text-xs text-slate-400 leading-relaxed font-medium">
-              جميع حقوق الطبع والنشر للمحتوى محفوظة لمنصة الباشمهندس.
+              جميع حقوق الطبع والنشر للمحتوى محفوظة لمنصة عِلم.
             </p>
             <div className="flex items-center gap-2 text-xs text-slate-300 font-bold">
               <ShieldCheck className="w-4 h-4 text-blue-400" />
@@ -80,7 +78,7 @@ export const Footer = ({ setCurrentTab }) => {
 
         <div className="pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-semibold text-slate-500">
           <div>
-            © 2026 جميع الحقوق محفوظة لمنصة الباشمهندس التعليمية ⚡
+            © 2026 جميع الحقوق محفوظة لمنصة عِلم التعليمية ⚡
           </div>
           <div className="flex items-center gap-1">
             <span>تم التطوير بكل</span>
