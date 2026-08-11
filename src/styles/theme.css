@@ -227,20 +227,34 @@ button {
   cursor: pointer;
 }
 
-/* Custom Scrollbar */
+/* Custom Scrollbar - Global settings */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
-::-webkit-scrollbar-track {
-  background: #f1f5f9;
+
+/* Light mode scrollbar */
+html.light-mode ::-webkit-scrollbar-track {
+  background: #f1f5f9 !important;
 }
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+html.light-mode ::-webkit-scrollbar-thumb {
+  background: #cbd5e1 !important;
   border-radius: 4px;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+html.light-mode ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8 !important;
+}
+
+/* Dark mode scrollbar */
+html:not(.light-mode) ::-webkit-scrollbar-track {
+  background: #0D1B2A !important;
+}
+html:not(.light-mode) ::-webkit-scrollbar-thumb {
+  background: #1e3245 !important;
+  border-radius: 4px;
+}
+html:not(.light-mode) ::-webkit-scrollbar-thumb:hover {
+  background: #274059 !important;
 }
 
 /* Glassmorphism Classes */
@@ -515,7 +529,7 @@ html.light-mode .text-slate-200 {
 }
 
 html.light-mode .text-slate-300,
-html.light-mode .text-slate-300\font-bold {
+html.light-mode .text-slate-300\.font-bold {
   color: #334155 !important;
 }
 
@@ -568,4 +582,13 @@ html.light-mode .bg-blue-600\/20 {
 
 html.light-mode .bg-amber-600\/20 {
   background-color: rgba(245, 158, 11, 0.1) !important;
+}
+
+/* Hardcoded platform brand color overrides for light mode */
+html.light-mode .text-\[\#F5E8C7\] {
+  color: #334155 !important; /* Dark slate for subheading readability */
+}
+
+html.light-mode .text-\[\#D4A017\] {
+  color: #b45309 !important; /* Dark amber for better gold text contrast */
 }
