@@ -1,19 +1,16 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
-  BookOpen, 
-  Video, 
-  Award, 
-  Users, 
+  Menu, 
+  X, 
   Wallet, 
   LogOut, 
   Bell, 
-  ShieldCheck, 
-  Menu, 
-  X,
-  Code,
-  Zap,
-  PhoneCall
+  ChevronDown,
+  BookOpen,
+  GraduationCap,
+  Award,
+  Users
 } from 'lucide-react';
 
 export const Navbar = ({ currentTab, setCurrentTab }) => {
@@ -31,91 +28,88 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showGradeDropdown, setShowGradeDropdown] = useState(false);
 
-  const unreadCount = notifications.filter(n => n.unread).length;
+  // Filter notifications relevant to this student's grade
+  const grade = student?.grade || currentGrade;
+  const relevantNotifs = notifications.filter(
+    (n) => n.unread && (n.targetGrade === 'all' || n.targetGrade === grade)
+  );
+  const unreadCount = relevantNotifs.length;
+
+  const handleTabChange = (tab) => {
+    setCurrentTab(tab);
+    setMobileMenuOpen(false);
+  };
+
+  const getGradeLabel = (g) => {
+    if (g === '3sec') return 'الصف الثالث الثانوي';
+    if (g === '2sec') return 'الصف الثاني الثانوي';
+    return 'الصف الأول الثانوي';
+  };
 
   return (
-    <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
-      
-      <div className="container py-3 flex items-center justify-between">
+    <nav className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 text-white shadow-lg">
+      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         
-        {/* Brand Logo & Title */}
-        <div className="flex items-center gap-3 cursor-pointer" onClick={() => setCurrentTab('home')}>
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-700 via-blue-600 to-amber-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20 transform hover:scale-105 transition-all">
-            <Zap className="w-6 h-6 fill-amber-400 text-amber-400" />
+        {/* Brand Logo and Platform Name */}
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-amber-500 flex items-center justify-center text-xl shadow-md shadow-blue-500/20 font-black">
+            💡
           </div>
-
-          <div>
-            <div className="text-base font-black text-slate-900 leading-none">
-              منصة مَنارة
-            </div>
-            <div className="text-[10px] font-extrabold text-blue-600 mt-1">
-              بوابتك لتفوق العربي واحتراف البرمجة 💡⚡
-            </div>
+          <div className="text-right">
+            <h1 className="text-sm font-black tracking-wide text-white leading-none">مَنارة التعلِيمية</h1>
+            <p className="text-[10px] text-slate-400 font-bold mt-0.5">بوابتك للغة العربية والبرمجة</p>
           </div>
         </div>
 
-        {/* Desktop Navigation Items */}
-        <nav className="hidden lg:flex items-center gap-1.5 bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/60">
-          
-          {userRole !== 'parent' && (
-            <>
-              <button 
-                onClick={() => setCurrentTab('home')}
-                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${currentTab === 'home' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'}`}
-              >
-                <BookOpen className="w-4 h-4" />
-                الرئيسية
-              </button>
-
-              <button 
-                onClick={() => setCurrentTab('lessons')}
-                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${currentTab === 'lessons' || currentTab === 'lesson-detail' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'}`}
-              >
-                <Video className="w-4 h-4" />
-                الحصص والدروس
-              </button>
-
-              <button 
-                onClick={() => setCurrentTab('exams')}
-                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${currentTab === 'exams' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'}`}
-              >
-                <Award className="w-4 h-4" />
-                الامتحانات والواجبات
-              </button>
-
-              <button 
-                onClick={() => setCurrentTab('wallet')}
-                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${currentTab === 'wallet' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'}`}
-              >
-                <Wallet className="w-4 h-4" />
-                المحفظة والرصيد
-              </button>
-            </>
-          )}
-
-          {/* Hide Parent View from Students */}
-          {(userRole === 'parent' || userRole === 'admin') && (
-            <button 
-              onClick={() => setCurrentTab('parent-view')}
-              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${currentTab === 'parent-view' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'}`}
+        {/* Desktop Tabs Navigation (Only if logged in) */}
+        {userRole !== 'parent' && (
+          <div className="hidden lg:flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-2xl border border-slate-800/80">
+            <button
+              onClick={() => handleTabChange('home')}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${currentTab === 'home' ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/10' : 'text-slate-400 hover:text-white'}`}
             >
-              <Users className="w-4 h-4 text-emerald-600" />
-              متابعة ولي الأمر
+              الصفحة الرئيسية 🏠
             </button>
-          )}
-
-          {userRole === 'admin' && (
-            <button 
-              onClick={() => setCurrentTab('admin')}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${currentTab === 'admin' ? 'bg-slate-900 text-amber-400 shadow-sm' : 'bg-slate-900/10 text-slate-900 hover:bg-slate-900 hover:text-white'}`}
+            <button
+              onClick={() => handleTabChange('lessons')}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${currentTab === 'lessons' || currentTab === 'lesson-detail' ? 'bg-amber-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'}`}
             >
-              <ShieldCheck className="w-4 h-4 text-amber-500" />
-              لوحة مَنارة
+              الحصص والمحاضرات 📚
             </button>
-          )}
-
-        </nav>
+            <button
+              onClick={() => handleTabChange('exams')}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${currentTab === 'exams' ? 'bg-amber-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'}`}
+            >
+              الامتحانات والواجبات 📝
+            </button>
+            {userRole === 'student' && (
+              <>
+                <button
+                  onClick={() => handleTabChange('wallet')}
+                  className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${currentTab === 'wallet' ? 'bg-amber-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'}`}
+                >
+                  المحفظة والرصيد 💳
+                </button>
+                <button
+                  onClick={() => handleTabChange('leaderboard')}
+                  className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${currentTab === 'leaderboard' ? 'bg-amber-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'}`}
+                >
+                  لوحة الشرف والأوسمة 🏆
+                </button>
+              </>
+            )}
+            {userRole === 'admin' && (
+              <button
+                onClick={() => handleTabChange('admin')}
+                className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${currentTab === 'admin' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+              >
+                لوحة التحكم للأدمن 👨‍💻
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Right User Bar & Profile Actions */}
         <div className="flex items-center gap-3">
@@ -128,7 +122,7 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
             >
               <Wallet className="w-4 h-4 text-amber-600" />
               <div className="text-right">
-                <div className="text-[11px] font-black leading-none font-mono">{student.walletBalance} ج.م</div>
+                <div className="text-[11px] font-black leading-none font-mono">{student?.walletBalance ?? 0} ج.م</div>
               </div>
             </div>
           )}
@@ -138,45 +132,30 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
             <button
               onClick={() => setShowNotifications(!showNotifications)}
               className={`relative p-2 rounded-xl transition-all border ${showNotifications ? 'bg-amber-500 border-amber-500 text-white shadow-md' : 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-600'}`}
-              title="الإشعارات"
             >
-              <Bell className="w-5 h-5" />
+              <Bell className="w-4 h-4" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-black min-w-[18px] h-[18px] rounded-full flex items-center justify-center shadow-md border-2 border-white animate-pulse">
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-rose-600 text-white text-[10px] font-black rounded-full flex items-center justify-center animate-bounce">
                   {unreadCount}
                 </span>
               )}
             </button>
 
-            {/* Notification Dropdown Panel */}
+            {/* Dropdown Container */}
             {showNotifications && (
-              <div
-                className="absolute left-0 top-full mt-2 w-80 bg-white rounded-3xl border border-slate-200 shadow-2xl z-50 overflow-hidden"
-                dir="rtl"
-              >
-                {/* Panel Header */}
-                <div className="bg-gradient-to-l from-amber-500 to-amber-400 px-4 py-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Bell className="w-4 h-4 text-white" />
-                    <span className="text-white font-black text-sm">الإشعارات</span>
-                    {unreadCount > 0 && (
-                      <span className="bg-white/30 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
-                        {unreadCount} جديد
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => setShowNotifications(false)}
-                    className="text-white/70 hover:text-white text-lg font-black leading-none"
-                  >
-                    ×
-                  </button>
+              <div className="absolute left-0 mt-2.5 w-72 bg-white text-slate-900 rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50">
+                <div className="bg-slate-900 text-white px-4 py-3 flex items-center justify-between">
+                  <h4 className="text-xs font-black">أحدث الإشعارات والتنبيهات 🔔</h4>
+                  {unreadCount > 0 && (
+                    <span className="bg-amber-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full">
+                      {unreadCount} جديد
+                    </span>
+                  )}
                 </div>
 
-                {/* Notifications List */}
-                <div className="max-h-72 overflow-y-auto divide-y divide-slate-100">
+                <div className="max-h-64 overflow-y-auto divide-y divide-slate-100">
                   {notifications.length === 0 ? (
-                    <div className="py-8 text-center">
+                    <div className="p-6 text-center">
                       <div className="text-2xl mb-2">🔔</div>
                       <p className="text-slate-400 text-xs font-bold">لا توجد إشعارات حالياً</p>
                     </div>
@@ -245,10 +224,10 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
             </div>
             <div className="hidden md:block text-right pr-1">
               <div className="text-xs font-black text-slate-900 leading-none">
-                {userRole === 'admin' ? 'الباشمهندس (الأدمن)' : student.name}
+                {userRole === 'admin' ? 'الباشمهندس (الأدمن)' : (student?.name || 'جاري التحميل...')}
               </div>
               <div className="text-[10px] text-amber-600 font-mono font-bold mt-0.5">
-                {userRole === 'admin' ? 'الإدارة المركزية' : `كود: ${student.code}`}
+                {userRole === 'admin' ? 'الإدارة المركزية' : `كود: ${student?.code || '...'}`}
               </div>
             </div>
 
@@ -270,48 +249,52 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
             </button>
           </div>
 
-          {/* Mobile Menu Toggle Button */}
-          <button 
+          {/* Mobile Hamburger Toggle */}
+          <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all"
+            className="p-2 rounded-xl bg-slate-800 text-white lg:hidden hover:bg-slate-700 transition-all"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
-
         </div>
-
       </div>
 
-
-      {/* Mobile Drawer Navigation Menu */}
+      {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-slate-200 bg-white p-4 space-y-2 animate-in slide-in-from-top duration-200">
-          {userRole !== 'parent' && (
+        <div className="lg:hidden bg-slate-900 border-t border-slate-800 px-4 py-4 space-y-2 animate-in slide-in-from-top duration-200">
+          
+          <button 
+            onClick={() => handleTabChange('home')}
+            className={`w-full text-right px-4 py-3 rounded-xl text-xs font-extrabold flex items-center gap-2 ${currentTab === 'home' ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-300'}`}
+          >
+            الصفحة الرئيسية 🏠
+          </button>
+          
+          <button 
+            onClick={() => handleTabChange('lessons')}
+            className={`w-full text-right px-4 py-3 rounded-xl text-xs font-extrabold flex items-center gap-2 ${currentTab === 'lessons' || currentTab === 'lesson-detail' ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-300'}`}
+          >
+            <BookOpen className="w-4 h-4 text-blue-500" />
+            الحصص والمحاضرات 📚
+          </button>
+          
+          <button 
+            onClick={() => handleTabChange('exams')}
+            className={`w-full text-right px-4 py-3 rounded-xl text-xs font-extrabold flex items-center gap-2 ${currentTab === 'exams' ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-300'}`}
+          >
+            <GraduationCap className="w-4 h-4 text-amber-500" />
+            الامتحانات والواجبات 📝
+          </button>
+
+          {userRole === 'student' && (
             <>
               <button 
-                onClick={() => { setCurrentTab('home'); setMobileMenuOpen(false); }}
-                className="w-full text-right px-4 py-3 rounded-xl text-xs font-extrabold bg-slate-50 text-slate-900 flex items-center gap-2"
+                onClick={() => { handleTabChange('leaderboard'); }}
+                className="w-full text-right px-4 py-3 rounded-xl text-xs font-extrabold bg-slate-800 text-slate-300 flex items-center gap-2"
               >
-                <BookOpen className="w-4 h-4 text-blue-600" />
-                الرئيسية
+                <Award className="w-4 h-4 text-yellow-500" />
+                لوحة الشرف والأوسمة 🏆
               </button>
-
-              <button 
-                onClick={() => { setCurrentTab('lessons'); setMobileMenuOpen(false); }}
-                className="w-full text-right px-4 py-3 rounded-xl text-xs font-extrabold bg-slate-50 text-slate-900 flex items-center gap-2"
-              >
-                <Video className="w-4 h-4 text-blue-600" />
-                الحصص والدروس
-              </button>
-
-              <button 
-                onClick={() => { setCurrentTab('exams'); setMobileMenuOpen(false); }}
-                className="w-full text-right px-4 py-3 rounded-xl text-xs font-extrabold bg-slate-50 text-slate-900 flex items-center gap-2"
-              >
-                <Award className="w-4 h-4 text-blue-600" />
-                الامتحانات والواجبات
-              </button>
-
               <button 
                 onClick={() => { setCurrentTab('wallet'); setMobileMenuOpen(false); }}
                 className="w-full text-right px-4 py-3 rounded-xl text-xs font-extrabold bg-slate-50 text-slate-900 flex items-center gap-2"
@@ -322,28 +305,16 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
             </>
           )}
 
-          {(userRole === 'parent' || userRole === 'admin') && (
-            <button 
-              onClick={() => { setCurrentTab('parent-view'); setMobileMenuOpen(false); }}
-              className="w-full text-right px-4 py-3 rounded-xl text-xs font-extrabold bg-slate-50 text-slate-900 flex items-center gap-2"
-            >
-              <Users className="w-4 h-4 text-emerald-600" />
-              متابعة ولي الأمر
-            </button>
-          )}
-
           {userRole === 'admin' && (
             <button 
-              onClick={() => { setCurrentTab('admin'); setMobileMenuOpen(false); }}
-              className="w-full text-right px-4 py-3 rounded-xl text-xs font-black bg-slate-900 text-amber-400 flex items-center gap-2"
+              onClick={() => handleTabChange('admin')}
+              className={`w-full text-right px-4 py-3 rounded-xl text-xs font-extrabold flex items-center gap-2 ${currentTab === 'admin' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300'}`}
             >
-              <ShieldCheck className="w-4 h-4 text-amber-500" />
-              لوحة مَنارة
+              لوحة التحكم للأدمن 👨‍💻
             </button>
           )}
         </div>
       )}
-
-    </header>
+    </nav>
   );
 };
