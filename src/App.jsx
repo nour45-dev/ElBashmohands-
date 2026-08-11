@@ -108,6 +108,10 @@ const MainContent = () => {
           <WalletView />
         )}
 
+        {currentTab === 'leaderboard' && (
+          <GamificationView />
+        )}
+
         {currentTab === 'parent-view' && (
           <ParentView />
         )}
