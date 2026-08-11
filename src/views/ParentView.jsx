@@ -3,9 +3,9 @@ import { useApp } from '../context/AppContext';
 import { Users, Search, PhoneCall, Award, CheckCircle2, Send, Flame, Wallet, BookOpen, Sparkles } from 'lucide-react';
 
 export const ParentView = () => {
-  const { student, studentsDB, examHistory, setActiveWhatsAppModal } = useApp();
+  const { student, studentsDB, examHistory, setActiveWhatsAppModal, userRole } = useApp();
 
-  const [studentSearchInput, setStudentSearchInput] = useState(student ? student.code : 'ENG-101');
+  const [studentSearchInput, setStudentSearchInput] = useState(student ? student.code : '1001');
   const [foundStudent, setFoundStudent] = useState(student || studentsDB[0]);
 
   const handleSearch = (e) => {
@@ -71,25 +71,27 @@ export const ParentView = () => {
                 </div>
               </div>
 
-              {/* Direct WhatsApp Report Trigger Button */}
-              <button
-                onClick={() => setActiveWhatsAppModal({
-                  studentName: foundStudent.name,
-                  parentPhone: foundStudent.parentPhone,
-                  studentPhone: foundStudent.phone,
-                  gradeName: foundStudent.gradeName,
-                  examTitle: 'تقرير المستوى والبرمجة الشامل - منصة الباشمهندس',
-                  score: 5,
-                  total: 5,
-                  percentage: 100,
-                  pointsEarned: 100,
-                  date: new Date().toISOString().split('T')[0],
-                  teacherNotes: 'طالب متميز وملتزم بكورسات البرمجة وحل التحديات الكودية.'
-                })}
-                className="btn-whatsapp text-xs font-black px-5 py-3 rounded-2xl shadow-lg shadow-emerald-500/20"
-              >
-                <span>📲 إرسال تقرير الأداء الموثق على الواتساب</span>
-              </button>
+              {/* Direct WhatsApp Report Trigger Button (Admin only) */}
+              {userRole === 'admin' && (
+                <button
+                  onClick={() => setActiveWhatsAppModal({
+                    studentName: foundStudent.name,
+                    parentPhone: foundStudent.parentPhone,
+                    studentPhone: foundStudent.phone,
+                    gradeName: foundStudent.gradeName,
+                    examTitle: 'تقرير المستوى والبرمجة الشامل - منصة مَنارة التعليمية',
+                    score: 5,
+                    total: 5,
+                    percentage: 100,
+                    pointsEarned: 100,
+                    date: new Date().toISOString().split('T')[0],
+                    teacherNotes: 'طالب متميز وملتزم بكورسات البرمجة وحل التحديات الكودية.'
+                  })}
+                  className="btn-whatsapp text-xs font-black px-5 py-3 rounded-2xl shadow-lg shadow-emerald-500/20"
+                >
+                  <span>📲 إرسال تقرير الأداء الموثق على الواتساب</span>
+                </button>
+              )}
             </div>
 
             {/* Quick Metrics Grid */}
