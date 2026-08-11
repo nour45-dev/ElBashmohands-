@@ -16,9 +16,11 @@ export const NotificationBanner = () => {
   const unreadCount = relevantNotifs.length;
 
   useEffect(() => {
-    if (unreadCount > 0 && userRole === 'student') {
+    const hasShown = sessionStorage.getItem('hasShownNotifications');
+    if (unreadCount > 0 && userRole === 'student' && !hasShown) {
       setVisible(true);
       setCurrentIdx(0);
+      sessionStorage.setItem('hasShownNotifications', 'true');
     }
   }, [unreadCount, userRole]);
 
