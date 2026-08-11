@@ -884,10 +884,27 @@ https://elbashmohands.dev`;
     }
   };
 
+  const adminDeleteNotification = async (notifId) => {
+    try {
+      const res = await fetch(`/api/notifications/${notifId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (res.ok) {
+        setNotifications(prev => prev.filter(n => n.id !== notifId));
+        return { success: true };
+      }
+      const data = await res.json();
+      return { success: false, message: data.error || 'فشلت عملية الحذف.' };
+    } catch (err) {
+      return { success: false, message: 'خطأ في الاتصال بالخادم.' };
+    }
+  };
+
   if (loadingSession) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white font-black text-sm">
-        جاري تهيئة منصة الباشمهندس... 💻⚙️
+        جاري تهيئة منصة مَنارة التعليمية... 💡⚙️
       </div>
     );
   }
@@ -944,7 +961,8 @@ https://elbashmohands.dev`;
       triggerSmsSend,
       broadcastNewLesson,
       activeWhatsAppModal,
-      setActiveWhatsAppModal
+      setActiveWhatsAppModal,
+      adminDeleteNotification
     }}>
       {children}
     </AppContext.Provider>
