@@ -258,7 +258,10 @@ export const LoginView = () => {
               <form onSubmit={handleOtpSubmit} className="space-y-4 animate-in fade-in">
                 <div className="text-right border-b border-slate-800 pb-3">
                   <h3 className="font-black text-amber-400 text-base">قفل الجهاز نشط 🔐</h3>
-                  <p className="text-[11px] text-slate-400 mt-0.5 font-bold">هذا الحساب مسجل بجهاز آخر بالفعل. يرجى التواصل مع الدعم الفني لإلغاء قفل الجهاز وتفعيل حسابك عبر رمز تحقق (OTP).</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5 font-bold">هذا الحساب مسجل بجهاز آخر بالفعل. يرجى التواصل مع الدعم الفني لتفعيل جهازك الجديد عبر رمز OTP.</p>
+                  <div className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 p-2.5 rounded-xl text-center text-xs font-bold mt-2">
+                    📞 تواصل مع الدعم الفني مباشرة: <a href="https://wa.me/201002169889" target="_blank" rel="noreferrer" className="text-emerald-300 underline font-black">01002169889</a>
+                  </div>
                 </div>
 
                 <div>
