@@ -7,10 +7,20 @@ export const NotificationBanner = () => {
   const [visible, setVisible] = useState(false);
   const [currentIdx, setCurrentIdx] = useState(0);
 
-  // Filter notifications relevant to this student's grade
+  // Read notifications tracked in localStorage per student to avoid showing again after logout/login
+  const [readNotifIds, setReadNotifIds] = useState(() => {
+    try {
+      const stored = localStorage.getItem(`read_notifs_${student?.id || 'guest'}`);
+      return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  // Filter notifications relevant to this student's grade and not already read
   const grade = student?.grade || currentGrade;
   const relevantNotifs = notifications.filter(
-    (n) => n.unread && (n.targetGrade === 'all' || n.targetGrade === grade)
+    (n) => n.unread && !readNotifIds.includes(n.id) && (n.targetGrade === 'all' || n.targetGrade === grade)
   );
 
   const unreadCount = relevantNotifs.length;
@@ -29,8 +39,17 @@ export const NotificationBanner = () => {
   const current = relevantNotifs[currentIdx];
 
   const markAllRead = () => {
+    const newlyRead = relevantNotifs.map(n => n.id);
+    const updatedReadIds = [...readNotifIds, ...newlyRead];
+    setReadNotifIds(updatedReadIds);
+    try {
+      localStorage.setItem(`read_notifs_${student?.id || 'guest'}`, JSON.stringify(updatedReadIds));
+    } catch (e) {
+      console.error(e);
+    }
+
     setNotifications((prev) =>
-      prev.map((n) => ({ ...n, unread: false }))
+      prev.map((n) => newlyRead.includes(n.id) ? { ...n, unread: false } : n)
     );
     setVisible(false);
   };
