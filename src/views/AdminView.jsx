@@ -44,6 +44,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
     examHistory,
     notifications,
     addNotification,
+    adminDeleteNotification,
     adminAddLesson,
     adminDeleteLesson,
     adminUpdateLesson,
@@ -691,21 +692,35 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
             ) : (
               <div className="space-y-3">
                 {notifications.map((n) => (
-                  <div key={n.id} className="bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-black text-slate-800 text-sm">{n.title}</span>
-                      <span className="text-[11px] text-slate-400 font-bold whitespace-nowrap">
-                        {n.date ? `${n.date} - ${n.time}` : n.time}
-                      </span>
+                  <div key={n.id} className="bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3 flex items-center justify-between gap-4">
+                    <div className="space-y-1.5 flex-1 text-right">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-black text-slate-800 text-sm">{n.title}</span>
+                        <span className="text-[11px] text-slate-400 font-bold whitespace-nowrap">
+                          {n.date ? `${n.date} - ${n.time}` : n.time}
+                        </span>
+                      </div>
+                      {n.body && (
+                        <p className="text-slate-600 text-xs mt-1">{n.body}</p>
+                      )}
+                      <div>
+                        <span className="text-[10px] bg-amber-200 text-amber-800 font-bold px-2 py-0.5 rounded-lg">
+                          {n.targetGrade === 'all' ? 'كل الطلاب' : n.targetGrade === '3sec' ? 'ثالثة ثانوي' : n.targetGrade === '2sec' ? 'ثاني ثانوي' : 'أول ثانوي'}
+                        </span>
+                      </div>
                     </div>
-                    {n.body && (
-                      <p className="text-slate-600 text-xs mt-1">{n.body}</p>
-                    )}
-                    <div className="mt-1">
-                      <span className="text-[10px] bg-amber-200 text-amber-800 font-bold px-2 py-0.5 rounded-lg">
-                        {n.targetGrade === 'all' ? 'كل الطلاب' : n.targetGrade === '3sec' ? 'ثالثة ثانوي' : n.targetGrade === '2sec' ? 'ثاني ثانوي' : 'أول ثانوي'}
-                      </span>
-                    </div>
+
+                    <button
+                      onClick={() => {
+                        if (window.confirm('هل أنت متأكد من حذف هذا الإشعار نهائياً؟')) {
+                          adminDeleteNotification(n.id);
+                        }
+                      }}
+                      className="p-2 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 transition-all border border-rose-100 flex-shrink-0"
+                      title="مسح الإشعار"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 ))}
               </div>
