@@ -43,9 +43,24 @@ export const AppProvider = ({ children }) => {
   const [examAttempts, setExamAttempts] = useState({});
 
   // Local helper UI logs
-  const [whatsappLogs, setWhatsappLogs] = useState([]);
-  const [smsLogs, setSmsLogs] = useState([]);
   const [activeWhatsAppModal, setActiveWhatsAppModal] = useState(null);
+
+  // Theme states (Light / Dark)
+  const [theme, setTheme] = useState(localStorage.getItem('manara_theme') || 'dark');
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+  };
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'light') {
+      root.classList.add('light-mode');
+    } else {
+      root.classList.remove('light-mode');
+    }
+    localStorage.setItem('manara_theme', theme);
+  }, [theme]);
 
   // 1. Session check on mount
   useEffect(() => {
@@ -179,15 +194,28 @@ export const AppProvider = ({ children }) => {
   // Login Handler
   const loginUser = async (role, credentials) => {
     try {
+      const bodyCredentials = { ...credentials };
+      if (role === 'student') {
+        let devId = localStorage.getItem('manara_device_uuid');
+        if (!devId) {
+          devId = 'dev_' + Math.random().toString(36).substring(2, 10) + Date.now();
+          localStorage.setItem('manara_device_uuid', devId);
+        }
+        bodyCredentials.deviceId = devId;
+      }
+
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role, credentials }),
+        body: JSON.stringify({ role, credentials: bodyCredentials }),
         credentials: 'include'
       });
 
       if (!res.ok) {
         const errData = await res.json();
+        if (res.status === 403 && errData.code === 'DEVICE_LOCKED') {
+          return { success: false, isLocked: true, message: errData.error };
+        }
         return { success: false, message: errData.error || 'بيانات الدخول غير صحيحة.' };
       }
 
@@ -209,6 +237,38 @@ export const AppProvider = ({ children }) => {
         await fetchStudentData();
         return { success: true, message: `أهلاً بعودتك يا ${data.user.name}` };
       }
+    } catch (err) {
+      return { success: false, message: 'خطأ في الاتصال بالخادم.' };
+    }
+  };
+
+  const verifyDeviceOtp = async (phoneOrCode, otp) => {
+    try {
+      let devId = localStorage.getItem('manara_device_uuid');
+      if (!devId) {
+        devId = 'dev_' + Math.random().toString(36).substring(2, 10) + Date.now();
+        localStorage.setItem('manara_device_uuid', devId);
+      }
+
+      const res = await fetch('/api/auth/verify-device-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneOrCode, otp, deviceId: devId }),
+        credentials: 'include'
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        return { success: false, message: errData.error || 'رمز OTP غير صحيح أو منتهي الصلاحية.' };
+      }
+
+      const data = await res.json();
+      setIsAuthenticated(true);
+      setUserRole(data.role);
+      setCurrentStudent(data.user);
+      setCurrentGrade(data.user.grade || '3sec');
+      await fetchStudentData();
+      return { success: true, message: `تم تفعيل الجهاز الجديد والدخول بنجاح! أهلاً بك يا ${data.user.name}` };
     } catch (err) {
       return { success: false, message: 'خطأ في الاتصال بالخادم.' };
     }
@@ -962,7 +1022,10 @@ https://elbashmohands.dev`;
       broadcastNewLesson,
       activeWhatsAppModal,
       setActiveWhatsAppModal,
-      adminDeleteNotification
+      adminDeleteNotification,
+      theme,
+      toggleTheme,
+      verifyDeviceOtp
     }}>
       {children}
     </AppContext.Provider>
