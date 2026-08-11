@@ -491,7 +491,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
       .map(std => {
         const targetPhone = std.parentPhone || std.phone;
         const gradeLabel = std.grade === '3sec' ? 'ثالثة ثانوي' : std.grade === '2sec' ? 'ثاني ثانوي' : 'أول ثانوي';
-        const msg = `📌 *تقرير متابعة من منصة الباشمهندس*\n\nالطالب/ة: *${std.name}*\nالصف: ${gradeLabel}\nالرصيد: ${std.walletBalance || 0} ج.م\n\n🔗 تابع تقدم ابنك على منصتنا الآن!`;
+        const msg = `📌 *تقرير متابعة من منصة المعلم*\n\nالطالب/ة: *${std.name}*\nالصف: ${gradeLabel}\nالرصيد: ${std.walletBalance || 0} ج.م\n\n🔗 تابع تقدم ابنك على منصتنا الآن!`;
         const formatted = (targetPhone || '').replace(/\s/g, '').startsWith('0') ? '2' + (targetPhone || '').replace(/\s/g, '') : (targetPhone || '').replace(/\s/g, '');
         return {
           studentName: std.name,
@@ -506,7 +506,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
   const handleBulkSmsBroadcast = () => {
     studentsDB.forEach(std => {
       triggerSmsSend({
-        title: 'تنبيه من منصة الباشمهندس للبرمجة',
+        title: 'تنبيه من منصة منصة عِلم التعليمية',
         studentName: std.name,
         parentPhone: std.parentPhone,
         studentPhone: std.phone
@@ -526,7 +526,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
         <div className="space-y-2 text-right">
           <div className="inline-flex items-center gap-2 bg-amber-500/20 text-amber-300 text-xs font-black px-3 py-1 rounded-full border border-amber-500/30">
             <ShieldCheck className="w-4 h-4 text-amber-400" />
-            <span>لوحة التحكم الإدارية • الباشمهندس 💻</span>
+            <span>لوحة التحكم الإدارية • المعلم 💻</span>
           </div>
           <h1 className="text-2xl md:text-3xl font-black">إدارة الحصص، الأسئلة والردود، المدفوعات، والكوبونات</h1>
           <p className="text-xs text-slate-400 font-medium">
@@ -1378,14 +1378,14 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
 
                   {q.replyText ? (
                     <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-200 text-xs font-bold text-emerald-900 space-y-1">
-                      <div>💬 رد الباشمهندس: {q.replyText}</div>
+                      <div>💬 رد المعلم: {q.replyText}</div>
                       <div className="text-[10px] text-emerald-700 font-medium">تاريخ الرد: {q.repliedAt}</div>
                     </div>
                   ) : (
                     <div className="flex gap-2 pt-1">
                       <input
                         type="text"
-                        placeholder="اكتب رد الباشمهندس هنا..."
+                        placeholder="اكتب رد المعلم هنا..."
                         value={replyTexts[q.id] || ''}
                         onChange={(e) => setReplyTexts(prev => ({ ...prev, [q.id]: e.target.value }))}
                         className="flex-1 bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold outline-none"
