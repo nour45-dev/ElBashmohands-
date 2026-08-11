@@ -1,10 +1,3 @@
-@import "tailwindcss";
-
-/* =========================================================
-   Bassthalk-inspired Theme & CSS Architecture
-   Platform: منصة أ/ سيد عبد العاطي التعليمية
-   ========================================================= */
-
 :root {
   --font-main: 'Cairo', 'Tajawal', -apple-system, BlinkMacSystemFont, sans-serif;
   
@@ -52,102 +45,152 @@
 /* =========================================================
    🌓 DARK MODE OVERRIDES (DEFAULT BRAND STYLE)
    ========================================================= */
-body:not(.light-mode) {
+html:not(.light-mode) {
   background-color: #0D1B2A !important;
   color: #FFFFFF !important;
 }
 
-body:not(.light-mode) .bg-slate-950,
-body:not(.light-mode) .bg-slate-950\/80,
-body:not(.light-mode) .bg-slate-950\/70,
-body:not(.light-mode) .bg-slate-950\/40 {
+html:not(.light-mode) body {
+  background-color: #0D1B2A !important;
+  color: #FFFFFF !important;
+}
+
+/* Card and section backgrounds */
+html:not(.light-mode) .bg-slate-950,
+html:not(.light-mode) .bg-slate-950\/80,
+html:not(.light-mode) .bg-slate-950\/70,
+html:not(.light-mode) .bg-slate-950\/40 {
   background-color: #0D1B2A !important;
   color: #FFFFFF !important;
   border-color: #1e3245 !important;
 }
 
-body:not(.light-mode) .bg-slate-900,
-body:not(.light-mode) .bg-slate-900\/90,
-body:not(.light-mode) .bg-slate-900\/95,
-body:not(.light-mode) .bg-slate-900\/80,
-body:not(.light-mode) .bg-slate-900\/60,
-body:not(.light-mode) .bg-slate-900\/50 {
+html:not(.light-mode) .bg-slate-900,
+html:not(.light-mode) .bg-slate-900\/90,
+html:not(.light-mode) .bg-slate-900\/95,
+html:not(.light-mode) .bg-slate-900\/80,
+html:not(.light-mode) .bg-slate-900\/60,
+html:not(.light-mode) .bg-slate-900\/50,
+html:not(.light-mode) .bg-slate-900\/10 {
   background-color: #162534 !important;
   color: #FFFFFF !important;
   border-color: #1e3245 !important;
 }
 
-body:not(.light-mode) .bg-slate-850 {
+html:not(.light-mode) .bg-white,
+html:not(.light-mode) .bg-white\/90,
+html:not(.light-mode) header {
+  background-color: #162534 !important;
+  color: #FFFFFF !important;
+  border-color: #1e3245 !important;
+}
+
+html:not(.light-mode) .bg-slate-850 {
   background-color: #111e2d !important;
   border-color: #1e3245 !important;
 }
 
-body:not(.light-mode) .bg-slate-800,
-body:not(.light-mode) .bg-slate-800\/80 {
+html:not(.light-mode) .bg-slate-800,
+html:not(.light-mode) .bg-slate-800\/80 {
   background-color: #1e3245 !important;
   color: #FFFFFF !important;
   border-color: #274059 !important;
 }
 
-body:not(.light-mode) .bg-slate-100 {
-  background-color: #1e3245 !important;
-  color: #FFFFFF !important;
-}
-
-body:not(.light-mode) .bg-slate-50 {
+html:not(.light-mode) .bg-slate-100,
+html:not(.light-mode) .bg-slate-100\/80,
+html:not(.light-mode) .bg-slate-100\/50 {
   background-color: #0D1B2A !important;
+  color: #FFFFFF !important;
+  border-color: #1e3245 !important;
 }
 
-body:not(.light-mode) .from-slate-900,
-body:not(.light-mode) .from-slate-950,
-body:not(.light-mode) .from-slate-950\/70,
-body:not(.light-mode) .from-slate-800 {
+html:not(.light-mode) .bg-slate-50 {
+  background-color: #0D1B2A !important;
+  color: #FFFFFF !important;
+  border-color: #1e3245 !important;
+}
+
+html:not(.light-mode) .bg-white\/5 {
+  background-color: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* Gradients */
+html:not(.light-mode) .from-slate-900,
+html:not(.light-mode) .from-slate-950,
+html:not(.light-mode) .from-slate-950\/70,
+html:not(.light-mode) .from-slate-800 {
   --tw-gradient-from: #0D1B2A !important;
   --tw-gradient-to: #162534 !important;
 }
 
-body:not(.light-mode) .via-blue-950 {
+html:not(.light-mode) .via-blue-950 {
   --tw-gradient-via: #0f1c30 !important;
 }
 
-body:not(.light-mode) .to-slate-900,
-body:not(.light-mode) .to-slate-800,
-body:not(.light-mode) .to-slate-900\/60 {
+html:not(.light-mode) .to-slate-900,
+html:not(.light-mode) .to-slate-800,
+html:not(.light-mode) .to-slate-900\/60 {
   --tw-gradient-to: #162534 !important;
 }
 
-body:not(.light-mode) .border-slate-800,
-body:not(.light-mode) .border-slate-700,
-body:not(.light-mode) .border-slate-200\/80,
-body:not(.light-mode) .border-white\/10 {
+/* Borders */
+html:not(.light-mode) .border-slate-800,
+html:not(.light-mode) .border-slate-700,
+html:not(.light-mode) .border-slate-200\/80,
+html:not(.light-mode) .border-slate-200,
+html:not(.light-mode) .border-slate-100,
+html:not(.light-mode) .border-white\/10 {
   border-color: #1e3245 !important;
 }
 
-body:not(.light-mode) .text-slate-300 {
-  color: #F5E8C7 !important;
+/* Active navigation links in dark mode */
+html:not(.light-mode) header .bg-white,
+html:not(.light-mode) header .bg-white.shadow-sm,
+html:not(.light-mode) .bg-white.shadow-sm {
+  background-color: #1e3245 !important;
+  color: #D4A017 !important;
+  border-color: #274059 !important;
 }
 
-body:not(.light-mode) .text-slate-400 {
+/* Texts */
+html:not(.light-mode) .text-white,
+html:not(.light-mode) .text-slate-100 {
+  color: #FFFFFF !important;
+}
+
+html:not(.light-mode) .text-slate-900,
+html:not(.light-mode) .text-slate-800,
+html:not(.light-mode) .text-slate-700,
+html:not(.light-mode) .text-slate-600 {
   color: #cbd5e1 !important;
 }
 
-body:not(.light-mode) .text-slate-500 {
+html:not(.light-mode) .text-slate-300 {
+  color: #F5E8C7 !important;
+}
+
+html:not(.light-mode) .text-slate-400 {
+  color: #cbd5e1 !important;
+}
+
+html:not(.light-mode) .text-slate-500 {
   color: #94a3b8 !important;
 }
 
-body:not(.light-mode) .bg-amber-500\/10,
-body:not(.light-mode) .bg-amber-500\/20 {
+html:not(.light-mode) .bg-amber-500\/10,
+html:not(.light-mode) .bg-amber-500\/20 {
   background-color: rgba(212, 160, 23, 0.1) !important;
 }
 
-body:not(.light-mode) .text-amber-300,
-body:not(.light-mode) .text-amber-400,
-body:not(.light-mode) .text-amber-500 {
+html:not(.light-mode) .text-amber-300,
+html:not(.light-mode) .text-amber-400,
+html:not(.light-mode) .text-amber-500 {
   color: #D4A017 !important;
 }
 
-body:not(.light-mode) .border-amber-500\/20,
-body:not(.light-mode) .border-amber-500\/30 {
+html:not(.light-mode) .border-amber-500\/20,
+html:not(.light-mode) .border-amber-500\/30 {
   border-color: rgba(212, 160, 23, 0.25) !important;
 }
 
@@ -348,151 +391,174 @@ button {
 /* ==========================================
    🌓 LIGHT MODE OVERRIDES
    ========================================== */
-.light-mode {
+html.light-mode {
   --bg-app: #f1f5f9;
   --bg-card: #ffffff;
   --text-main: #0f172a;
   --bg-dark-card: #e2e8f0;
 }
 
-.light-mode body {
+html.light-mode body {
   background-color: #f8fafc !important;
   color: #0f172a !important;
 }
 
 /* Backgrounds & Cards */
-.light-mode .bg-slate-950,
-.light-mode .bg-slate-950\/80,
-.light-mode .bg-slate-950\/70,
-.light-mode .bg-slate-950\/40 {
+html.light-mode .bg-slate-950,
+html.light-mode .bg-slate-950\/80,
+html.light-mode .bg-slate-950\/70,
+html.light-mode .bg-slate-950\/40 {
   background-color: #f1f5f9 !important;
   color: #0f172a !important;
   border-color: #cbd5e1 !important;
 }
 
-.light-mode .bg-slate-900,
-.light-mode .bg-slate-900\/90,
-.light-mode .bg-slate-900\/95,
-.light-mode .bg-slate-900\/80,
-.light-mode .bg-slate-900\/60,
-.light-mode .bg-slate-900\/50,
-.light-mode .bg-slate-900\/10 {
+html.light-mode .bg-slate-900,
+html.light-mode .bg-slate-900\/90,
+html.light-mode .bg-slate-900\/95,
+html.light-mode .bg-slate-900\/80,
+html.light-mode .bg-slate-900\/60,
+html.light-mode .bg-slate-900\/50,
+html.light-mode .bg-slate-900\/10 {
   background-color: #ffffff !important;
   color: #0f172a !important;
   border-color: #cbd5e1 !important;
 }
 
-.light-mode .bg-slate-850 {
+html.light-mode .bg-slate-850 {
   background-color: #f8fafc !important;
   color: #0f172a !important;
   border-color: #cbd5e1 !important;
 }
 
-.light-mode .bg-slate-800,
-.light-mode .bg-slate-800\/80 {
+html.light-mode .bg-slate-800,
+html.light-mode .bg-slate-800\/80 {
   background-color: #e2e8f0 !important;
   color: #0f172a !important;
   border-color: #cbd5e1 !important;
 }
 
-.light-mode .bg-slate-100 {
-  background-color: #e2e8f0 !important;
+html.light-mode .bg-slate-100,
+html.light-mode .bg-slate-100\/80,
+html.light-mode .bg-slate-100\/50 {
+  background-color: #f1f5f9 !important;
   color: #0f172a !important;
+  border-color: #cbd5e1 !important;
 }
 
-.light-mode .bg-slate-50 {
+html.light-mode .bg-slate-50 {
   background-color: #f8fafc !important;
   color: #0f172a !important;
+  border-color: #cbd5e1 !important;
 }
 
-.light-mode .bg-white\/5 {
+html.light-mode .bg-white,
+html.light-mode .bg-white\/90,
+html.light-mode header {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  color: #0f172a !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.light-mode .bg-white\/5 {
   background-color: rgba(15, 23, 42, 0.04) !important;
 }
 
-.light-mode .bg-white\/10 {
+html.light-mode .bg-white\/10 {
   background-color: rgba(15, 23, 42, 0.06) !important;
   border-color: rgba(15, 23, 42, 0.15) !important;
 }
 
 /* Gradients */
-.light-mode .from-slate-900,
-.light-mode .from-slate-950,
-.light-mode .from-slate-950\/70,
-.light-mode .from-slate-800 {
+html.light-mode .from-slate-900,
+html.light-mode .from-slate-950,
+html.light-mode .from-slate-950\/70,
+html.light-mode .from-slate-800 {
   --tw-gradient-from: #f8fafc !important;
   --tw-gradient-to: #f1f5f9 !important;
 }
 
-.light-mode .via-blue-950 {
+html.light-mode .via-blue-950 {
   --tw-gradient-via: #dbeafe !important;
 }
 
-.light-mode .to-slate-900,
-.light-mode .to-slate-800,
-.light-mode .to-slate-900\/60 {
+html.light-mode .to-slate-900,
+html.light-mode .to-slate-800,
+html.light-mode .to-slate-900\/60 {
   --tw-gradient-to: #e2e8f0 !important;
 }
 
+/* Active navigation links in light mode */
+html.light-mode header .bg-white,
+html.light-mode header .bg-white.shadow-sm,
+html.light-mode .bg-white.shadow-sm {
+  background-color: #ffffff !important;
+  color: #1d4ed8 !important;
+  border-color: #cbd5e1 !important;
+}
+
 /* Texts */
-.light-mode .text-white,
-.light-mode .text-slate-100 {
+html.light-mode .text-white,
+html.light-mode .text-slate-100 {
   color: #0f172a !important;
 }
 
-.light-mode .text-slate-200 {
+html.light-mode .text-slate-200 {
   color: #1e293b !important;
 }
 
-.light-mode .text-slate-300,
-.light-mode .text-slate-300\.font-bold {
+html.light-mode .text-slate-300,
+html.light-mode .text-slate-300\font-bold {
   color: #334155 !important;
 }
 
-.light-mode .text-slate-400 {
+html.light-mode .text-slate-400 {
   color: #475569 !important;
 }
 
-.light-mode .text-slate-500 {
+html.light-mode .text-slate-500 {
   color: #64748b !important;
 }
 
-.light-mode .text-slate-600 {
+html.light-mode .text-slate-600 {
   color: #475569 !important;
 }
 
-.light-mode .text-slate-700 {
+html.light-mode .text-slate-700 {
   color: #334155 !important;
 }
 
-.light-mode .text-slate-800 {
+html.light-mode .text-slate-800 {
   color: #1e293b !important;
 }
 
-.light-mode .text-slate-900 {
+html.light-mode .text-slate-900 {
   color: #0f172a !important;
 }
 
-.light-mode .text-slate-950 {
+html.light-mode .text-slate-950 {
   color: #000000 !important;
 }
 
-.light-mode .text-blue-300,
-.light-mode .text-blue-400 {
+html.light-mode .text-blue-300,
+html.light-mode .text-blue-400 {
   color: #1d4ed8 !important;
 }
 
 /* Borders */
-.light-mode .border-slate-800,
-.light-mode .border-slate-700,
-.light-mode .border-slate-200\/80,
-.light-mode .border-white\/10 {
+html.light-mode .border-slate-800,
+html.light-mode .border-slate-700,
+html.light-mode .border-slate-200\/80,
+html.light-mode .border-slate-200,
+html.light-mode .border-slate-100,
+html.light-mode .border-white\/10 {
   border-color: #cbd5e1 !important;
 }
 
-.light-mode .bg-blue-600\/20 {
+html.light-mode .bg-blue-600\/20 {
   background-color: rgba(37, 99, 235, 0.1) !important;
 }
 
-.light-mode .bg-amber-600\/20 {
+html.light-mode .bg-amber-600\/20 {
   background-color: rgba(245, 158, 11, 0.1) !important;
 }
