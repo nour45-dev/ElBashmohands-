@@ -537,7 +537,7 @@ html.light-mode .text-slate-200 {
 }
 
 html.light-mode .text-slate-300,
-html.light-mode .text-slate-300\.font-bold {
+html.light-mode .text-slate-300\font-bold {
   color: #334155 !important;
 }
 
@@ -601,4 +601,12 @@ html.light-mode .text-\[\#f5e8c7\] {
 html.light-mode .text-\[\#D4A017\],
 html.light-mode .text-\[\#d4a017\] {
   color: #b45309 !important; /* Dark amber for better gold text contrast */
+}
+
+/* SVG ElmLogo text fill overrides for light and dark modes */
+html:not(.light-mode) .elm-logo-text {
+  fill: #FFFFFF !important;
+}
+html.light-mode .elm-logo-text {
+  fill: #0D1B2A !important;
 }
