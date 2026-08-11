@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { ElmLogo } from '../components/ElmLogo';
 import { 
   User, 
   Lock, 
@@ -145,20 +146,18 @@ export const LoginView = () => {
       <div className="w-full max-w-lg space-y-6 relative z-10 my-8">
         
         {/* Brand Title */}
-        <div className="text-center space-y-2">
-          <div
-            onClick={handleLogoClick}
-            className="inline-flex items-center gap-2 bg-blue-500/20 border border-blue-500/30 text-blue-300 px-4 py-1.5 rounded-full text-xs font-black shadow-lg cursor-pointer select-none"
-          >
-            <Sparkles className="w-4 h-4 text-amber-400" />
-            <span>منصة مَنارة التعليمية 💡⚡</span>
+        <div className="text-center space-y-3 flex flex-col items-center">
+          <div onClick={handleLogoClick} className="cursor-pointer hover:scale-105 transition-all mb-2">
+            <ElmLogo variant="vertical" className="scale-125" />
           </div>
 
-          <h1 className="text-3xl md:text-4xl font-black text-white">
-            مرحباً بك في منصة مَنارة
-          </h1>
-          <p className="text-xs text-slate-400 font-medium">
-            بوابتك لتفوق اللغة العربية واحتراف البرمجة • كورسات تفاعلية وتصحيح ذكي
+          <div className="inline-flex items-center gap-2 bg-[#D4A017]/10 border border-[#D4A017]/25 text-[#D4A017] px-4 py-1.5 rounded-full text-xs font-black shadow-lg select-none">
+            <Sparkles className="w-4 h-4 text-[#D4A017]" />
+            <span>منصة تعليمية للمعرفة النافعة 💡⚡</span>
+          </div>
+
+          <p className="text-xs text-[#F5E8C7] font-bold">
+            محتوى موثوق.. بأسلوب مبسط. لنتعلم ما ينتفع به في دينك ودنياك.
           </p>
         </div>
 
@@ -190,9 +189,9 @@ export const LoginView = () => {
           {adminUnlocked && (
             <button
               onClick={() => { setActiveTab('admin-login'); setErrorMessage(null); setSuccessMessage(null); }}
-              className={`flex-1 py-2.5 px-3 rounded-xl transition-all whitespace-nowrap ${activeTab === 'admin-login' ? 'bg-amber-500 text-slate-950 shadow-md font-black' : 'text-amber-400/60 hover:text-amber-400'}`}
+              className={`flex-1 py-2.5 px-3 rounded-xl transition-all whitespace-nowrap ${activeTab === 'admin-login' ? 'bg-[#D4A017] text-slate-950 shadow-md font-black' : 'text-amber-400/60 hover:text-amber-400'}`}
             >
-              الباشمهندس 💻
+              المعلم / الإدارة 💻
             </button>
           )}
 
