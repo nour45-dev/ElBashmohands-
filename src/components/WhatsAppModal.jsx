@@ -22,8 +22,8 @@ export const WhatsAppModal = () => {
 
   const msgText = (getWhatsAppMsgText && typeof getWhatsAppMsgText === 'function') 
     ? getWhatsAppMsgText(activeWhatsAppModal, recipient)
-    : `📌 *إشعار من منصة الباشمهندس للبرمجة*
-👤 *الطالب:* ${activeWhatsAppModal.studentName || 'طالب منصة الباشمهندس'}
+    : `📌 *إشعار من منصة منصة عِلم التعليمية*
+👤 *الطالب:* ${activeWhatsAppModal.studentName || 'طالب منصة المعلم'}
 🎓 *الصف:* ${activeWhatsAppModal.gradeName || 'الصف الثالث الثانوي'}
 📝 *الموضوع:* ${activeWhatsAppModal.examTitle || activeWhatsAppModal.title || 'تقرير البرمجة الموثق'}
 
