@@ -1,3 +1,10 @@
+@import "tailwindcss";
+
+/* =========================================================
+   Bassthalk-inspired Theme & CSS Architecture
+   Platform: منصة أ/ سيد عبد العاطي التعليمية
+   ========================================================= */
+
 :root {
   --font-main: 'Cairo', 'Tajawal', -apple-system, BlinkMacSystemFont, sans-serif;
   
