@@ -45,10 +45,10 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
 
           <div>
             <div className="text-base font-black text-slate-900 leading-none">
-              منصة الباشمهندس
+              منصة مَنارة
             </div>
             <div className="text-[10px] font-extrabold text-blue-600 mt-1">
-              المنصة الأولى لبرمجة الثانوية العامة ⚡
+              بوابتك لتفوق العربي واحتراف البرمجة 💡⚡
             </div>
           </div>
         </div>
@@ -56,37 +56,41 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
         {/* Desktop Navigation Items */}
         <nav className="hidden lg:flex items-center gap-1.5 bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/60">
           
-          <button 
-            onClick={() => setCurrentTab('home')}
-            className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${currentTab === 'home' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'}`}
-          >
-            <BookOpen className="w-4 h-4" />
-            الرئيسية
-          </button>
+          {userRole !== 'parent' && (
+            <>
+              <button 
+                onClick={() => setCurrentTab('home')}
+                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${currentTab === 'home' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'}`}
+              >
+                <BookOpen className="w-4 h-4" />
+                الرئيسية
+              </button>
 
-          <button 
-            onClick={() => setCurrentTab('lessons')}
-            className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${currentTab === 'lessons' || currentTab === 'lesson-detail' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'}`}
-          >
-            <Video className="w-4 h-4" />
-            الحصص والدروس
-          </button>
+              <button 
+                onClick={() => setCurrentTab('lessons')}
+                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${currentTab === 'lessons' || currentTab === 'lesson-detail' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'}`}
+              >
+                <Video className="w-4 h-4" />
+                الحصص والدروس
+              </button>
 
-          <button 
-            onClick={() => setCurrentTab('exams')}
-            className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${currentTab === 'exams' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'}`}
-          >
-            <Award className="w-4 h-4" />
-            الامتحانات والواجبات
-          </button>
+              <button 
+                onClick={() => setCurrentTab('exams')}
+                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${currentTab === 'exams' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'}`}
+              >
+                <Award className="w-4 h-4" />
+                الامتحانات والواجبات
+              </button>
 
-          <button 
-            onClick={() => setCurrentTab('wallet')}
-            className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${currentTab === 'wallet' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'}`}
-          >
-            <Wallet className="w-4 h-4" />
-            المحفظة والرصيد
-          </button>
+              <button 
+                onClick={() => setCurrentTab('wallet')}
+                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${currentTab === 'wallet' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'}`}
+              >
+                <Wallet className="w-4 h-4" />
+                المحفظة والرصيد
+              </button>
+            </>
+          )}
 
           {/* Hide Parent View from Students */}
           {(userRole === 'parent' || userRole === 'admin') && (
@@ -105,7 +109,7 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
               className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${currentTab === 'admin' ? 'bg-slate-900 text-amber-400 shadow-sm' : 'bg-slate-900/10 text-slate-900 hover:bg-slate-900 hover:text-white'}`}
             >
               <ShieldCheck className="w-4 h-4 text-amber-500" />
-              لوحة الباشمهندس
+              لوحة مَنارة
             </button>
           )}
 
@@ -271,37 +275,41 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
       {/* Mobile Drawer Navigation Menu */}
       {mobileMenuOpen && (
         <div className="lg:hidden border-t border-slate-200 bg-white p-4 space-y-2 animate-in slide-in-from-top duration-200">
-          <button 
-            onClick={() => { setCurrentTab('home'); setMobileMenuOpen(false); }}
-            className="w-full text-right px-4 py-3 rounded-xl text-xs font-extrabold bg-slate-50 text-slate-900 flex items-center gap-2"
-          >
-            <BookOpen className="w-4 h-4 text-blue-600" />
-            الرئيسية
-          </button>
+          {userRole !== 'parent' && (
+            <>
+              <button 
+                onClick={() => { setCurrentTab('home'); setMobileMenuOpen(false); }}
+                className="w-full text-right px-4 py-3 rounded-xl text-xs font-extrabold bg-slate-50 text-slate-900 flex items-center gap-2"
+              >
+                <BookOpen className="w-4 h-4 text-blue-600" />
+                الرئيسية
+              </button>
 
-          <button 
-            onClick={() => { setCurrentTab('lessons'); setMobileMenuOpen(false); }}
-            className="w-full text-right px-4 py-3 rounded-xl text-xs font-extrabold bg-slate-50 text-slate-900 flex items-center gap-2"
-          >
-            <Video className="w-4 h-4 text-blue-600" />
-            الحصص والدروس
-          </button>
+              <button 
+                onClick={() => { setCurrentTab('lessons'); setMobileMenuOpen(false); }}
+                className="w-full text-right px-4 py-3 rounded-xl text-xs font-extrabold bg-slate-50 text-slate-900 flex items-center gap-2"
+              >
+                <Video className="w-4 h-4 text-blue-600" />
+                الحصص والدروس
+              </button>
 
-          <button 
-            onClick={() => { setCurrentTab('exams'); setMobileMenuOpen(false); }}
-            className="w-full text-right px-4 py-3 rounded-xl text-xs font-extrabold bg-slate-50 text-slate-900 flex items-center gap-2"
-          >
-            <Award className="w-4 h-4 text-blue-600" />
-            الامتحانات والواجبات
-          </button>
+              <button 
+                onClick={() => { setCurrentTab('exams'); setMobileMenuOpen(false); }}
+                className="w-full text-right px-4 py-3 rounded-xl text-xs font-extrabold bg-slate-50 text-slate-900 flex items-center gap-2"
+              >
+                <Award className="w-4 h-4 text-blue-600" />
+                الامتحانات والواجبات
+              </button>
 
-          <button 
-            onClick={() => { setCurrentTab('wallet'); setMobileMenuOpen(false); }}
-            className="w-full text-right px-4 py-3 rounded-xl text-xs font-extrabold bg-slate-50 text-slate-900 flex items-center gap-2"
-          >
-            <Wallet className="w-4 h-4 text-amber-600" />
-            المحفظة والرصيد {student ? `(${student.walletBalance} ج.م)` : ''}
-          </button>
+              <button 
+                onClick={() => { setCurrentTab('wallet'); setMobileMenuOpen(false); }}
+                className="w-full text-right px-4 py-3 rounded-xl text-xs font-extrabold bg-slate-50 text-slate-900 flex items-center gap-2"
+              >
+                <Wallet className="w-4 h-4 text-amber-600" />
+                المحفظة والرصيد {student ? `(${student.walletBalance} ج.م)` : ''}
+              </button>
+            </>
+          )}
 
           {(userRole === 'parent' || userRole === 'admin') && (
             <button 
@@ -319,12 +327,12 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
               className="w-full text-right px-4 py-3 rounded-xl text-xs font-black bg-slate-900 text-amber-400 flex items-center gap-2"
             >
               <ShieldCheck className="w-4 h-4 text-amber-500" />
-              لوحة التحكم الإدارية
+              لوحة مَنارة
             </button>
           )}
         </div>
       )}
- 
+
     </header>
   );
 };
