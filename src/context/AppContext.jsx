@@ -169,10 +169,16 @@ export const AppProvider = ({ children }) => {
     }
 
     try {
+      let devId = localStorage.getItem('manara_device_uuid');
+      if (!devId) {
+        devId = 'dev_' + Math.random().toString(36).substring(2, 10) + Date.now();
+        localStorage.setItem('manara_device_uuid', devId);
+      }
+
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, phone, parentPhone, grade, password }),
+        body: JSON.stringify({ name, email, phone, parentPhone, grade, password, deviceId: devId }),
         credentials: 'include'
       });
 
