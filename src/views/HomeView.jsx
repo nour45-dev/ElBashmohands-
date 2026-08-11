@@ -61,7 +61,7 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
 
             <div className="inline-flex items-center gap-2 bg-amber-500/20 border border-amber-500/30 text-amber-300 px-3.5 py-1.5 rounded-full text-xs font-black shadow-lg shadow-amber-500/10 self-end">
               <Sparkles className="w-4 h-4 text-amber-400" />
-              <span>منصة الباشمهندس للتعليم المتميز ⚡</span>
+              <span>منصة مَنارة التعليمية 💡⚡</span>
             </div>
 
             <div className="space-y-3">
@@ -74,7 +74,7 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
               </h1>
 
               <p className="text-xs md:text-sm text-slate-300 font-medium leading-relaxed max-w-xl">
-                منصة الباشمهندس تجمع بين <strong className="text-amber-300">البرمجة وعلوم الحاسب</strong> (Python, Web, C++) و<strong className="text-blue-300">اللغة العربية</strong> (نحو، بلاغة، أدب) لطلاب المرحلة الثانوية — امتحانات تفاعلية وتقارير فورية لولي الأمر 📲
+                منصة مَنارة التعليمية هي بوابتك المضيئة لتفوق <strong className="text-amber-300">اللغة العربية</strong> ونبوغ <strong className="text-blue-300">البرمجة وعلوم الحاسب</strong> لطلاب المرحلة الثانوية — مع امتحانات تفاعلية وتصحيح ذكي وتقارير فورية لأولياء الأمور 📲
               </p>
             </div>
 
@@ -130,7 +130,7 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
             <div className="absolute inset-0 bg-gradient-to-l from-transparent via-transparent to-slate-900/60 z-10" />
             <img
               src="/hero_student.jpg"
-              alt="طالب متفوق على منصة الباشمهندس"
+              alt="منصة مَنارة التعليمية"
               className="h-full w-full object-cover object-top"
               style={{ maxHeight: '480px' }}
             />
