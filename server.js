@@ -278,7 +278,7 @@ const writeLocalData = (data) => {
 };
 
 // Auth Token Verification Middlewares
-const verifyToken = (req, res, next) => {
+const verifyToken = async (req, res, next) => {
   const token = req.cookies.token;
   if (!token) {
     return res.status(401).json({ error: 'غير مصرح لك بالوصول. يرجى تسجيل الدخول.' });
@@ -286,6 +286,23 @@ const verifyToken = (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, ACTIVE_JWT_SECRET);
+    
+    // Enforce single-device login: check if decoded deviceId matches database deviceId
+    if (decoded.role === 'student') {
+      let student = null;
+      if (dbType === 'mongodb') {
+        student = await db.collection('students').findOne({ id: decoded.id });
+      } else {
+        const data = getLocalData();
+        student = data.students.find(s => s.id === decoded.id);
+      }
+      
+      if (student && student.deviceId && decoded.deviceId !== student.deviceId) {
+        res.clearCookie('token');
+        return res.status(401).json({ error: 'تم تسجيل الدخول من جهاز آخر. تم تسجيل خروجك تلقائياً.' });
+      }
+    }
+
     req.user = decoded;
     next();
   } catch (err) {
@@ -328,7 +345,7 @@ const TEACHER_ACCOUNTS = [
 // ==========================================
 
 app.post('/api/auth/register', async (req, res) => {
-  const { name, email, phone, parentPhone, grade, password } = req.body;
+  const { name, email, phone, parentPhone, grade, password, deviceId } = req.body;
 
   // Validation
   if (!name || name.trim().length < 3) return res.status(400).json({ error: 'يرجى إدخال اسم الطالب الثلاثي بشكل صحيح.' });
@@ -373,13 +390,14 @@ app.post('/api/auth/register', async (req, res) => {
         points: 0,
         streakDays: 1,
         rank: count + 1,
-        badges: [{ id: 'b_new', name: 'عضو جديد 🚀', icon: '🚀', desc: 'انضم لمنصة الباشمهندس للبرمجة' }]
+        badges: [{ id: 'b_new', name: 'عضو جديد 🚀', icon: '🚀', desc: 'انضم لمنصة الباشمهندس للبرمجة' }],
+        deviceId: deviceId || null
       };
 
       await db.collection('students').insertOne(newStudent);
       
       // Sign JWT
-      const token = jwt.sign({ id: uniqueId, role: 'student', name: newStudent.name }, ACTIVE_JWT_SECRET, { expiresIn: '1d' });
+      const token = jwt.sign({ id: uniqueId, role: 'student', name: newStudent.name, deviceId: newStudent.deviceId }, ACTIVE_JWT_SECRET, { expiresIn: '1d' });
       res.cookie('token', token, { httpOnly: true, secure: isProd, sameSite: 'strict', maxAge: 24 * 60 * 60 * 1000 });
 
       // Omit password from return
@@ -420,13 +438,14 @@ app.post('/api/auth/register', async (req, res) => {
         points: 0,
         streakDays: 1,
         rank: data.students.length + 1,
-        badges: [{ id: 'b_new', name: 'عضو جديد 🚀', icon: '🚀', desc: 'انضم لمنصة الباشمهندس للبرمجة' }]
+        badges: [{ id: 'b_new', name: 'عضو جديد 🚀', icon: '🚀', desc: 'انضم لمنصة الباشمهندس للبرمجة' }],
+        deviceId: deviceId || null
       };
 
       data.students.push(newStudent);
       writeLocalData(data);
 
-      const token = jwt.sign({ id: uniqueId, role: 'student', name: newStudent.name }, ACTIVE_JWT_SECRET, { expiresIn: '1d' });
+      const token = jwt.sign({ id: uniqueId, role: 'student', name: newStudent.name, deviceId: newStudent.deviceId }, ACTIVE_JWT_SECRET, { expiresIn: '1d' });
       res.cookie('token', token, { httpOnly: true, secure: isProd, sameSite: 'strict', maxAge: 24 * 60 * 60 * 1000 });
 
       const { password: _, ...cleanUser } = newStudent;
@@ -568,7 +587,7 @@ app.post('/api/auth/login', async (req, res) => {
       }
     }
 
-    const token = jwt.sign({ id: matched.id, role: 'student', name: matched.name }, ACTIVE_JWT_SECRET, { expiresIn: '1d' });
+    const token = jwt.sign({ id: matched.id, role: 'student', name: matched.name, deviceId: clientDeviceId || matched.deviceId }, ACTIVE_JWT_SECRET, { expiresIn: '1d' });
     res.cookie('token', token, { httpOnly: true, secure: isProd, sameSite: 'strict', maxAge: 24 * 60 * 60 * 1000 });
 
     const { password: _, ...cleanUser } = matched;
@@ -635,7 +654,7 @@ app.post('/api/auth/verify-device-otp', async (req, res) => {
     matched.deviceId = deviceId;
     matched.pendingOtp = null;
 
-    const token = jwt.sign({ id: matched.id, role: 'student', name: matched.name }, ACTIVE_JWT_SECRET, { expiresIn: '1d' });
+    const token = jwt.sign({ id: matched.id, role: 'student', name: matched.name, deviceId: deviceId }, ACTIVE_JWT_SECRET, { expiresIn: '1d' });
     res.cookie('token', token, { httpOnly: true, secure: isProd, sameSite: 'strict', maxAge: 24 * 60 * 60 * 1000 });
 
     const { password: _, ...cleanUser } = matched;
@@ -665,6 +684,14 @@ app.get('/api/auth/me', async (req, res) => {
     }
 
     if (!user) return res.status(401).json({ error: 'User session invalid' });
+
+    // Single-device session validation for active student sessions
+    if (decoded.role === 'student') {
+      if (user.deviceId && decoded.deviceId !== user.deviceId) {
+        res.clearCookie('token');
+        return res.status(401).json({ error: 'تم تسجيل الدخول من جهاز آخر. تم تسجيل خروجك تلقائياً.' });
+      }
+    }
 
     const { password: _, ...cleanUser } = user;
     return res.json({
