@@ -27,7 +27,7 @@ export const ParentView = () => {
         <div className="space-y-2 text-right">
           <div className="inline-flex items-center gap-2 bg-white/20 text-white text-xs font-black px-3 py-1 rounded-full backdrop-blur-md">
             <Users className="w-4 h-4 text-amber-300" />
-            <span>نظام متابعة أولياء الأمور - منصة الباشمهندس للبرمجة 👨‍👩‍👦</span>
+            <span>نظام متابعة أولياء الأمور - منصة عِلم للمعرفة النافعة 👨‍👩‍👦</span>
           </div>
           <h1 className="text-2xl md:text-3xl font-black">بوابة متابعة أداء الطالب</h1>
           <p className="text-xs md:text-sm text-amber-100 font-medium">
