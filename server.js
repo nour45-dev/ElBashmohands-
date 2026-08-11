@@ -1,348 +1,186 @@
-# server.js
-
-```javascript
 import express from 'express';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import bcrypt from 'bcryptjs';
+import jwt from 'jwt-simple';
+import dotenv from 'dotenv';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import fs from 'fs';
 import { MongoClient, ObjectId } from 'mongodb';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
-import cookieParser from 'cookie-parser';
+
+// AWS SDK v3 for Cloudflare R2
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+const PORT = process.env.PORT || 5000;
+const isProd = process.env.NODE_ENV === 'production';
+
+// CORS configuration matching your frontend url
+const clientOrigin = process.env.CLIENT_URL || 'http://localhost:5173';
+app.use(cors({
+  origin: clientOrigin,
+  credentials: true
+}));
+
 app.use(express.json());
 app.use(cookieParser());
 
-// Environment settings
-const PORT = process.env.PORT || 3000;
-const NODE_ENV = process.env.NODE_ENV || 'development';
-const isProd = NODE_ENV === 'production';
+// Database configuration
+const dbType = process.env.DATABASE_TYPE || 'local'; // 'local' or 'mongodb'
+const mongoUri = process.env.MONGO_URI;
+const localDbPath = path.join(__dirname, 'db.json');
 
-// Strict Secret Check
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
-  if (isProd) {
-    console.error('FATAL: JWT_SECRET environment variable is missing in production mode!');
-    process.exit(1);
-  }
-}
-const ACTIVE_JWT_SECRET = JWT_SECRET || 'dev_secret_key_for_local_testing_only_123';
+// JWT Secret Key
+const ACTIVE_JWT_SECRET = process.env.JWT_SECRET || 'manara_secret_key_2026';
 
-// Database State and Initialization
-let dbType = 'json'; // 'mongodb' or 'json'
-let mongoClient = null;
 let db = null;
-let jsonDbFilePath = path.join(__dirname, 'database.json');
+let client = null;
 
-// Initial seed data
-const initialData = {
-  students: [
-    {
-      id: 'std_101',
-      code: 'ENG-101',
-      name: 'أحمد محمود العبد',
-      email: 'ahmed@bashmohandis.com',
-      phone: '01012345678',
-      parentPhone: '01198765432',
-      password: bcrypt.hashSync('123', 10), // Hashed Ahmed's password
-      grade: '3sec',
-      gradeName: 'الصف الثالث الثانوي (تانوية عامة)',
-      avatar: null,
-      walletBalance: 0,
-      subscriptionStatus: 'active',
-      subscriptionType: 'شهري',
-      monthlyCreditsLeft: 8,
-      points: 120,
-      streakDays: 5,
-      rank: 1,
-      badges: [{ id: 'b1', name: 'عضو جديد 💻', icon: '💻', desc: 'انضم لمنصة الباشمهندس' }]
+// Initialize Database connection
+async function initDb() {
+  if (dbType === 'mongodb') {
+    if (!mongoUri) {
+      console.error('MONGO_URI is not defined in environment variables.');
+      process.exit(1);
     }
-  ],
-  lessons: [
-    {
-      id: 'les_demo_1',
-      title: 'مقدمة في لغة Python وكتابة أول برنامج',
-      subject: 'برمجة وعلوم الحاسب',
-      grade: '3sec',
-      duration: '45 دقيقة',
-      price: 25,
-      videoType: 'url',
-      videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-      thumbnail: 'https://images.unsplash.com/photo-1526379879527-8559ecfcaec0?auto=format&fit=crop&q=80&w=600',
-      description: 'شرح مبسط وممتع لأساسيات المتغيرات وعمليات الإدخال والإخراج في Python.',
-      attachmentType: 'pdf',
-      attachmentPdf: 'مذكرة_Python_الحصة_الأولى.pdf',
-      attachmentFileUrl: null,
-      viewsCount: 142,
-      isUnlocked: false,
-      attachedQuiz: {
-        id: 'qz_demo_1',
-        title: 'الامتحان الإلكتروني للحصة الأولى - لغة Python',
-        rewardPoints: 50,
-        durationMinutes: 20,
-        questions: [
-          {
-            id: 1,
-            question: 'أي من الكلمات التالية تستخدم لطباعة مخرجات في لغة Python؟',
-            options: ['echo', 'print()', 'Console.WriteLine()', 'printf()'],
-            correctIndex: 1
-          },
-          {
-            id: 2,
-            question: 'كيف يتم تعريف المتغير x بقيمة نصية في Python؟',
-            options: ['int x = "Hello"', 'x = "Hello"', 'var x = "Hello"', 'string x = "Hello"'],
-            correctIndex: 1
-          }
-        ]
-      }
-    },
-    {
-      id: 'les_demo_2',
-      title: 'شرح درس البلاغة - الكناية وأسرار الجمال',
-      subject: 'اللغة العربية',
-      grade: '3sec',
-      duration: '40 دقيقة',
-      price: 25,
-      videoType: 'url',
-      videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-      thumbnail: 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&q=80&w=600',
-      description: 'شرح تفصيلي لدرس الكناية وأنواعها (عن صفة، عن موصوف، عن نسبة) وتدريبات البلاغة للمرحلة الثانوية.',
-      attachmentType: 'pdf',
-      attachmentPdf: 'مذكرة_البلاغة_الكناية.pdf',
-      attachmentFileUrl: null,
-      viewsCount: 98,
-      isUnlocked: false,
-      attachedQuiz: {
-        id: 'qz_demo_2',
-        title: 'امتحان البلاغة الإلكتروني - درس الكناية',
-        rewardPoints: 50,
-        durationMinutes: 15,
-        questions: [
-          {
-            id: 1,
-            question: 'قال الشاعر: "فما جازه جود ولا حل دونه ... ولكن يسير الجود حيث يسير" — ما نوع الكناية هنا؟',
-            options: ['كناية عن صفة', 'كناية عن موصوف', 'كناية عن نسبة', 'استعارة تصريحية'],
-            correctIndex: 2
-          }
-        ]
-      }
-    }
-  ],
-  coupons: [
-    {
-      id: 'coup_1',
-      code: 'BASHMO2026',
-      type: 'percent',
-      value: 50,
-      targetGrade: 'all',
-      maxUses: 100,
-      usedCount: 14,
-      active: true
-    },
-    {
-      id: 'coup_2',
-      code: 'FREE100',
-      type: 'free',
-      value: 100,
-      targetGrade: '3sec',
-      maxUses: 50,
-      usedCount: 8,
-      active: true
-    }
-  ],
-  payments: [
-    {
-      id: 'req_1001',
-      studentId: 'std_101',
-      studentName: 'أحمد محمود العبد',
-      studentPhone: '01012345678',
-      parentPhone: '01198765432',
-      amount: 150,
-      method: 'instapay',
-      refNumber: 'INSTA-88741259',
-      proofImage: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&q=80&w=400',
-      status: 'pending',
-      requestDate: new Date().toLocaleDateString('ar-EG')
-    }
-  ],
-  questions: [
-    {
-      id: 'q_101',
-      lessonId: 'les_demo_1',
-      studentName: 'أحمد محمود العبد',
-      studentPhone: '01012345678',
-      questionText: 'يا باشمهندس ازاي أفرق بين List و Tuple في لغة Python؟',
-      replyText: 'أهلاً يا أحمد! الـ List قابلة للتعديل (mutable)، بينما الـ Tuple ثابته ولا يمكن تعديل عناصرها بعد إنشائها.',
-      repliedAt: 'منذ ساعتين',
-      status: 'answered'
-    }
-  ],
-  notifications: [
-    { id: 'n1', title: 'مرحباً بك في منصة الباشمهندس للبرمجة! 💻', body: 'التطبيق جاهز ومحمي بالكامل 100%.', time: 'الآن', unread: true }
-  ],
-  exams: []
-};
-
-// Database Connection Helper
-const MONGODB_URI = process.env.MONGODB_URI;
-
-const initializeDatabase = async () => {
-  if (MONGODB_URI) {
     try {
-      console.log('Connecting to MongoDB database...');
-      mongoClient = new MongoClient(MONGODB_URI);
-      await mongoClient.connect();
-      db = mongoClient.db();
-      dbType = 'mongodb';
-      console.log('Successfully connected to MongoDB!');
-      
-      // Seed collections if they are empty
-      const studentColl = db.collection('students');
-      const count = await studentColl.countDocuments();
-      if (count === 0) {
-        console.log('Seeding MongoDB with initial data...');
-        await db.collection('students').insertMany(initialData.students);
-        await db.collection('lessons').insertMany(initialData.lessons);
-        await db.collection('coupons').insertMany(initialData.coupons);
-        await db.collection('payments').insertMany(initialData.payments);
-        await db.collection('questions').insertMany(initialData.questions);
-        await db.collection('notifications').insertMany(initialData.notifications);
-        console.log('MongoDB Seeded successfully.');
-      }
+      client = new MongoClient(mongoUri);
+      await client.connect();
+      db = client.db('manara_platform');
+      console.log('Successfully connected to MongoDB.');
     } catch (err) {
-      console.error('FATAL: Failed to connect to MongoDB in production/configured state!');
-      console.error(err);
-      if (isProd) {
-        process.exit(1);
-      } else {
-        console.log('Falling back to local database file (Development)...');
-        setupLocalJsonDB();
-      }
+      console.error('Failed to connect to MongoDB:', err);
+      process.exit(1);
     }
   } else {
-    if (isProd) {
-      console.error('FATAL: MONGODB_URI is required in production but was not provided.');
-      process.exit(1);
-    } else {
-      console.log('MONGODB_URI not provided. Setting up local JSON database...');
-      setupLocalJsonDB();
+    console.log('Using local JSON file database:', localDbPath);
+    if (!fs.existsSync(localDbPath)) {
+      const initialData = {
+        students: [],
+        lessons: [],
+        quizzes: [],
+        coupons: [],
+        payments: [],
+        questions: [],
+        notifications: [],
+        exams: []
+      };
+      fs.writeFileSync(localDbPath, JSON.stringify(initialData, null, 2), 'utf-8');
     }
   }
-};
+}
+await initDb();
 
-// Cloudflare R2 object storage client configuration
-const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
-const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
-const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
-const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
-const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
-
-let r2Client = null;
-if (R2_ACCOUNT_ID && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY) {
-  r2Client = new S3Client({
-    region: 'auto',
-    endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-    credentials: {
-      accessKeyId: R2_ACCESS_KEY_ID,
-      secretAccessKey: R2_SECRET_ACCESS_KEY,
-    },
-  });
-  console.log('Cloudflare R2 storage client successfully initialized.');
-} else {
-  console.log('Cloudflare R2 credentials not configured. Direct uploads will not be available.');
+// Helper functions for local database
+function getLocalData() {
+  if (!fs.existsSync(localDbPath)) return {};
+  const content = fs.readFileSync(localDbPath, 'utf-8');
+  return JSON.parse(content);
 }
 
-const setupLocalJsonDB = () => {
-  dbType = 'json';
-  if (!fs.existsSync(jsonDbFilePath)) {
-    console.log('Creating database.json with seed data...');
-    fs.writeFileSync(jsonDbFilePath, JSON.stringify(initialData, null, 2), 'utf-8');
+function writeLocalData(data) {
+  fs.writeFileSync(localDbPath, JSON.stringify(data, null, 2), 'utf-8');
+}
+
+// R2 S3 Client Initialization
+const r2Client = new S3Client({
+  region: 'auto',
+  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
+  },
+});
+
+const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME || 'elbashmohands-bucket';
+const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || 'https://pub-dbe9f40fb807406bbd61ea234a334559.r2.dev';
+
+// Admin / Teacher Accounts Setup
+const TEACHER_ACCOUNTS = [
+  {
+    identity: 'eng_nour',
+    name: 'مهندس نور',
+    phone: '01099887766',
+    email: 'nour@manara.com',
+    passwordHash: bcrypt.hashSync(process.env.ADMIN_PASS || 'nour2026', 10)
+  },
+  {
+    identity: 'mr_sayed',
+    name: 'مستر سيد عبد العاطي',
+    phone: '01055443322',
+    email: 'sayed@manara.com',
+    passwordHash: bcrypt.hashSync(process.env.ADMIN_PASS || 'sayed2026', 10)
   }
+];
+
+// Helper to normalize phone numbers
+const normalizePhone = (p) => {
+  if (!p) return '';
+  const clean = p.replace(/\s+/g, '');
+  if (clean.startsWith('+20')) return '0' + clean.substring(3);
+  if (clean.startsWith('20') && clean.length > 10) return '0' + clean.substring(2);
+  if (clean.startsWith('+2')) return '0' + clean.substring(2);
+  return clean;
 };
 
-// Generic read/write functions for local JSON DB
-const getLocalData = () => {
-  try {
-    const raw = fs.readFileSync(jsonDbFilePath, 'utf-8');
-    return JSON.parse(raw);
-  } catch (e) {
-    return initialData;
-  }
-};
-
-const writeLocalData = (data) => {
-  fs.writeFileSync(jsonDbFilePath, JSON.stringify(data, null, 2), 'utf-8');
-};
-
-// Auth Token Verification Middlewares
-const verifyToken = (req, res, next) => {
+// Middleware: Verify Token
+function verifyToken(req, res, next) {
   const token = req.cookies.token;
-  if (!token) {
-    return res.status(401).json({ error: 'غير مصرح لك بالوصول. يرجى تسجيل الدخول.' });
-  }
+  if (!token) return res.status(401).json({ error: 'غير مصرح بالدخول.' });
 
   try {
-    const decoded = jwt.verify(token, ACTIVE_JWT_SECRET);
+    const decoded = jwt.decode(token, ACTIVE_JWT_SECRET);
     req.user = decoded;
     next();
   } catch (err) {
-    return res.status(403).json({ error: 'الرمز غير صالح أو منتهي الصلاحية.' });
+    return res.status(401).json({ error: 'انتهت صلاحية الجلسة.' });
   }
-};
+}
 
-const requireAdmin = (req, res, next) => {
-  verifyToken(req, res, () => {
-    if (req.user && req.user.role === 'admin') {
-      next();
-    } else {
-      return res.status(403).json({ error: 'غير مصرح بالدخول للوحة التحكم.' });
+// Middleware: Require Admin
+function requireAdmin(req, res, next) {
+  const token = req.cookies.token;
+  if (!token) return res.status(401).json({ error: 'غير مصرح بالدخول.' });
+
+  try {
+    const decoded = jwt.decode(token, ACTIVE_JWT_SECRET);
+    if (decoded.role !== 'admin') {
+      return res.status(403).json({ error: 'هذه الصلاحية للأدمن فقط.' });
     }
-  });
-};
-
-const requireOwnershipOrAdmin = (req, res, next) => {
-  verifyToken(req, res, () => {
-    const requestedId = req.params.id;
-    if (req.user.role === 'admin' || req.user.id === requestedId) {
-      next();
-    } else {
-      return res.status(403).json({ error: 'غير مصرح بتعديل أو جلب بيانات هذا الحساب.' });
-    }
-  });
-};
-
-// Admin authentication passwords (read from env or fallback locally)
-const ADMIN_NOUR_PASS = process.env.ADMIN_NOUR_PASS || 'nour2026';
-const ADMIN_SAYED_PASS = process.env.ADMIN_SAYED_PASS || 'sayed2026';
-
-const TEACHER_ACCOUNTS = [
-  { email: 'nour@bashmohandis.com', phone: '01002169889', passwordHash: bcrypt.hashSync(ADMIN_NOUR_PASS, 10), identity: 'eng_nour', name: 'مهندس نور' },
-  { email: 'sayed@bashmohandis.com', phone: '01094273996', passwordHash: bcrypt.hashSync(ADMIN_SAYED_PASS, 10), identity: 'mr_sayed', name: 'مستر سيد' }
-];
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: 'انتهت صلاحية الجلسة.' });
+  }
+}
 
 // ==========================================
 // 🔑 AUTHENTICATION ROUTES
 // ==========================================
 
 app.post('/api/auth/register', async (req, res) => {
-  const { name, email, phone, parentPhone, grade, password } = req.body;
+  const { name, email, phone, parentPhone, grade, password, confirmPassword } = req.body;
 
-  // Validation
-  if (!name || name.trim().length < 3) return res.status(400).json({ error: 'يرجى إدخال اسم الطالب الثلاثي بشكل صحيح.' });
-  if (!email || !email.includes('@')) return res.status(400).json({ error: 'يرجى إدخال بريد إلكتروني صحيح.' });
-  if (!phone || phone.trim().length < 10) return res.status(400).json({ error: 'يرجى إدخال رقم هاتف الطالب المكون من 11 رقم.' });
-  if (!password || password.trim().length < 4) return res.status(400).json({ error: 'كلمة المرور يجب أن تكون 4 أحرف على الأقل.' });
+  if (!name || !email || !phone || !parentPhone || !grade || !password || !confirmPassword) {
+    return res.status(400).json({ error: 'يرجى ملء جميع الحقول المطلوبة للتسجيل.' });
+  }
+
+  if (password !== confirmPassword) {
+    return res.status(400).json({ error: 'كلمات المرور غير متطابقة.' });
+  }
+
+  const cleanPhone = normalizePhone(phone);
+  const cleanParentPhone = normalizePhone(parentPhone);
+  const cleanEmail = email.trim().toLowerCase();
 
   try {
-    const cleanPhone = phone.trim();
-    const cleanEmail = email.trim().toLowerCase();
-
     if (dbType === 'mongodb') {
       const existing = await db.collection('students').findOne({ $or: [{ phone: cleanPhone }, { email: cleanEmail }] });
       if (existing) return res.status(400).json({ error: 'رقم الموبايل أو البريد هذا مسجل مسبقاً! يرجى تسجيل الدخول.' });
@@ -364,32 +202,26 @@ app.post('/api/auth/register', async (req, res) => {
         name: name.trim(),
         email: cleanEmail,
         phone: cleanPhone,
-        parentPhone: (parentPhone || '').trim(),
-        password: hashedPassword,
-        grade: grade || '3sec',
-        gradeName: grade === '1sec' ? 'الصف الأول الثانوي' : grade === '2sec' ? 'الصف الثاني الثانوي' : 'الصف الثالث الثانوي (تانوية عامة)',
-        avatar: null,
+        parentPhone: cleanParentPhone,
+        grade,
+        gradeName: grade === '3sec' ? 'الصف الثالث الثانوي' : grade === '2sec' ? 'الصف الثاني الثانوي' : 'الصف الأول الثانوي',
         walletBalance: 0,
-        subscriptionStatus: 'none',
-        subscriptionType: 'غير مشترك',
-        monthlyCreditsLeft: 0,
-        points: 0,
-        streakDays: 1,
-        rank: count + 1,
-        badges: [{ id: 'b_new', name: 'عضو جديد 🚀', icon: '🚀', desc: 'انضم لمنصة الباشمهندس للبرمجة' }]
+        unlockedLessons: [],
+        xp: 0,
+        password: hashedPassword,
+        createdAt: new Date().toISOString(),
+        deviceId: null,
+        pendingOtp: null
       };
 
       await db.collection('students').insertOne(newStudent);
-      
-      // Sign JWT
+
       const token = jwt.sign({ id: uniqueId, role: 'student', name: newStudent.name }, ACTIVE_JWT_SECRET, { expiresIn: '1d' });
       res.cookie('token', token, { httpOnly: true, secure: isProd, sameSite: 'strict', maxAge: 24 * 60 * 60 * 1000 });
 
-      // Omit password from return
       const { password: _, ...cleanUser } = newStudent;
-      return res.json({ success: true, user: cleanUser, token });
+      return res.json({ success: true, role: 'student', user: cleanUser, message: `أهلاً بك يا ${name}! كودك الدراسي هو: ${studentCode}` });
     } else {
-      // Local JSON File Database
       const data = getLocalData();
       const existing = data.students.find(s => s.phone === cleanPhone || s.email === cleanEmail);
       if (existing) return res.status(400).json({ error: 'رقم الموبايل أو البريد هذا مسجل مسبقاً! يرجى تسجيل الدخول.' });
@@ -411,19 +243,16 @@ app.post('/api/auth/register', async (req, res) => {
         name: name.trim(),
         email: cleanEmail,
         phone: cleanPhone,
-        parentPhone: (parentPhone || '').trim(),
-        password: hashedPassword,
-        grade: grade || '3sec',
-        gradeName: grade === '1sec' ? 'الصف الأول الثانوي' : grade === '2sec' ? 'الصف الثاني الثانوي' : 'الصف الثالث الثانوي (تانوية عامة)',
-        avatar: null,
+        parentPhone: cleanParentPhone,
+        grade,
+        gradeName: grade === '3sec' ? 'الصف الثالث الثانوي' : grade === '2sec' ? 'الصف الثاني الثانوي' : 'الصف الأول الثانوي',
         walletBalance: 0,
-        subscriptionStatus: 'none',
-        subscriptionType: 'غير مشترك',
-        monthlyCreditsLeft: 0,
-        points: 0,
-        streakDays: 1,
-        rank: data.students.length + 1,
-        badges: [{ id: 'b_new', name: 'عضو جديد 🚀', icon: '🚀', desc: 'انضم لمنصة الباشمهندس للبرمجة' }]
+        unlockedLessons: [],
+        xp: 0,
+        password: hashedPassword,
+        createdAt: new Date().toISOString(),
+        deviceId: null,
+        pendingOtp: null
       };
 
       data.students.push(newStudent);
@@ -433,9 +262,9 @@ app.post('/api/auth/register', async (req, res) => {
       res.cookie('token', token, { httpOnly: true, secure: isProd, sameSite: 'strict', maxAge: 24 * 60 * 60 * 1000 });
 
       const { password: _, ...cleanUser } = newStudent;
-      return res.json({ success: true, user: cleanUser, token });
+      return res.json({ success: true, role: 'student', user: cleanUser, message: `أهلاً بك يا ${name}! كودك الدراسي هو: ${studentCode}` });
     }
-  } catch (error) {
+  } catch (err) {
     return res.status(500).json({ error: 'حدث خطأ أثناء التسجيل.' });
   }
 });
@@ -444,20 +273,17 @@ app.post('/api/auth/login', async (req, res) => {
   const { role, credentials } = req.body;
 
   if (role === 'admin') {
-    const inputPass = (credentials.adminCode || '').trim();
-    const identity = credentials.adminIdentity || 'eng_nour';
+    const { adminCode, adminIdentity } = credentials;
+    const teacher = TEACHER_ACCOUNTS.find(t => t.identity === adminIdentity);
+    if (!teacher) return res.status(404).json({ error: 'حساب المعلم غير موجود.' });
 
-    // Verify Admin Credentials
-    const teacher = TEACHER_ACCOUNTS.find(t => t.identity === identity);
-    if (!teacher) return res.status(400).json({ error: 'معرف الأستاذ غير موجود.' });
-
-    // Compare Password (using explicit hashed password)
-    if (bcrypt.compareSync(inputPass, teacher.passwordHash)) {
-      const token = jwt.sign({ id: identity, role: 'admin', identity }, ACTIVE_JWT_SECRET, { expiresIn: '1d' });
+    const passMatch = bcrypt.compareSync(adminCode.trim(), teacher.passwordHash);
+    if (passMatch) {
+      const token = jwt.sign({ id: teacher.identity, role: 'admin', identity: teacher.identity }, ACTIVE_JWT_SECRET, { expiresIn: '1d' });
       res.cookie('token', token, { httpOnly: true, secure: isProd, sameSite: 'strict', maxAge: 24 * 60 * 60 * 1000 });
-      return res.json({ success: true, role: 'admin', identity, name: teacher.name });
+      return res.json({ success: true, role: 'admin', identity: teacher.identity, name: teacher.name });
     } else {
-      return res.status(400).json({ error: 'كلمة سر الأدمن غير صحيحة!' });
+      return res.status(400).json({ error: 'رمز الدخول السري غير صحيح.' });
     }
   }
 
@@ -508,16 +334,6 @@ app.post('/api/auth/login', async (req, res) => {
   if (!loginSearch || !inputPass) {
     return res.status(400).json({ error: 'يرجى إدخال كود الطالب/رقم الهاتف وكلمة المرور.' });
   }
-
-  // Helper to normalize phone numbers (removes spaces, replaces +20 or 20 prefix with 0)
-  const normalizePhone = (p) => {
-    if (!p) return '';
-    const clean = p.replace(/\s+/g, '');
-    if (clean.startsWith('+20')) return '0' + clean.substring(3);
-    if (clean.startsWith('20') && clean.length > 10) return '0' + clean.substring(2);
-    if (clean.startsWith('+2')) return '0' + clean.substring(2);
-    return clean;
-  };
 
   const cleanIdentifier = normalizePhone(loginSearch);
 
@@ -667,331 +483,45 @@ app.get('/api/auth/me', async (req, res) => {
       user = data.students.find(s => s.id === (decoded.role === 'parent' ? decoded.studentId : decoded.id));
     }
 
-    if (!user) return res.status(401).json({ error: 'User session invalid' });
-
+    if (!user) return res.status(404).json({ error: 'User not found' });
     const { password: _, ...cleanUser } = user;
-    return res.json({
-      isAuthenticated: true,
-      role: decoded.role,
-      user: cleanUser
-    });
+
+    if (decoded.role === 'parent') {
+      return res.json({ isAuthenticated: true, role: 'parent', matchedStudent: cleanUser });
+    }
+    return res.json({ isAuthenticated: true, role: 'student', user: cleanUser });
   } catch (err) {
-    res.clearCookie('token');
-    return res.status(401).json({ error: 'Invalid token session' });
+    return res.status(401).json({ error: 'Invalid token' });
   }
 });
 
 // ==========================================
-// 📚 LESSONS ROUTES
-// ==========================================
-
-app.get('/api/lessons', async (req, res) => {
-  try {
-    let lessons = [];
-    if (dbType === 'mongodb') {
-      lessons = await db.collection('lessons').find({}).toArray();
-    } else {
-      lessons = getLocalData().lessons;
-    }
-    return res.json(lessons);
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/lessons', requireAdmin, async (req, res) => {
-  const lessonData = req.body;
-  
-  // Validation
-  if (!lessonData.title || lessonData.title.trim() === '') {
-    return res.status(400).json({ error: 'عنوان الدرس مطلوب.' });
-  }
-  const price = Number(lessonData.price);
-  if (isNaN(price) || price < 0) {
-    return res.status(400).json({ error: 'سعر الدرس يجب أن يكون رقماً أكبر من أو يساوي الصفر.' });
-  }
-
-  try {
-    const newLesson = {
-      ...lessonData,
-      price: price,
-      id: 'les_' + Date.now(),
-      viewsCount: 0,
-      isUnlocked: false,
-      comments: []
-    };
-
-    if (dbType === 'mongodb') {
-      await db.collection('lessons').insertOne(newLesson);
-    } else {
-      const data = getLocalData();
-      data.lessons.unshift(newLesson);
-      writeLocalData(data);
-    }
-
-    return res.json(newLesson);
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-app.patch('/api/lessons/:id', requireAdmin, async (req, res) => {
-  const lessonId = req.params.id;
-  const updates = req.body;
-
-  if (updates.price !== undefined) {
-    const price = Number(updates.price);
-    if (isNaN(price) || price < 0) {
-      return res.status(400).json({ error: 'السعر غير منطقي.' });
-    }
-    updates.price = price;
-  }
-
-  try {
-    if (dbType === 'mongodb') {
-      const resData = await db.collection('lessons').findOneAndUpdate(
-        { id: lessonId },
-        { $set: updates },
-        { returnDocument: 'after' }
-      );
-      return res.json(resData);
-    } else {
-      const data = getLocalData();
-      const idx = data.lessons.findIndex(l => l.id === lessonId);
-      if (idx !== -1) {
-        data.lessons[idx] = { ...data.lessons[idx], ...updates };
-        writeLocalData(data);
-        return res.json(data.lessons[idx]);
-      }
-      return res.status(404).json({ error: 'الدرس غير موجود' });
-    }
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-app.delete('/api/lessons/:id', requireAdmin, async (req, res) => {
-  const lessonId = req.params.id;
-  try {
-    if (dbType === 'mongodb') {
-      await db.collection('lessons').deleteOne({ id: lessonId });
-    } else {
-      const data = getLocalData();
-      data.lessons = data.lessons.filter(l => l.id !== lessonId);
-      writeLocalData(data);
-    }
-    return res.json({ success: true });
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-// ==========================================
-// 🎟️ COUPONS ROUTES
-// ==========================================
-
-app.get('/api/coupons', requireAdmin, async (req, res) => {
-  try {
-    let coupons = [];
-    if (dbType === 'mongodb') {
-      coupons = await db.collection('coupons').find({}).toArray();
-    } else {
-      coupons = getLocalData().coupons;
-    }
-    return res.json(coupons);
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/coupons', requireAdmin, async (req, res) => {
-  const couponData = req.body;
-
-  // Validation
-  const value = Number(couponData.value);
-  if (isNaN(value) || value < 0) return res.status(400).json({ error: 'قيمة الخصم يجب أن تكون رقمية.' });
-  if (couponData.type === 'percent' && (value < 0 || value > 100)) {
-    return res.status(400).json({ error: 'نسبة الخصم المئوية يجب أن تكون بين 0% و 100%.' });
-  }
-
-  try {
-    const newCoupon = {
-      ...couponData,
-      value: value,
-      id: 'coup_' + Date.now(),
-      usedCount: 0,
-      active: true
-    };
-
-    if (dbType === 'mongodb') {
-      await db.collection('coupons').insertOne(newCoupon);
-    } else {
-      const data = getLocalData();
-      data.coupons.push(newCoupon);
-      writeLocalData(data);
-    }
-
-    return res.json(newCoupon);
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-app.delete('/api/coupons/:id', requireAdmin, async (req, res) => {
-  const couponId = req.params.id;
-  try {
-    if (dbType === 'mongodb') {
-      await db.collection('coupons').deleteOne({ id: couponId });
-    } else {
-      const data = getLocalData();
-      data.coupons = data.coupons.filter(c => c.id !== couponId);
-      writeLocalData(data);
-    }
-    return res.json({ success: true });
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-// ==========================================
-// 💳 PAYMENTS / CHARGES ROUTES
-// ==========================================
-
-app.get('/api/payments', requireAdmin, async (req, res) => {
-  try {
-    let payments = [];
-    if (dbType === 'mongodb') {
-      payments = await db.collection('payments').find({}).toArray();
-    } else {
-      payments = getLocalData().payments;
-    }
-    return res.json(payments);
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/payments', verifyToken, async (req, res) => {
-  const { amount, method, refNumber, proofImage } = req.body;
-
-  // Validation
-  const amountVal = Number(amount);
-  if (isNaN(amountVal) || amountVal <= 0) {
-    return res.status(400).json({ error: 'قيمة الشحن يجب أن تكون مبلغاً أكبر من الصفر.' });
-  }
-
-  try {
-    const newRequest = {
-      id: 'req_' + Date.now(),
-      studentId: req.user.id,
-      studentName: req.user.name,
-      amount: amountVal,
-      method: method || 'instapay',
-      refNumber: refNumber || '',
-      proofImage: proofImage || '',
-      status: 'pending',
-      requestDate: new Date().toLocaleDateString('ar-EG')
-    };
-
-    if (dbType === 'mongodb') {
-      await db.collection('payments').insertOne(newRequest);
-    } else {
-      const data = getLocalData();
-      data.payments.unshift(newRequest);
-      writeLocalData(data);
-    }
-
-    return res.json(newRequest);
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-app.patch('/api/payments/:id', requireAdmin, async (req, res) => {
-  const requestId = req.params.id;
-  const { status } = req.body;
-
-  try {
-    let requestObj = null;
-    let data = null;
-
-    if (dbType === 'mongodb') {
-      requestObj = await db.collection('payments').findOne({ id: requestId });
-    } else {
-      data = getLocalData();
-      requestObj = data.payments.find(p => p.id === requestId);
-    }
-
-    if (!requestObj) return res.status(404).json({ error: 'طلب الدفع غير موجود.' });
-
-    if (status === 'approved' && requestObj.status !== 'approved') {
-      // Add balance to student wallet
-      if (dbType === 'mongodb') {
-        await db.collection('students').updateOne(
-          { id: requestObj.studentId },
-          { $inc: { walletBalance: requestObj.amount } }
-        );
-        await db.collection('payments').updateOne({ id: requestId }, { $set: { status: 'approved' } });
-      } else {
-        const student = data.students.find(s => s.id === requestObj.studentId);
-        if (student) {
-          student.walletBalance = (student.walletBalance || 0) + requestObj.amount;
-        }
-        requestObj.status = 'approved';
-        writeLocalData(data);
-      }
-    } else if (status === 'rejected') {
-      if (dbType === 'mongodb') {
-        await db.collection('payments').updateOne({ id: requestId }, { $set: { status: 'rejected' } });
-      } else {
-        requestObj.status = 'rejected';
-        writeLocalData(data);
-      }
-    }
-
-    return res.json({ success: true, status });
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-// ==========================================
-// 👤 STUDENTS DATA MANAGEMENT ROUTES
+// 🎓 STUDENTS ENDPOINTS (ADMIN ONLY)
 // ==========================================
 
 app.get('/api/students', requireAdmin, async (req, res) => {
   try {
-    let students = [];
+    let list = [];
     if (dbType === 'mongodb') {
-      students = await db.collection('students').find({}).toArray();
+      list = await db.collection('students').find({}).toArray();
     } else {
-      students = getLocalData().students;
+      list = getLocalData().students;
     }
-    // Remove passwords before sending to front-end admin
-    const safeStudents = students.map(({ password, ...rest }) => rest);
-    return res.json(safeStudents);
+    const cleanList = list.map(({ password, ...u }) => u);
+    return res.json(cleanList);
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
 });
 
-app.patch('/api/students/:id', requireOwnershipOrAdmin, async (req, res) => {
+app.put('/api/students/:id', requireAdmin, async (req, res) => {
   const studentId = req.params.id;
   const updates = req.body;
 
-  // Hashing password if updated
   if (updates.password) {
-    updates.password = await bcrypt.hash(updates.password, 10);
-  }
-
-  // If not admin, the student can ONLY modify specific fields (name, password, avatar, phone)
-  if (req.user.role !== 'admin') {
-    const allowedKeys = ['name', 'password', 'avatar', 'phone'];
-    Object.keys(updates).forEach(key => {
-      if (!allowedKeys.includes(key)) {
-        delete updates[key];
-      }
-    });
+    updates.password = await bcrypt.hash(updates.password.trim(), 10);
+  } else {
+    delete updates.password;
   }
 
   try {
@@ -1079,109 +609,6 @@ app.post('/api/students/:id/reset-device', requireAdmin, async (req, res) => {
       }
     }
     return res.json({ success: true });
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-// ==========================================
-// 💬 QUESTIONS ROUTES
-// ==========================================
-
-app.get('/api/questions', verifyToken, async (req, res) => {
-  try {
-    let questions = [];
-    if (dbType === 'mongodb') {
-      if (req.user.role === 'admin') {
-        questions = await db.collection('questions').find({}).toArray();
-      } else {
-        questions = await db.collection('questions').find({ studentPhone: req.user.phone }).toArray();
-      }
-    } else {
-      const localQ = getLocalData().questions;
-      if (req.user.role === 'admin') {
-        questions = localQ;
-      } else {
-        // Fallback or user check
-        questions = localQ.filter(q => q.studentPhone === req.user.phone);
-      }
-    }
-    return res.json(questions);
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/questions', verifyToken, async (req, res) => {
-  const { lessonId, questionText } = req.body;
-  if (!questionText || questionText.trim() === '') {
-    return res.status(400).json({ error: 'الرجاء كتابة السؤال.' });
-  }
-
-  try {
-    // Get student details
-    let student = null;
-    if (dbType === 'mongodb') {
-      student = await db.collection('students').findOne({ id: req.user.id });
-    } else {
-      student = getLocalData().students.find(s => s.id === req.user.id);
-    }
-
-    const newQuestion = {
-      id: 'q_' + Date.now(),
-      lessonId: lessonId,
-      studentName: req.user.name,
-      studentPhone: student ? student.phone : '',
-      questionText: questionText,
-      replyText: '',
-      repliedAt: '',
-      status: 'pending',
-      timestamp: new Date().toLocaleString('ar-EG')
-    };
-
-    if (dbType === 'mongodb') {
-      await db.collection('questions').insertOne(newQuestion);
-    } else {
-      const data = getLocalData();
-      data.questions.unshift(newQuestion);
-      writeLocalData(data);
-    }
-
-    return res.json(newQuestion);
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/questions/:id/reply', requireAdmin, async (req, res) => {
-  const questionId = req.params.id;
-  const { replyText } = req.body;
-
-  try {
-    if (dbType === 'mongodb') {
-      await db.collection('questions').updateOne(
-        { id: questionId },
-        {
-          $set: {
-            replyText,
-            repliedAt: 'الآن',
-            status: 'answered'
-          }
-        }
-      );
-      return res.json({ success: true });
-    } else {
-      const data = getLocalData();
-      const matched = data.questions.find(q => q.id === questionId);
-      if (matched) {
-        matched.replyText = replyText;
-        matched.repliedAt = 'الآن';
-        matched.status = 'answered';
-        writeLocalData(data);
-        return res.json({ success: true });
-      }
-      return res.status(404).json({ error: 'السؤال غير موجود.' });
-    }
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
@@ -1279,19 +706,17 @@ app.post('/api/exams', verifyToken, async (req, res) => {
     const newRecord = {
       ...examRecord,
       id: 'ex_' + Date.now(),
-      studentId: req.user.id,
       date: new Date().toLocaleDateString('ar-EG'),
-      timestamp: Date.now()
+      time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })
     };
 
     if (dbType === 'mongodb') {
       await db.collection('exams').insertOne(newRecord);
     } else {
       const data = getLocalData();
-      data.exams.unshift(newRecord);
+      data.exams.push(newRecord);
       writeLocalData(data);
     }
-
     return res.json(newRecord);
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -1299,165 +724,291 @@ app.post('/api/exams', verifyToken, async (req, res) => {
 });
 
 // ==========================================
-// 🤖 SECURE CHATBOT PROXY API ROUTE
+// 🎥 LESSONS & COURSES VIDEOS ROUTES
 // ==========================================
 
-app.post('/api/chat', async (req, res) => {
-  const { messages, provider } = req.body;
-  const targetProvider = provider || 'openrouter';
-
-  const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-
-  if (!OPENROUTER_API_KEY && targetProvider === 'openrouter') {
-    return res.status(500).json({ error: 'OpenRouter API Key not configured on the backend.' });
-  }
-  if (!GEMINI_API_KEY && targetProvider === 'gemini') {
-    return res.status(500).json({ error: 'Gemini API Key not configured on the backend.' });
-  }
-
+app.get('/api/lessons', verifyToken, async (req, res) => {
   try {
-    if (targetProvider === 'gemini') {
-      const systemMessage = messages.find(m => m.role === 'system');
-      const chatMessages = messages.filter(m => m.role !== 'system');
-
-      // Convert messages to Gemini format
-      const contents = chatMessages.map(m => ({
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: m.content }]
-      }));
-
-      const bodyPayload = {
-        contents,
-        generationConfig: {
-          maxOutputTokens: 800,
-          temperature: 0.7
-        }
-      };
-
-      if (systemMessage) {
-        bodyPayload.systemInstruction = {
-          parts: [{ text: systemMessage.content }]
-        };
-      }
-
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
-      const response = await fetch(geminiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bodyPayload)
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Gemini API error: ${errorText}`);
-      }
-
-      const data = await response.json();
-      const botResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || 'عذراً، حدث خطأ في معالجة طلبك.';
-      return res.json({ response: botResponse });
-
+    let lessons = [];
+    if (dbType === 'mongodb') {
+      lessons = await db.collection('lessons').find({}).toArray();
     } else {
-      // Default to OpenRouter
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://elbashmohands.dev',
-          'X-Title': 'Bashmohandis Education Platform'
-        },
-        body: JSON.stringify({
-          model: 'openai/gpt-4o-mini',
-          messages: messages,
-          max_tokens: 800,
-          temperature: 0.7
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`OpenRouter API error: ${errorText}`);
-      }
-
-      const data = await response.json();
-      const botResponse = data.choices?.[0]?.message?.content || 'عذراً، حدث خطأ في معالجة طلبك.';
-      return res.json({ response: botResponse });
+      lessons = getLocalData().lessons;
     }
-  } catch (error) {
-    console.error('Proxy Error:', error);
-    return res.status(500).json({ error: error.message || 'Server error occurred' });
-  }
-});
-
-// Generates S3/R2 presigned upload URLs for admin video, image, and document uploads
-app.post('/api/upload/presign', requireAdmin, async (req, res) => {
-  const { filename, contentType } = req.body;
-
-  if (!r2Client) {
-    return res.status(500).json({ error: 'Cloudflare R2 Client is not configured on this server.' });
-  }
-
-  if (!filename || !contentType) {
-    return res.status(400).json({ error: 'filename and contentType are required.' });
-  }
-
-  try {
-    let folder = 'videos';
-    if (contentType.startsWith('image/')) {
-      folder = 'thumbnails';
-    } else if (contentType === 'application/pdf' || contentType.includes('word') || contentType.includes('officedocument')) {
-      folder = 'attachments';
-    }
-    
-    const uniqueKey = `${folder}/${Date.now()}-${filename}`;
-    const command = new PutObjectCommand({
-      Bucket: R2_BUCKET_NAME,
-      Key: uniqueKey,
-      ContentType: contentType
-    });
-
-    // Link expires in 15 minutes (900 seconds)
-    const uploadUrl = await getSignedUrl(r2Client, command, { expiresIn: 900 });
-
-    const publicUrlBase = R2_PUBLIC_URL.endsWith('/') ? R2_PUBLIC_URL : `${R2_PUBLIC_URL}/`;
-    const videoUrl = `${publicUrlBase}${uniqueKey}`;
-
-    return res.json({ success: true, uploadUrl, videoUrl });
-  } catch (err) {
-    console.error('Presign URL error:', err);
-    return res.status(500).json({ error: 'Failed to generate upload URL: ' + err.message });
-  }
-});
-
-// Diagnostics endpoint to list available Gemini models for this API key
-app.get('/api/diag', async (req, res) => {
-  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-  if (!GEMINI_API_KEY) {
-    return res.status(400).json({ error: 'GEMINI_API_KEY is not defined in environment variables.' });
-  }
-  try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_API_KEY}`);
-    const data = await response.json();
-    return res.json(data);
+    return res.json(lessons);
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
 });
 
-// Serve static files from dist folder
-app.use(express.static(path.join(__dirname, 'dist')));
+app.post('/api/lessons', requireAdmin, async (req, res) => {
+  const lessonData = req.body;
+  try {
+    const newLesson = {
+      ...lessonData,
+      id: 'les_' + Date.now(),
+      viewsCount: 0,
+      createdAt: new Date().toISOString()
+    };
 
-// Handle React Router - send all requests to index.html
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    if (dbType === 'mongodb') {
+      await db.collection('lessons').insertOne(newLesson);
+    } else {
+      const data = getLocalData();
+      data.lessons.unshift(newLesson);
+      writeLocalData(data);
+    }
+    return res.json(newLesson);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
-// Initialize database then start server
-initializeDatabase().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT} in ${NODE_ENV} mode.`);
+app.put('/api/lessons/:id', requireAdmin, async (req, res) => {
+  const lessonId = req.params.id;
+  const updates = req.body;
+  try {
+    if (dbType === 'mongodb') {
+      await db.collection('lessons').updateOne({ id: lessonId }, { $set: updates });
+      const updated = await db.collection('lessons').findOne({ id: lessonId });
+      return res.json(updated);
+    } else {
+      const data = getLocalData();
+      const idx = data.lessons.findIndex(l => l.id === lessonId);
+      if (idx !== -1) {
+        data.lessons[idx] = { ...data.lessons[idx], ...updates };
+        writeLocalData(data);
+        return res.json(data.lessons[idx]);
+      }
+      return res.status(404).json({ error: 'الحصة غير موجودة.' });
+    }
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/lessons/:id', requireAdmin, async (req, res) => {
+  const lessonId = req.params.id;
+  try {
+    if (dbType === 'mongodb') {
+      await db.collection('lessons').deleteOne({ id: lessonId });
+    } else {
+      const data = getLocalData();
+      data.lessons = data.lessons.filter(l => l.id !== lessonId);
+      writeLocalData(data);
+    }
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
+// 🎟️ COUPONS ENDPOINTS
+// ==========================================
+
+app.get('/api/coupons', requireAdmin, async (req, res) => {
+  try {
+    let list = [];
+    if (dbType === 'mongodb') {
+      list = await db.collection('coupons').find({}).toArray();
+    } else {
+      list = getLocalData().coupons;
+    }
+    return res.json(list);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/coupons', requireAdmin, async (req, res) => {
+  const coupon = req.body;
+  try {
+    const newCoupon = {
+      ...coupon,
+      id: 'cp_' + Date.now(),
+      createdAt: new Date().toISOString()
+    };
+
+    if (dbType === 'mongodb') {
+      await db.collection('coupons').insertOne(newCoupon);
+    } else {
+      const data = getLocalData();
+      data.coupons.unshift(newCoupon);
+      writeLocalData(data);
+    }
+    return res.json(newCoupon);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/coupons/:id', requireAdmin, async (req, res) => {
+  const couponId = req.params.id;
+  try {
+    if (dbType === 'mongodb') {
+      await db.collection('coupons').deleteOne({ id: couponId });
+    } else {
+      const data = getLocalData();
+      data.coupons = data.coupons.filter(c => c.id !== couponId);
+      writeLocalData(data);
+    }
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
+// 💳 PAYMENTS & WALLET ENDPOINTS
+// ==========================================
+
+app.get('/api/payments', requireAdmin, async (req, res) => {
+  try {
+    let list = [];
+    if (dbType === 'mongodb') {
+      list = await db.collection('payments').find({}).toArray();
+    } else {
+      list = getLocalData().payments;
+    }
+    return res.json(list);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/payments/request', verifyToken, async (req, res) => {
+  const { studentId, studentName, amount, proofImage } = req.body;
+  if (!studentId || !amount) return res.status(400).json({ error: 'البيانات غير مكتملة.' });
+
+  try {
+    const newRequest = {
+      id: 'pay_' + Date.now(),
+      studentId,
+      studentName,
+      amount: Number(amount),
+      proofImage: proofImage || '',
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+
+    if (dbType === 'mongodb') {
+      await db.collection('payments').insertOne(newRequest);
+    } else {
+      const data = getLocalData();
+      data.payments.unshift(newRequest);
+      writeLocalData(data);
+    }
+    return res.json(newRequest);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/payments/:id/approve', requireAdmin, async (req, res) => {
+  const payId = req.params.id;
+  try {
+    let matchedPay = null;
+    if (dbType === 'mongodb') {
+      matchedPay = await db.collection('payments').findOne({ id: payId });
+    } else {
+      const data = getLocalData();
+      matchedPay = data.payments.find(p => p.id === payId);
+    }
+
+    if (!matchedPay) return res.status(404).json({ error: 'طلب الدفع غير موجود.' });
+    if (matchedPay.status !== 'pending') return res.status(400).json({ error: 'تمت معالجة هذا الطلب مسبقاً.' });
+
+    // Update payment status
+    if (dbType === 'mongodb') {
+      await db.collection('payments').updateOne({ id: payId }, { $set: { status: 'approved' } });
+      await db.collection('students').updateOne({ id: matchedPay.studentId }, { $inc: { walletBalance: matchedPay.amount } });
+    } else {
+      const data = getLocalData();
+      const pIdx = data.payments.findIndex(p => p.id === payId);
+      const sIdx = data.students.findIndex(s => s.id === matchedPay.studentId);
+      if (pIdx !== -1 && sIdx !== -1) {
+        data.payments[pIdx].status = 'approved';
+        data.students[sIdx].walletBalance += matchedPay.amount;
+        writeLocalData(data);
+      }
+    }
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/payments/:id/reject', requireAdmin, async (req, res) => {
+  const payId = req.params.id;
+  try {
+    if (dbType === 'mongodb') {
+      await db.collection('payments').updateOne({ id: payId }, { $set: { status: 'rejected' } });
+    } else {
+      const data = getLocalData();
+      const pIdx = data.payments.findIndex(p => p.id === payId);
+      if (pIdx !== -1) {
+        data.payments[pIdx].status = 'rejected';
+        writeLocalData(data);
+      }
+    }
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================
+// ☁️ CLOUDFLARE R2 UPLOAD PRESIGNED URLS
+// ==========================================
+
+app.post('/api/upload/presign', requireAdmin, async (req, res) => {
+  const { filename, filetype, folder } = req.body;
+  if (!filename || !filetype) {
+    return res.status(400).json({ error: 'اسم الملف ونوعه مطلوبان.' });
+  }
+
+  const allowedFolders = ['videos', 'attachments', 'thumbnails'];
+  const targetFolder = allowedFolders.includes(folder) ? folder : 'misc';
+
+  const fileKey = `${targetFolder}/${Date.now()}_${filename}`;
+
+  try {
+    const command = new PutObjectCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: fileKey,
+      ContentType: filetype,
+    });
+
+    const presignedUrl = await getSignedUrl(r2Client, command, { expiresIn: 3600 });
+    const publicUrl = `${R2_PUBLIC_URL}/${fileKey}`;
+
+    return res.json({
+      uploadUrl: presignedUrl,
+      publicUrl: publicUrl,
+      key: fileKey
+    });
+  } catch (err) {
+    console.error('Failed to generate presigned R2 url:', err);
+    return res.status(500).json({ error: 'فشل إنشاء رابط الرفع السحابي.' });
+  }
+});
+
+// ==========================================
+// 🚀 SERVER ROOT & STATIC ASSETS
+// ==========================================
+
+if (isProd) {
+  app.use(express.static(path.join(__dirname, 'dist')));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
   });
-});
+} else {
+  app.get('/', (req, res) => {
+    res.send('Server is up and running in development mode.');
+  });
+}
 
-```
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT} in ${isProd ? 'production' : 'development'} mode.`);
+});
