@@ -95,6 +95,40 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
   const [editLessonGrade, setEditLessonGrade] = useState('3sec');
   const [editLessonDesc, setEditLessonDesc] = useState('');
 
+  const handleResetDevice = async (studentId) => {
+    try {
+      const res = await fetch(`/api/students/${studentId}/reset-device`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      if (res.ok) {
+        alert('تم إلغاء قفل الجهاز للطالب بنجاح! يمكنه الآن الدخول من أي جهاز جديد.');
+        window.location.reload();
+      } else {
+        alert('فشل إلغاء قفل الجهاز.');
+      }
+    } catch (e) {
+      alert('خطأ في الاتصال بالخادم.');
+    }
+  };
+
+  const handleGenerateOtp = async (student) => {
+    try {
+      const res = await fetch(`/api/students/${student.id}/generate-otp`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        alert(`تم توليد رمز الـ OTP بنجاح!\nالرمز الخاص بالطالب ${student.name} هو: ${data.otp}\nيمكنك إرساله له الآن لتفعيل جهازه الجديد.`);
+      } else {
+        alert('فشل توليد رمز OTP.');
+      }
+    } catch (e) {
+      alert('خطأ في الاتصال بالخادم.');
+    }
+  };
+
   // Refs for local file uploads
   const videoInputRef = useRef(null);
   const docInputRef = useRef(null);
@@ -1412,10 +1446,11 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
                       <td className="p-3 text-slate-700 font-mono dir-ltr">{st.phone}</td>
                       <td className="p-3 text-slate-700 font-mono dir-ltr">{st.parentPhone}</td>
                       <td className="p-3 font-black text-emerald-600">{st.walletBalance} ج.م</td>
-                      <td className="p-3 flex items-center justify-center gap-2">
+                      <td className="p-3 flex items-center justify-center gap-2 flex-wrap max-w-[320px]">
                         <button
                           onClick={() => setStudentPerfModal(st)}
-                          className="px-3 py-1.5 rounded-xl bg-purple-100 text-purple-700 font-bold hover:bg-purple-200 transition-all flex items-center gap-1"
+                          className="px-2.5 py-1.5 rounded-xl bg-purple-100 text-purple-700 font-bold hover:bg-purple-200 transition-all flex items-center gap-1"
+                          title="متابعة درجات الطالب"
                         >
                           <BarChart2 className="w-3.5 h-3.5" />
                           <span>مستوى</span>
@@ -1423,10 +1458,35 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
 
                         <button
                           onClick={() => handleOpenEditStudentModal(st)}
-                          className="px-3 py-1.5 rounded-xl bg-blue-100 text-blue-700 font-bold hover:bg-blue-200 transition-all flex items-center gap-1"
+                          className="px-2.5 py-1.5 rounded-xl bg-blue-100 text-blue-700 font-bold hover:bg-blue-200 transition-all flex items-center gap-1"
+                          title="تعديل بيانات الطالب"
                         >
                           <Edit className="w-3.5 h-3.5" />
                           <span>تعديل</span>
+                        </button>
+
+                        {st.deviceId ? (
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`هل أنت متأكد من إلغاء قفل جهاز الطالب "${st.name}"؟`)) {
+                                handleResetDevice(st.id);
+                              }
+                            }}
+                            className="px-2.5 py-1.5 rounded-xl bg-amber-100 text-amber-800 font-bold hover:bg-amber-200 transition-all flex items-center gap-1"
+                            title="إعادة تعيين قفل الجهاز المتعدد"
+                          >
+                            🔓 فك الجهاز
+                          </button>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 font-bold px-2 py-1 bg-slate-100 rounded-xl">غير مقفل</span>
+                        )}
+
+                        <button
+                          onClick={() => handleGenerateOtp(st)}
+                          className="px-2.5 py-1.5 rounded-xl bg-teal-100 text-teal-800 font-bold hover:bg-teal-200 transition-all flex items-center gap-1"
+                          title="توليد رمز OTP لتسجيل جهاز جديد"
+                        >
+                          🔑 OTP
                         </button>
 
                         <button
@@ -1435,7 +1495,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
                               adminDeleteStudent(st.id);
                             }
                           }}
-                          className="px-3 py-1.5 rounded-xl bg-rose-600 text-white font-bold hover:bg-rose-700 shadow-sm"
+                          className="px-2.5 py-1.5 rounded-xl bg-rose-600 text-white font-bold hover:bg-rose-700 shadow-sm"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                           <span>مسح 🗑️</span>
