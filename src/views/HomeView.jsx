@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { ElmLogo } from '../components/ElmLogo';
 import { 
   Play, 
   Sparkles, 
@@ -59,32 +60,29 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
           {/* Left: Text content */}
           <div className="p-8 md:p-12 space-y-6 text-right flex flex-col justify-center">
 
-            <div className="inline-flex items-center gap-2 bg-amber-500/20 border border-amber-500/30 text-amber-300 px-3.5 py-1.5 rounded-full text-xs font-black shadow-lg shadow-amber-500/10 self-end">
-              <Sparkles className="w-4 h-4 text-amber-400" />
-              <span>منصة مَنارة التعليمية 💡⚡</span>
+            <div className="inline-flex items-center gap-2 bg-[#D4A017]/10 border border-[#D4A017]/25 text-[#D4A017] px-3.5 py-1.5 rounded-full text-xs font-black shadow-lg shadow-[#D4A017]/5 self-end">
+              <Sparkles className="w-4 h-4 text-[#D4A017]" />
+              <span>منصة تعليمية للمعرفة النافعة 💡⚡</span>
             </div>
 
             <div className="space-y-3">
-              <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-tight text-white">
-                تفوّق في{' '}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-300">اللغة العربية</span>
-                {' '}و{' '}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">البرمجة</span>
-                {' '}🚀
+              <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-tight text-white flex flex-col gap-2">
+                <span>منصة تعليمية</span>
+                <span className="text-[#D4A017]">للمعرفة النافعة</span>
               </h1>
 
-              <p className="text-xs md:text-sm text-slate-300 font-medium leading-relaxed max-w-xl">
-                منصة مَنارة التعليمية هي بوابتك المضيئة لتفوق <strong className="text-amber-300">اللغة العربية</strong> ونبوغ <strong className="text-blue-300">البرمجة وعلوم الحاسب</strong> لطلاب المرحلة الثانوية — مع امتحانات تفاعلية وتصحيح ذكي وتقارير فورية لأولياء الأمور 📲
+              <p className="text-xs md:text-sm text-[#F5E8C7] font-medium leading-relaxed max-w-xl">
+                محتوى موثوق.. بأسلوب مبسط. لنتعلم ما ينتفع به في دينك ودنياك.
               </p>
             </div>
 
             {/* Subject badges */}
             <div className="flex flex-wrap gap-2 justify-end">
-              <div className="flex items-center gap-1.5 bg-blue-500/20 border border-blue-400/30 text-blue-300 px-3 py-1.5 rounded-xl text-[11px] font-black">
+              <div className="flex items-center gap-1.5 bg-[#D4A017]/10 border border-[#D4A017]/20 text-[#D4A017] px-3 py-1.5 rounded-xl text-[11px] font-black">
                 <Code2 className="w-3.5 h-3.5" />
                 البرمجة وعلوم الحاسب
               </div>
-              <div className="flex items-center gap-1.5 bg-amber-500/20 border border-amber-400/30 text-amber-300 px-3 py-1.5 rounded-xl text-[11px] font-black">
+              <div className="flex items-center gap-1.5 bg-[#D4A017]/10 border border-[#D4A017]/20 text-[#D4A017] px-3 py-1.5 rounded-xl text-[11px] font-black">
                 <Languages className="w-3.5 h-3.5" />
                 اللغة العربية
               </div>
@@ -93,10 +91,11 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
             <div className="flex flex-wrap items-center gap-3 pt-1">
               <button 
                 onClick={() => setCurrentTab('lessons')}
-                className="btn-accent text-xs md:text-sm px-6 py-3.5 rounded-2xl shadow-xl shadow-amber-500/20 hover:scale-105 transition-all"
+                className="btn-accent text-xs md:text-sm px-8 py-4 rounded-2xl shadow-xl shadow-[#D4A017]/10 hover:scale-105 transition-all text-[#0D1B2A] font-black animate-pulse-glow"
+                style={{ backgroundColor: '#D4A017' }}
               >
-                <Play className="w-4 h-4 fill-slate-950" />
-                تصفح الحصص الآن
+                <Play className="w-4 h-4 fill-[#0D1B2A]" />
+                ابدأ التعلم الآن
               </button>
 
               {userRole === 'admin' && (
@@ -125,26 +124,10 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
             </div>
           </div>
 
-          {/* Right: Student Photo */}
-          <div className="relative hidden lg:flex items-end justify-center overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-l from-transparent via-transparent to-slate-900/60 z-10" />
-            <img
-              src="/hero_student.jpg"
-              alt="منصة مَنارة التعليمية"
-              className="h-full w-full object-cover object-top"
-              style={{ maxHeight: '480px' }}
-            />
-            {/* Floating score badge */}
-            <div className="absolute top-6 left-6 z-20 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-3 text-right shadow-xl">
-              <div className="text-[10px] text-slate-300 font-bold">آخر امتحان برمجة</div>
-              <div className="text-lg font-black text-emerald-400">100% 🌟</div>
-              <div className="text-[9px] text-slate-400">تقرير أُرسل لولي الأمر ✅</div>
-            </div>
-            {/* Floating Arabic badge */}
-            <div className="absolute bottom-16 left-6 z-20 bg-amber-500/90 backdrop-blur-md rounded-2xl p-3 text-right shadow-xl">
-              <div className="text-[10px] text-amber-950 font-black">💬 مادة العربي</div>
-              <div className="text-xs font-black text-amber-950">النحو والبلاغة ✨</div>
-            </div>
+          {/* Right: Large Centered Brand Logo */}
+          <div className="relative hidden lg:flex items-center justify-center p-8">
+            <div className="absolute inset-0 bg-gradient-to-l from-transparent via-transparent to-slate-900/40 z-10" />
+            <ElmLogo variant="vertical" className="transform scale-[2.2] py-20 z-20" />
           </div>
 
         </div>
