@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Bot, Send, X, Sparkles, Loader2, ArrowRightLeft, RefreshCw } from 'lucide-react';
 
-const SYSTEM_PROMPT = `أنت "مساعد الباشمهندس الذكي"، صديق الطالب ورفيقه في منصة الباشمهندس للبرمجة واللغة العربية.
+const SYSTEM_PROMPT = `أنت "مساعد المعلم الذكي"، صديق الطالب ورفيقه في منصة منصة عِلم التعليمية واللغة العربية.
 تتحدث بالعامية المصرية الطبيعية جداً وكأنك شخص حقيقي (باشمهندس برمجة ذكي ومدرس لغة عربية متمكن في نفس الوقت).
 أسلوبك ودود، يشجع الطلاب، مرح، ولا يتحدث بالفصحى الجامدة إلا عند شرح قواعد اللغة العربية أو إعطاء أمثلة شعرية.
 
@@ -9,7 +9,7 @@ const SYSTEM_PROMPT = `أنت "مساعد الباشمهندس الذكي"، ص�
 - الدومين الرسمي للمنصة: https://elbashmohands.dev
 - الأسعار: اشتراك شهري 150 ج.م (8 حصص اختيارية)، سنوي 350 ج.م (فتح كل الحصص بلا حدود)
 - طرق الدفع: InstaPay، فودافون كاش، فوري، بنك مصر
-- رقم الباشمهندس الموحد للتحويل والدعم الفني: 01002169889
+- رقم المعلم الموحد للتحويل والدعم الفني: 01002169889
 - تفعيل الاشتراك: بعد التحويل، الطالب بيرفع صورة إيصال التحويل من تبويب "المحفظة" على المنصة وهيتم الموافقة فوراً.
 - المواد المتاحة:
   1. البرمجة وعلوم الحاسب (Python, JavaScript, HTML/CSS, C++, Web)
@@ -28,7 +28,7 @@ export const AIChatbot = () => {
     {
       id: '1',
       sender: 'bot',
-      text: 'أهلاً بيك يا بطل في منصة الباشمهندس! 🤖 أنا المساعد الذكي بتاعك، مجهز عشان أساعدك في أي وقت في:\n\n• 💻 **البرمجة وأكواد الحاسب**\n• 📖 **النحو والبلاغة واللغة العربية**\n• 💳 **أسئلة المنصة والاشتراكات**\n\nقولي.. إيه واقف معاك ومحتاج نشرحه سوا؟'
+      text: 'أهلاً بيك يا بطل في منصة المعلم! 🤖 أنا المساعد الذكي بتاعك، مجهز عشان أساعدك في أي وقت في:\n\n• 💻 **البرمجة وأكواد الحاسب**\n• 📖 **النحو والبلاغة واللغة العربية**\n• 💳 **أسئلة المنصة والاشتراكات**\n\nقولي.. إيه واقف معاك ومحتاج نشرحه سوا؟'
     }
   ]);
   const [input, setInput] = useState('');
@@ -103,7 +103,6 @@ export const AIChatbot = () => {
       try {
         // 2. Direct browser fallback when backend server is not running (e.g. dev mode)
         if (provider === 'gemini') {
-          // Direct Gemini call (requires VITE_GEMINI_API_KEY environment variable locally)
           const localGeminiKey = import.meta.env.VITE_GEMINI_API_KEY;
           if (!localGeminiKey) {
             throw new Error('Gemini local VITE_GEMINI_API_KEY is not defined.');
@@ -148,7 +147,6 @@ export const AIChatbot = () => {
           }]);
 
         } else {
-          // Direct OpenRouter call (using local env or default fallback key)
           const localOrKey = import.meta.env.VITE_OPENROUTER_API_KEY;
           if (!localOrKey) {
             throw new Error('OpenRouter local VITE_OPENROUTER_API_KEY is not defined.');
@@ -189,7 +187,7 @@ export const AIChatbot = () => {
         setMessages(prev => [...prev, {
           id: (Date.now() + 1).toString(),
           sender: 'bot',
-          text: '⚠️ حصلت مشكلة بسيطة في الاتصال بالذكاء الاصطناعي. اتأكد من النت وجرب تاني، أو اسأل الباشمهندس على طول واتساب على 01002169889.'
+          text: '⚠️ حصلت مشكلة بسيطة في الاتصال بالذكاء الاصطناعي. اتأكد من النت وجرب تاني، أو اسأل المعلم على طول واتساب على 01002169889.'
         }]);
       }
     } finally {
@@ -213,7 +211,7 @@ export const AIChatbot = () => {
           <div className="w-8 h-8 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center font-black text-sm animate-bounce">
             🤖
           </div>
-          <span className="text-xs font-black hidden sm:inline pl-1">مساعد الباشمهندس الذكي ⚡</span>
+          <span className="text-xs font-black hidden sm:inline pl-1">مساعد المعلم الذكي ⚡</span>
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
         </button>
       )}
@@ -229,7 +227,7 @@ export const AIChatbot = () => {
                 🤖
               </div>
               <div>
-                <h4 className="font-black text-xs text-white">مساعد الباشمهندس الذكي</h4>
+                <h4 className="font-black text-xs text-white">مساعد المعلم الذكي</h4>
                 <button 
                   onClick={toggleProvider}
                   className="mt-0.5 text-[9px] text-slate-300 hover:text-amber-400 font-bold flex items-center gap-1.5 bg-slate-800/80 px-2 py-0.5 rounded-md transition-all active:scale-95"
@@ -323,7 +321,7 @@ export const AIChatbot = () => {
               {isLoading
                 ? <Loader2 className="w-4 h-4 animate-spin" />
                 : <Send className="w-4 h-4" />
-              } 
+              }
             </button>
           </div>
         </div>
