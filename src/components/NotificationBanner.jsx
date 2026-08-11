@@ -11,7 +11,9 @@ export const NotificationBanner = () => {
   const [readNotifIds, setReadNotifIds] = useState(() => {
     try {
       const stored = localStorage.getItem(`read_notifs_${student?.id || 'guest'}`);
-      return stored ? JSON.parse(stored) : [];
+      if (!stored) return [];
+      const parsed = JSON.parse(stored);
+      return Array.isArray(parsed) ? parsed : [];
     } catch (e) {
       return [];
     }
