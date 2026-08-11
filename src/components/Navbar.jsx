@@ -235,7 +235,7 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
             </div>
             <div className="hidden md:block text-right pr-1">
               <div className="text-xs font-black text-slate-900 leading-none">
-                {userRole === 'admin' ? 'الباشمهندس (الأدمن)' : (student?.name || 'جاري التحميل...')}
+                {userRole === 'admin' ? 'المعلم (الأدمن)' : (student?.name || 'جاري التحميل...')}
               </div>
               <div className="text-[10px] text-amber-600 font-mono font-bold mt-0.5">
                 {userRole === 'admin' ? 'الإدارة المركزية' : `كود: ${student?.code || '...'}`}
