@@ -43,6 +43,8 @@ export const AppProvider = ({ children }) => {
   const [examAttempts, setExamAttempts] = useState({});
 
   // Local helper UI logs
+  const [whatsappLogs, setWhatsappLogs] = useState([]);
+  const [smsLogs, setSmsLogs] = useState([]);
   const [activeWhatsAppModal, setActiveWhatsAppModal] = useState(null);
 
   // Theme states (Light / Dark)
