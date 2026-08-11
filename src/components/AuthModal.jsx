@@ -34,7 +34,7 @@ export const AuthModal = () => {
           <div className="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-2xl mx-auto mb-2 shadow-lg shadow-amber-500/20">
             ⚡
           </div>
-          <h3 className="font-black text-xl">تسجيل الدخول - منصة الباشمهندس</h3>
+          <h3 className="font-black text-xl">تسجيل الدخول - منصة المعلم</h3>
           <p className="text-xs text-slate-300 font-medium mt-1">اختر نوع حسابك للمتابعة والدخول للمنصة</p>
         </div>
 
@@ -58,7 +58,7 @@ export const AuthModal = () => {
             onClick={() => setAuthRole('admin')}
             className={`flex-1 py-2 rounded-xl text-xs font-black transition-all ${authRole === 'admin' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
           >
-            👨‍🏫 الباشمهندس / أدمن
+            👨‍🏫 المعلم / أدمن
           </button>
         </div>
 
@@ -122,7 +122,7 @@ export const AuthModal = () => {
           {authRole === 'admin' && (
             <>
               <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-200 text-xs text-emerald-900 font-medium">
-                🔐 دخول الإدارة الخاص بالأستاذ والباشمهندس وفريق العمل.
+                🔐 دخول الإدارة الخاص بالأستاذ والمعلم وفريق العمل.
               </div>
 
               <div>
