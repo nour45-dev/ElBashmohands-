@@ -79,7 +79,7 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
       </div>
 
       {/* ═══ Bassthalk-Inspired Alive Hero Section ═══ */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-50/90 via-white to-amber-50/40 dark:bg-gradient-to-br dark:from-[#0D1B2A] dark:via-[#162534] dark:to-[#0D1B2A] rounded-[2.5rem] shadow-xl dark:shadow-2xl border border-slate-200/90 dark:border-slate-800 p-6 md:p-12">
+      <section className="relative overflow-hidden hero-card-container rounded-[2.5rem] shadow-xl dark:shadow-2xl p-6 md:p-12">
         
         {/* Background Ambient Glowing Orbs */}
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-blue-500/15 dark:bg-blue-600/20 rounded-full blur-3xl pointer-events-none animate-blob" />
@@ -140,7 +140,7 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
 
               <button 
                 onClick={() => setCurrentTab('exams')}
-                className="bg-white dark:bg-slate-800 text-slate-800 dark:text-white border-2 border-slate-200 dark:border-slate-700 hover:border-blue-500 text-xs md:text-sm font-black px-6 py-4 rounded-2xl shadow-md hover:scale-105 transition-all flex items-center gap-2"
+                className="hero-secondary-btn text-xs md:text-sm font-black px-6 py-4 rounded-2xl shadow-md hover:scale-105 transition-all flex items-center gap-2"
               >
                 <Award className="w-4 h-4 text-amber-500" />
                 <span>الامتحانات والتحديات</span>
@@ -164,7 +164,7 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
                 { val: '100%', label: 'تصحيح ومتابعة', icon: '✅' },
                 { val: '24/7', label: 'متاح دائماً', icon: '⚡' }
               ].map((s, i) => (
-                <div key={i} className="bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl p-3 text-center shadow-xs">
+                <div key={i} className="hero-stat-pill rounded-2xl p-3 text-center shadow-xs">
                   <div className="text-base font-black text-slate-900 dark:text-white">{s.icon} {s.val}</div>
                   <div className="text-[11px] text-slate-600 dark:text-slate-300 font-bold mt-0.5">{s.label}</div>
                 </div>
@@ -182,7 +182,7 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
       </section>
 
       {/* ═══ New Section: إزاي المنصة بتشتغل؟ (رحلة تفوقك خطوة بخطوة) ═══ */}
-      <section className="bg-slate-50 dark:bg-[#111e2d] p-8 md:p-12 rounded-[2.5rem] border border-slate-200/80 dark:border-slate-800 shadow-xl space-y-10 relative overflow-hidden">
+      <section className="how-it-works-section p-8 md:p-12 rounded-[2.5rem] shadow-xl space-y-10 relative overflow-hidden">
         
         {/* Section Title Header */}
         <div className="text-center space-y-3 max-w-2xl mx-auto">
@@ -202,7 +202,7 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
           
           {/* Step 1 */}
-          <div className="bg-white dark:bg-[#162534] p-6 rounded-3xl border-2 border-slate-200 dark:border-slate-700/80 hover:border-blue-500 shadow-md space-y-4 text-right transition-all duration-300 hover:-translate-y-2 group relative">
+          <div className="journey-step-card p-6 rounded-3xl hover:border-blue-500 shadow-md space-y-4 text-right transition-all duration-300 hover:-translate-y-2 group relative">
             <div className="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl font-black shadow-md group-hover:scale-110 transition-transform">
               🎯
             </div>
@@ -220,7 +220,7 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
           </div>
 
           {/* Step 2 */}
-          <div className="bg-white dark:bg-[#162534] p-6 rounded-3xl border-2 border-slate-200 dark:border-slate-700/80 hover:border-amber-500 shadow-md space-y-4 text-right transition-all duration-300 hover:-translate-y-2 group relative">
+          <div className="journey-step-card p-6 rounded-3xl hover:border-amber-500 shadow-md space-y-4 text-right transition-all duration-300 hover:-translate-y-2 group relative">
             <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-900/60 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl font-black shadow-md group-hover:scale-110 transition-transform">
               🎬
             </div>
@@ -238,7 +238,7 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
           </div>
 
           {/* Step 3 */}
-          <div className="bg-white dark:bg-[#162534] p-6 rounded-3xl border-2 border-slate-200 dark:border-slate-700/80 hover:border-emerald-500 shadow-md space-y-4 text-right transition-all duration-300 hover:-translate-y-2 group relative">
+          <div className="journey-step-card p-6 rounded-3xl hover:border-emerald-500 shadow-md space-y-4 text-right transition-all duration-300 hover:-translate-y-2 group relative">
             <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl font-black shadow-md group-hover:scale-110 transition-transform">
               📝
             </div>
@@ -256,7 +256,7 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
           </div>
 
           {/* Step 4 */}
-          <div className="bg-white dark:bg-[#162534] p-6 rounded-3xl border-2 border-slate-200 dark:border-slate-700/80 hover:border-purple-500 shadow-md space-y-4 text-right transition-all duration-300 hover:-translate-y-2 group relative">
+          <div className="journey-step-card p-6 rounded-3xl hover:border-purple-500 shadow-md space-y-4 text-right transition-all duration-300 hover:-translate-y-2 group relative">
             <div className="w-12 h-12 rounded-2xl bg-purple-100 dark:bg-purple-900/60 text-purple-600 dark:text-purple-400 flex items-center justify-center text-xl font-black shadow-md group-hover:scale-110 transition-transform">
               📲
             </div>
@@ -283,7 +283,7 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
             { icon: '💳', title: 'شحن فوري بالـ InstaPay', desc: 'تفعيل سريع واشتراكات مريحة' },
             { icon: '🏆', title: 'أوائل الدفعة وجوائز', desc: 'لوحة شرف وتكريم للمتميزين' }
           ].map((item, idx) => (
-            <div key={idx} className="p-3.5 rounded-2xl bg-white dark:bg-[#162534] border border-slate-200 dark:border-slate-700/80 space-y-1 shadow-xs">
+            <div key={idx} className="journey-step-card p-3.5 rounded-2xl space-y-1 shadow-xs">
               <div className="text-xl">{item.icon}</div>
               <div className="text-xs font-black text-slate-900 dark:text-white">{item.title}</div>
               <div className="text-[10px] text-slate-600 dark:text-slate-400 font-bold">{item.desc}</div>
