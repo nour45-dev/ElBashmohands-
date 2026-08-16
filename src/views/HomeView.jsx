@@ -79,11 +79,11 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
       </div>
 
       {/* ═══ Bassthalk-Inspired Alive Hero Section ═══ */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-amber-50/40 dark:from-slate-900 dark:via-blue-950 dark:to-slate-900 rounded-[2.5rem] shadow-2xl border border-slate-200/80 dark:border-slate-800 p-6 md:p-12">
+      <section className="relative overflow-hidden bg-gradient-to-br from-blue-50/90 via-white to-amber-50/40 dark:bg-gradient-to-br dark:from-[#0D1B2A] dark:via-[#162534] dark:to-[#0D1B2A] rounded-[2.5rem] shadow-xl dark:shadow-2xl border border-slate-200/90 dark:border-slate-800 p-6 md:p-12">
         
         {/* Background Ambient Glowing Orbs */}
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-blue-500/15 dark:bg-blue-600/20 rounded-full blur-3xl pointer-events-none animate-blob" />
-        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-amber-500/15 rounded-full blur-3xl pointer-events-none animate-blob" style={{ animationDelay: '4s' }} />
+        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-amber-500/15 dark:bg-amber-400/10 rounded-full blur-3xl pointer-events-none animate-blob" style={{ animationDelay: '4s' }} />
         <div className="absolute top-1/3 left-1/3 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
         {/* Wavy Animated Ribbon Line */}
@@ -97,33 +97,33 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
           <div className="lg:col-span-7 space-y-6 text-right flex flex-col justify-center">
 
             {/* Pill Badge */}
-            <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 px-4 py-2 rounded-full text-xs font-black shadow-sm self-end animate-float-fast">
-              <Sparkles className="w-4 h-4 text-emerald-500" />
+            <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-400 px-4 py-2 rounded-full text-xs font-black shadow-sm self-end animate-float-fast">
+              <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               <span>منصة تعليمية ذكية ومتكاملة للثانوية العامة 🚀</span>
             </div>
 
             {/* Main Headline */}
             <div className="space-y-3">
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl font-black tracking-tight leading-[1.2] text-slate-900 dark:text-white">
-                منصة متكاملة بها كل ما <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-l from-blue-600 via-indigo-600 to-blue-800 dark:from-amber-400 dark:to-yellow-300">
-                  يحتاجه الطالب ليتفوق
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-5xl font-black tracking-tight leading-[1.3] text-slate-900 dark:text-white">
+                منصة عِلم.. <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-l from-blue-700 via-indigo-600 to-blue-900 dark:from-amber-400 dark:to-yellow-300">
+                  منصة متكاملة بها كل ما يحتاجه الطالب ليتفوق
                 </span> 🎓
               </h1>
 
-              <p className="text-sm md:text-base text-slate-600 dark:text-[#F5E8C7] font-medium leading-relaxed max-w-xl">
+              <p className="text-sm md:text-base text-slate-700 dark:text-[#F5E8C7] font-bold leading-relaxed max-w-xl">
                 منصة ذكية بتساعدك تذاكر صح، تفهم كل درس بالخطوات والتطبيقات العملية، وتوصل لأعلى درجاتك في الثانوية العامة بكل سهولة وراحة بال.
               </p>
             </div>
 
             {/* Subject Badges with Icons */}
             <div className="flex flex-wrap gap-2.5 justify-end">
-              <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/25 text-blue-700 dark:text-blue-300 px-3.5 py-2 rounded-2xl text-xs font-black shadow-xs hover:scale-105 transition-transform">
-                <Code2 className="w-4 h-4 text-blue-600" />
+              <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/25 text-blue-800 dark:text-blue-300 px-3.5 py-2 rounded-2xl text-xs font-black shadow-xs hover:scale-105 transition-transform">
+                <Code2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 <span>البرمجة وعلوم الحاسب</span>
               </div>
-              <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/25 text-amber-700 dark:text-amber-300 px-3.5 py-2 rounded-2xl text-xs font-black shadow-xs hover:scale-105 transition-transform">
-                <Languages className="w-4 h-4 text-amber-600" />
+              <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/25 text-amber-800 dark:text-amber-300 px-3.5 py-2 rounded-2xl text-xs font-black shadow-xs hover:scale-105 transition-transform">
+                <Languages className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                 <span>اللغة العربية والبلاغة</span>
               </div>
             </div>
@@ -164,9 +164,9 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
                 { val: '100%', label: 'تصحيح ومتابعة', icon: '✅' },
                 { val: '24/7', label: 'متاح دائماً', icon: '⚡' }
               ].map((s, i) => (
-                <div key={i} className="bg-white/80 dark:bg-white/5 border border-slate-200/80 dark:border-white/10 rounded-2xl p-3 text-center shadow-xs">
+                <div key={i} className="bg-white dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-2xl p-3 text-center shadow-xs">
                   <div className="text-base font-black text-slate-900 dark:text-white">{s.icon} {s.val}</div>
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400 font-bold mt-0.5">{s.label}</div>
+                  <div className="text-[11px] text-slate-600 dark:text-slate-300 font-bold mt-0.5">{s.label}</div>
                 </div>
               ))}
             </div>
@@ -182,7 +182,7 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
       </section>
 
       {/* ═══ New Section: إزاي المنصة بتشتغل؟ (رحلة تفوقك خطوة بخطوة) ═══ */}
-      <section className="bg-gradient-to-b from-slate-50 to-white dark:from-slate-900/90 dark:to-slate-900 p-8 md:p-12 rounded-[2.5rem] border border-slate-200/80 dark:border-slate-800 shadow-xl space-y-10 relative overflow-hidden">
+      <section className="bg-slate-50 dark:bg-[#111e2d] p-8 md:p-12 rounded-[2.5rem] border border-slate-200/80 dark:border-slate-800 shadow-xl space-y-10 relative overflow-hidden">
         
         {/* Section Title Header */}
         <div className="text-center space-y-3 max-w-2xl mx-auto">
@@ -193,7 +193,7 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
           <h2 className="text-2xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
             إزاي منصة <span className="text-amber-500 dark:text-amber-400">عِلم</span> بتشتغل؟
           </h2>
-          <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 font-bold leading-relaxed">
+          <p className="text-xs md:text-sm text-slate-600 dark:text-slate-300 font-bold leading-relaxed">
             صممنا لك تجربة تعليمية ممتعة وسلسة تاخد بإيدك خطوة بخطوة من أول اختيار الحصة لحد التقفيل والدرجات النهائية.
           </p>
         </div>
@@ -202,72 +202,72 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
           
           {/* Step 1 */}
-          <div className="bg-white dark:bg-slate-800/90 p-6 rounded-3xl border-2 border-slate-200/80 dark:border-slate-700 hover:border-blue-500 shadow-lg space-y-4 text-right transition-all duration-300 hover:-translate-y-2 group relative">
-            <div className="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl font-black shadow-md group-hover:scale-110 transition-transform">
+          <div className="bg-white dark:bg-[#162534] p-6 rounded-3xl border-2 border-slate-200 dark:border-slate-700/80 hover:border-blue-500 shadow-md space-y-4 text-right transition-all duration-300 hover:-translate-y-2 group relative">
+            <div className="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl font-black shadow-md group-hover:scale-110 transition-transform">
               🎯
             </div>
             <div className="space-y-1.5">
-              <span className="text-[11px] font-black text-blue-600 dark:text-blue-400">الخطوة الأولى</span>
+              <span className="text-[11px] font-black text-blue-700 dark:text-blue-400">الخطوة الأولى</span>
               <h3 className="text-base font-black text-slate-900 dark:text-white">اختر صفك ومادتك</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-300 font-medium leading-relaxed">
+              <p className="text-xs text-slate-600 dark:text-slate-300 font-bold leading-relaxed">
                 حدد مرحلتك الدراسية (أولى، ثانية، أو ثالثة ثانوي) واختر بين كورسات البرمجة أو دروس اللغة العربية بضغطة واحدة.
               </p>
             </div>
-            <div className="pt-2 border-t border-slate-100 dark:border-slate-700 flex items-center gap-1.5 text-[11px] font-black text-slate-400 group-hover:text-blue-600 transition-colors">
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center gap-1.5 text-[11px] font-black text-slate-500 dark:text-slate-400 group-hover:text-blue-600 transition-colors">
               <span>سهولة تامة</span>
               <CheckCircle2 className="w-3.5 h-3.5 text-blue-500" />
             </div>
           </div>
 
           {/* Step 2 */}
-          <div className="bg-white dark:bg-slate-800/90 p-6 rounded-3xl border-2 border-slate-200/80 dark:border-slate-700 hover:border-amber-500 shadow-lg space-y-4 text-right transition-all duration-300 hover:-translate-y-2 group relative">
-            <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl font-black shadow-md group-hover:scale-110 transition-transform">
+          <div className="bg-white dark:bg-[#162534] p-6 rounded-3xl border-2 border-slate-200 dark:border-slate-700/80 hover:border-amber-500 shadow-md space-y-4 text-right transition-all duration-300 hover:-translate-y-2 group relative">
+            <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-900/60 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl font-black shadow-md group-hover:scale-110 transition-transform">
               🎬
             </div>
             <div className="space-y-1.5">
-              <span className="text-[11px] font-black text-amber-600 dark:text-amber-400">الخطوة الثانية</span>
+              <span className="text-[11px] font-black text-amber-700 dark:text-amber-400">الخطوة الثانية</span>
               <h3 className="text-base font-black text-slate-900 dark:text-white">شاهد الحصة بتركيز</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-300 font-medium leading-relaxed">
+              <p className="text-xs text-slate-600 dark:text-slate-300 font-bold leading-relaxed">
                 استمتع بشرح تفاعلي مبسط على مشغل فيديو محمي عالي الجودة، مع إمكانية تحميل وطباعة مذكرة الدرس PDF مباشرة.
               </p>
             </div>
-            <div className="pt-2 border-t border-slate-100 dark:border-slate-700 flex items-center gap-1.5 text-[11px] font-black text-slate-400 group-hover:text-amber-600 transition-colors">
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center gap-1.5 text-[11px] font-black text-slate-500 dark:text-slate-400 group-hover:text-amber-600 transition-colors">
               <span>مذكرات PDF مدمجة</span>
               <FileText className="w-3.5 h-3.5 text-amber-500" />
             </div>
           </div>
 
           {/* Step 3 */}
-          <div className="bg-white dark:bg-slate-800/90 p-6 rounded-3xl border-2 border-slate-200/80 dark:border-slate-700 hover:border-emerald-500 shadow-lg space-y-4 text-right transition-all duration-300 hover:-translate-y-2 group relative">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl font-black shadow-md group-hover:scale-110 transition-transform">
+          <div className="bg-white dark:bg-[#162534] p-6 rounded-3xl border-2 border-slate-200 dark:border-slate-700/80 hover:border-emerald-500 shadow-md space-y-4 text-right transition-all duration-300 hover:-translate-y-2 group relative">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl font-black shadow-md group-hover:scale-110 transition-transform">
               📝
             </div>
             <div className="space-y-1.5">
-              <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400">الخطوة الثالثة</span>
+              <span className="text-[11px] font-black text-emerald-700 dark:text-emerald-400">الخطوة الثالثة</span>
               <h3 className="text-base font-black text-slate-900 dark:text-white">حل الامتحان الإلكتروني</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-300 font-medium leading-relaxed">
+              <p className="text-xs text-slate-600 dark:text-slate-300 font-bold leading-relaxed">
                 اختبر فهمك بامتحان إلكتروني بوقت محدد، واستلم تصحيحك الفوري مع مراجعة نموذج الإجابات وتفسير كل سؤال.
               </p>
             </div>
-            <div className="pt-2 border-t border-slate-100 dark:border-slate-700 flex items-center gap-1.5 text-[11px] font-black text-slate-400 group-hover:text-emerald-600 transition-colors">
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center gap-1.5 text-[11px] font-black text-slate-500 dark:text-slate-400 group-hover:text-emerald-600 transition-colors">
               <span>تصحيح فوري + نقاط XP</span>
               <Award className="w-3.5 h-3.5 text-emerald-500" />
             </div>
           </div>
 
           {/* Step 4 */}
-          <div className="bg-white dark:bg-slate-800/90 p-6 rounded-3xl border-2 border-slate-200/80 dark:border-slate-700 hover:border-purple-500 shadow-lg space-y-4 text-right transition-all duration-300 hover:-translate-y-2 group relative">
-            <div className="w-12 h-12 rounded-2xl bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 flex items-center justify-center text-xl font-black shadow-md group-hover:scale-110 transition-transform">
+          <div className="bg-white dark:bg-[#162534] p-6 rounded-3xl border-2 border-slate-200 dark:border-slate-700/80 hover:border-purple-500 shadow-md space-y-4 text-right transition-all duration-300 hover:-translate-y-2 group relative">
+            <div className="w-12 h-12 rounded-2xl bg-purple-100 dark:bg-purple-900/60 text-purple-600 dark:text-purple-400 flex items-center justify-center text-xl font-black shadow-md group-hover:scale-110 transition-transform">
               📲
             </div>
             <div className="space-y-1.5">
-              <span className="text-[11px] font-black text-purple-600 dark:text-purple-400">الخطوة الرابعة</span>
+              <span className="text-[11px] font-black text-purple-700 dark:text-purple-400">الخطوة الرابعة</span>
               <h3 className="text-base font-black text-slate-900 dark:text-white">اسأل واستلم تقريرك</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-300 font-medium leading-relaxed">
+              <p className="text-xs text-slate-600 dark:text-slate-300 font-bold leading-relaxed">
                 اطرح أي استفسار تحت الفيديو ليجيبك المعلم، ويتم إرسال تقرير أدائك الموثق مباشرة إلى ولي أمرك على الواتساب.
               </p>
             </div>
-            <div className="pt-2 border-t border-slate-100 dark:border-slate-700 flex items-center gap-1.5 text-[11px] font-black text-slate-400 group-hover:text-purple-600 transition-colors">
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center gap-1.5 text-[11px] font-black text-slate-500 dark:text-slate-400 group-hover:text-purple-600 transition-colors">
               <span>متابعة واتساب للأهل</span>
               <Smartphone className="w-3.5 h-3.5 text-purple-500" />
             </div>
@@ -283,10 +283,10 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
             { icon: '💳', title: 'شحن فوري بالـ InstaPay', desc: 'تفعيل سريع واشتراكات مريحة' },
             { icon: '🏆', title: 'أوائل الدفعة وجوائز', desc: 'لوحة شرف وتكريم للمتميزين' }
           ].map((item, idx) => (
-            <div key={idx} className="p-3.5 rounded-2xl bg-white/60 dark:bg-white/5 border border-slate-200 dark:border-white/10 space-y-1">
+            <div key={idx} className="p-3.5 rounded-2xl bg-white dark:bg-[#162534] border border-slate-200 dark:border-slate-700/80 space-y-1 shadow-xs">
               <div className="text-xl">{item.icon}</div>
               <div className="text-xs font-black text-slate-900 dark:text-white">{item.title}</div>
-              <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">{item.desc}</div>
+              <div className="text-[10px] text-slate-600 dark:text-slate-400 font-bold">{item.desc}</div>
             </div>
           ))}
         </div>
