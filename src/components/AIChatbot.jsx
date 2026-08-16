@@ -8,8 +8,9 @@ const SYSTEM_PROMPT = `أنت "مساعد المعلم الذكي"، صديق ا
 معلومات المنصة:
 - الدومين الرسمي للمنصة: https://elbashmohands.dev
 - الأسعار: اشتراك شهري 150 ج.م (8 حصص اختيارية)، سنوي 350 ج.م (فتح كل الحصص بلا حدود)
-- طرق الدفع: InstaPay، فودافون كاش، فوري، بنك مصر
+- طرق الدفع: InstaPay (على عنوان الدفع noureldinahmedh@instapay أو رقم 01002169889)، وفودافون كاش (01002169889)
 - رقم المعلم الموحد للتحويل والدعم الفني: 01002169889
+- عنوان InstaPay الرسمي: noureldinahmedh@instapay
 - تفعيل الاشتراك: بعد التحويل، الطالب بيرفع صورة إيصال التحويل من تبويب "المحفظة" على المنصة وهيتم الموافقة فوراً.
 - المواد المتاحة:
   1. البرمجة وعلوم الحاسب (Python, JavaScript, HTML/CSS, C++, Web)
@@ -103,6 +104,7 @@ export const AIChatbot = () => {
       try {
         // 2. Direct browser fallback when backend server is not running (e.g. dev mode)
         if (provider === 'gemini') {
+          // Direct Gemini call (requires VITE_GEMINI_API_KEY environment variable locally)
           const localGeminiKey = import.meta.env.VITE_GEMINI_API_KEY;
           if (!localGeminiKey) {
             throw new Error('Gemini local VITE_GEMINI_API_KEY is not defined.');
@@ -147,6 +149,7 @@ export const AIChatbot = () => {
           }]);
 
         } else {
+          // Direct OpenRouter call (using local env or default fallback key)
           const localOrKey = import.meta.env.VITE_OPENROUTER_API_KEY;
           if (!localOrKey) {
             throw new Error('OpenRouter local VITE_OPENROUTER_API_KEY is not defined.');
