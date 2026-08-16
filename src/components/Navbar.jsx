@@ -24,6 +24,8 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
     student, 
     notifications,
     setNotifications,
+    markNotificationAsRead,
+    markAllNotificationsAsRead,
     currentGrade, 
     switchGrade,
     theme,
@@ -177,7 +179,8 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
                     notifications.map((n) => (
                       <div
                         key={n.id}
-                        className={`px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-all ${n.unread ? 'bg-amber-50/60 dark:bg-amber-500/10' : ''}`}
+                        onClick={() => markNotificationAsRead(n.id)}
+                        className={`px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/80 cursor-pointer transition-all ${n.unread ? 'bg-amber-50/60 dark:bg-amber-500/10' : ''}`}
                       >
                         <div className="flex items-start gap-2.5">
                           {/* Subject Badge */}
@@ -215,10 +218,10 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
 
                 {/* Mark All Read */}
                 {unreadCount > 0 && (
-                  <div className="border-t border-slate-100 px-4 py-2.5">
+                  <div className="border-t border-slate-100 dark:border-slate-800 px-4 py-2.5">
                     <button
                       onClick={() => {
-                        setNotifications(prev => prev.map(n => ({ ...n, unread: false })));
+                        markAllNotificationsAsRead();
                         setShowNotifications(false);
                       }}
                       className="w-full text-center text-xs text-amber-600 font-black hover:text-amber-800 transition-all"
