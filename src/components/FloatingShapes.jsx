@@ -168,8 +168,8 @@ export const HeroFloatingScene = ({ setCurrentTab }) => {
               <span className="bg-white/20 px-2 py-0.5 rounded-md font-black">حصة مباشرة</span>
               <span className="text-amber-300 font-black">⭐⭐⭐⭐⭐</span>
             </div>
-            <div className="text-xs font-black text-white line-clamp-1">مقدمة في البرمجة والنحو</div>
-            <div className="text-[10px] text-blue-100 font-medium">باشمهندس نور • أ/ سيد عبد العاطي</div>
+            <div className="text-xs font-black text-white line-clamp-1">مقدمة في اللغة العربية والبرمجة</div>
+            <div className="text-[10px] text-blue-100 font-medium"> أ / سيد عبد العاطي•باشمهندس نور </div>
           </div>
 
           {/* Video Play Area with Pulse Glow */}
