@@ -61,8 +61,10 @@ export const AppProvider = ({ children }) => {
     const root = document.documentElement;
     if (theme === 'light') {
       root.classList.add('light-mode');
+      root.classList.remove('dark');
     } else {
       root.classList.remove('light-mode');
+      root.classList.add('dark');
     }
     localStorage.setItem('manara_theme', theme);
   }, [theme]);
@@ -975,7 +977,7 @@ https://elbashmohands.dev`;
   if (loadingSession) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white font-black text-sm">
-        جاري تهيئة منصة مَنارة التعليمية... 💡⚙️
+        جاري تهيئة منصة عِلم التعليمية... 💡⚙️
       </div>
     );
   }
