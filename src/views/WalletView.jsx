@@ -46,6 +46,7 @@ export const WalletView = () => {
   const [selectedAmount, setSelectedAmount] = useState(150);
   const [refNumber, setRefNumber] = useState('');
   
+  // Proof Receipt Image Picker
   const proofInputRef = useRef(null);
   const [proofFile, setProofFile] = useState(null);
 
@@ -155,45 +156,27 @@ export const WalletView = () => {
             </div>
 
             {/* Payment Channels Tabs */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => setPaymentMethod('instapay')}
-                className={`p-3.5 rounded-2xl border flex flex-col items-center justify-center gap-2 transition-all ${paymentMethod === 'instapay' ? 'bg-purple-50 border-purple-500 text-purple-900 font-black ring-2 ring-purple-500/20' : 'bg-slate-50 border-slate-200 text-slate-700 font-bold'}`}
+                className={`p-4 rounded-2xl border flex flex-col items-center justify-center gap-2 transition-all ${paymentMethod === 'instapay' ? 'bg-purple-50 border-purple-500 text-purple-900 font-black ring-2 ring-purple-500/20' : 'bg-slate-50 border-slate-200 text-slate-700 font-bold'}`}
               >
                 <Zap className="w-6 h-6 text-purple-600" />
-                <span className="text-xs">انستا باي InstaPay⚡</span>
+                <span className="text-sm font-black">انستا باي InstaPay ⚡</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setPaymentMethod('vodafone')}
-                className={`p-3.5 rounded-2xl border flex flex-col items-center justify-center gap-2 transition-all ${paymentMethod === 'vodafone' ? 'bg-rose-50 border-rose-500 text-rose-900 font-black ring-2 ring-rose-500/20' : 'bg-slate-50 border-slate-200 text-slate-700 font-bold'}`}
+                className={`p-4 rounded-2xl border flex flex-col items-center justify-center gap-2 transition-all ${paymentMethod === 'vodafone' ? 'bg-rose-50 border-rose-500 text-rose-900 font-black ring-2 ring-rose-500/20' : 'bg-slate-50 border-slate-200 text-slate-700 font-bold'}`}
               >
                 <Smartphone className="w-6 h-6 text-rose-600" />
-                <span className="text-xs">فودافون كاش</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setPaymentMethod('visa')}
-                className={`p-3.5 rounded-2xl border flex flex-col items-center justify-center gap-2 transition-all ${paymentMethod === 'visa' ? 'bg-blue-50 border-blue-500 text-blue-900 font-black ring-2 ring-blue-500/20' : 'bg-slate-50 border-slate-200 text-slate-700 font-bold'}`}
-              >
-                <CreditCard className="w-6 h-6 text-blue-600" />
-                <span className="text-xs">فيزا / ماستر كارد</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setPaymentMethod('fawry')}
-                className={`p-3.5 rounded-2xl border flex flex-col items-center justify-center gap-2 transition-all ${paymentMethod === 'fawry' ? 'bg-amber-50 border-amber-500 text-amber-900 font-black ring-2 ring-amber-500/20' : 'bg-slate-50 border-slate-200 text-slate-700 font-bold'}`}
-              >
-                <QrCode className="w-6 h-6 text-amber-600" />
-                <span className="text-xs">خدمة فوري</span>
+                <span className="text-sm font-black">فودافون كاش (Vodafone Cash)</span>
               </button>
             </div>
 
-            {/* Custom Guidance Instructions Box */}
+            {/* Custom Guidance Instructions Box for Each Selected Method */}
             <div className="bg-slate-900 text-white p-5 rounded-2xl space-y-3 text-right">
               
               {paymentMethod === 'instapay' && (
@@ -202,8 +185,8 @@ export const WalletView = () => {
                     <Zap className="w-4 h-4" />
                     <span>خطوات الشحن عبر تطبيق InstaPay:</span>
                   </div>
-                  <p className="text-slate-300">1. افتح تطبيق InstaPay واختر تحويل إلى رقم موبايل أو IPA.</p>
-                  <p className="text-slate-300">2. أدخل رقم الموبايل: <span className="font-mono text-amber-300 font-black text-sm select-all">01002169889</span> أو المعرف: <span className="font-mono text-amber-300 font-black text-sm select-all">elbashmohandis@instapay</span></p>
+                  <p className="text-slate-300">1. افتح تطبيق InstaPay واختر تحويل إلى عنوان دفع لحظي (IPA) أو رقم موبايل.</p>
+                  <p className="text-slate-300">2. عنوان الدفع (IPA): <span className="font-mono text-amber-300 font-black text-sm select-all">noureldinahmedh@instapay</span> أو رقم الموبايل: <span className="font-mono text-amber-300 font-black text-sm select-all">01002169889</span></p>
                   <p className="text-slate-300">3. بعد إتمام التحويل، خذ سكرين شوت لشاشة النجاح وارفقها بالأسفل.</p>
                 </div>
               )}
@@ -217,29 +200,6 @@ export const WalletView = () => {
                   <p className="text-slate-300">1. اطلب الكود المباشر: <span className="font-mono text-rose-300 font-black dir-ltr text-sm">*9*7*01002169889*المبلغ#</span></p>
                   <p className="text-slate-300">2. أو اذهب لفرع فودافون كاش وحول المبلغ للرقم: <span className="font-mono text-rose-300 font-black text-sm select-all">01002169889</span></p>
                   <p className="text-slate-300">3. صور سكرين شوت للرسالة النصية المأكدة للتحويل وارفقها بالأسفل.</p>
-                </div>
-              )}
-
-              {paymentMethod === 'visa' && (
-                <div className="space-y-1.5 text-xs">
-                  <div className="font-black text-blue-400 flex items-center gap-1.5">
-                    <CreditCard className="w-4 h-4" />
-                    <span>خطوات الشحن عبر الفيزا / البنك الأهلي / بنك مصر:</span>
-                  </div>
-                  <p className="text-slate-300">1. استخدم كود الخصم المباشر أو التحويل البنكي السريع لحساب المعلم.</p>
-                  <p className="text-slate-300">2. رقم الحساب أو الموبايل المرتبط بالفيزا: <span className="font-mono text-blue-300 font-black text-sm select-all">01002169889</span></p>
-                  <p className="text-slate-300">3. ارفع سكرين شوت عملية الخصم أو إيصال السداد البنكي.</p>
-                </div>
-              )}
-
-              {paymentMethod === 'fawry' && (
-                <div className="space-y-1.5 text-xs">
-                  <div className="font-black text-amber-400 flex items-center gap-1.5">
-                    <QrCode className="w-4 h-4" />
-                    <span>خطوات الشحن عبر ماكينات فوري (Fawry Pay):</span>
-                  </div>
-                  <p className="text-slate-300">1. توجه لأي منفذ فوري واطلب كود الخدمة: <span className="font-mono text-amber-300 font-black text-sm">99889</span> أو التحويل المباشر على المحفظة برقم: <span className="font-mono text-amber-300 font-black text-sm select-all">01002169889</span></p>
-                  <p className="text-slate-300">2. صور الإيصال الورقي المطبوع من ماكينة فوري وارفقه بالأسفل.</p>
                 </div>
               )}
 
