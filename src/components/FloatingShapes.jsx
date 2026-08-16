@@ -168,8 +168,8 @@ export const HeroFloatingScene = ({ setCurrentTab }) => {
               <span className="bg-white/20 px-2 py-0.5 rounded-md font-black">حصة مباشرة</span>
               <span className="text-amber-300 font-black">⭐⭐⭐⭐⭐</span>
             </div>
-            <div className="text-xs font-black text-white line-clamp-1">مقدمة في اللغة العربية والبرمجة</div>
-            <div className="text-[10px] text-blue-100 font-medium"> أ / سيد عبد العاطي•باشمهندس نور </div>
+            <div className="text-xs font-black text-white line-clamp-1">مقدمة في اللغة العربية و البرمجة</div>
+            <div className="text-[10px] text-blue-100 font-medium">أ/ سيد عبد العاطي•م /نور الدين</div>
           </div>
 
           {/* Video Play Area with Pulse Glow */}
@@ -198,22 +198,23 @@ export const HeroFloatingScene = ({ setCurrentTab }) => {
       </div>
 
       {/* Floating Teacher Badge Left */}
-      <div className="absolute -left-2 md:left-2 top-1/3 z-20 bg-white dark:bg-slate-900 text-slate-900 dark:text-white p-3 rounded-2xl border-2 border-blue-400/40 shadow-xl flex items-center gap-2.5 animate-float-slow max-w-[180px]">
+      <div className="absolute -left-2 md:left-2 top-1/3 z-20 floating-hero-card p-3 rounded-2xl shadow-xl flex items-center gap-2.5 animate-float-slow max-w-[180px]">
         <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center text-lg font-black shadow-md flex-shrink-0">
           👨‍💻
         </div>
-        <div className="text-right">
+      
+           <div className="text-right">
           <div className="text-[11px] font-black text-amber-600 dark:text-amber-400 leading-tight">أ/ سيد عبد العاطي</div>
           <div className="text-[9px] text-slate-500 dark:text-slate-400 font-bold">أسرار اللغة العربية</div>
         </div>
       </div>
 
       {/* Floating Teacher Badge Right */}
-      <div className="absolute -right-2 md:right-4 bottom-1/4 z-20 bg-white dark:bg-slate-900 text-slate-900 dark:text-white p-3 rounded-2xl border-2 border-amber-400/40 shadow-xl flex items-center gap-2.5 animate-float-reverse max-w-[180px]">
+      <div className="absolute -right-2 md:right-4 bottom-1/4 z-20 floating-hero-card p-3 rounded-2xl shadow-xl flex items-center gap-2.5 animate-float-reverse max-w-[180px]">
         <div className="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center text-lg font-black shadow-md flex-shrink-0">
           📖
         </div>
-        <div className="text-right">
+       <div className="text-right">
           <div className="text-[11px] font-black text-blue-600 dark:text-blue-400 leading-tight">م. نور الدين</div>
           <div className="text-[9px] text-slate-500 dark:text-slate-400 font-bold">شرح وتطبيق برمجي</div>
         </div>
