@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 /* =========================================================
    Bassthalk-inspired Theme & CSS Architecture
@@ -47,6 +48,85 @@
   --radius-full: 9999px;
   --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* =========================================================
+   🌓 EXPLICIT THEME CONTAINER & CARD STYLES
+   ========================================================= */
+.hero-card-container {
+  background: linear-gradient(135deg, rgba(239, 246, 255, 0.95) 0%, rgba(255, 255, 255, 1) 50%, rgba(254, 243, 199, 0.5) 100%);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  color: #0f172a;
+}
+
+html:not(.light-mode) .hero-card-container,
+html.dark .hero-card-container {
+  background: linear-gradient(135deg, #0D1B2A 0%, #162534 50%, #0D1B2A 100%) !important;
+  border: 1px solid #1e3245 !important;
+  color: #FFFFFF !important;
+}
+
+.how-it-works-section {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+html:not(.light-mode) .how-it-works-section,
+html.dark .how-it-works-section {
+  background: #111e2d !important;
+  border: 1px solid #1e3245 !important;
+}
+
+.journey-step-card {
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  color: #0f172a;
+}
+
+html:not(.light-mode) .journey-step-card,
+html.dark .journey-step-card {
+  background: #162534 !important;
+  border: 2px solid #1e3245 !important;
+  color: #ffffff !important;
+}
+
+.floating-hero-card {
+  background: #ffffff;
+  border: 2px solid rgba(59, 130, 246, 0.3);
+  color: #0f172a;
+}
+
+html:not(.light-mode) .floating-hero-card,
+html.dark .floating-hero-card {
+  background: #162534 !important;
+  border: 2px solid #1e3245 !important;
+  color: #ffffff !important;
+}
+
+.hero-secondary-btn {
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  color: #1e293b;
+}
+
+html:not(.light-mode) .hero-secondary-btn,
+html.dark .hero-secondary-btn {
+  background: #1e3245 !important;
+  border: 2px solid #274059 !important;
+  color: #ffffff !important;
+}
+
+.hero-stat-pill {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #e2e8f0;
+  color: #0f172a;
+}
+
+html:not(.light-mode) .hero-stat-pill,
+html.dark .hero-stat-pill {
+  background: rgba(30, 50, 69, 0.8) !important;
+  border: 1px solid #1e3245 !important;
+  color: #ffffff !important;
 }
 
 /* =========================================================
