@@ -294,21 +294,30 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
       </section>
 
       {/* ═══ Grade + Subject Selector ═══ */}
-      <section className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-md space-y-3">
+      <section className="bg-white dark:bg-[#162534] p-4 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-md space-y-3">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-blue-600" />
-            <h2 className="text-sm font-black text-slate-900">اختر الصف والمادة:</h2>
+            <BookOpen className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <h2 className="text-sm font-black text-slate-900 dark:text-white">اختر الصف والمادة:</h2>
           </div>
 
           <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
-            <button onClick={() => switchGrade('3sec')} className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap ${currentGrade === '3sec' ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
+            <button 
+              onClick={() => switchGrade('3sec')} 
+              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap ${currentGrade === '3sec' ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+            >
               🎓 ثالثة ثانوي
             </button>
-            <button onClick={() => switchGrade('2sec')} className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap ${currentGrade === '2sec' ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
+            <button 
+              onClick={() => switchGrade('2sec')} 
+              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap ${currentGrade === '2sec' ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+            >
               📘 ثاني ثانوي
             </button>
-            <button onClick={() => switchGrade('1sec')} className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap ${currentGrade === '1sec' ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}>
+            <button 
+              onClick={() => switchGrade('1sec')} 
+              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap ${currentGrade === '1sec' ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+            >
               📗 أول ثانوي
             </button>
           </div>
@@ -316,8 +325,8 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
 
         {/* Subject Filter */}
         {userRole !== 'admin' && (
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-black text-slate-500">فلتر المادة:</span>
+          <div className="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
+            <span className="text-[11px] font-black text-slate-500 dark:text-slate-400">فلتر المادة:</span>
             {[
               { id: 'all', label: '📚 الكل', color: 'slate' },
               { id: 'programming', label: '💻 البرمجة', color: 'blue' },
@@ -328,8 +337,12 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
                 onClick={() => setSubjectFilter(s.id)}
                 className={`px-3.5 py-1.5 rounded-xl text-[11px] font-black transition-all border ${
                   subjectFilter === s.id
-                    ? s.color === 'blue' ? 'bg-blue-600 text-white border-blue-600' : s.color === 'amber' ? 'bg-amber-500 text-slate-950 border-amber-500' : 'bg-slate-800 text-white border-slate-800'
-                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                    ? s.color === 'blue' 
+                        ? 'bg-blue-600 text-white border-blue-600' 
+                        : s.color === 'amber' 
+                        ? 'bg-amber-500 text-slate-950 border-amber-500' 
+                        : 'bg-slate-800 dark:bg-blue-600 text-white border-slate-800 dark:border-blue-600'
+                    : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
                 }`}
               >
                 {s.label}
@@ -367,7 +380,7 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
             ].map(folder => {
               const folderLessons = lessons.filter(les => les.grade === currentGrade && folder.matchFn(les));
               return (
-                <div key={folder.id} className="bg-white rounded-3xl border border-slate-200/80 shadow-md overflow-hidden">
+                <div key={folder.id} className="bg-white dark:bg-[#162534] rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-md overflow-hidden">
                   {/* Folder Header */}
                   <button
                     onClick={() => setSubjectFilter(folder.id)}
@@ -395,7 +408,7 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
                     <div className="px-6 py-8 text-center">
                       <p className="text-slate-400 text-sm font-bold">لا توجد حصص بعد في هذه المادة</p>
                       {userRole === 'admin' && (
-                        <button onClick={() => setCurrentTab('admin')} className="mt-3 text-xs text-blue-600 font-black hover:underline">
+                        <button onClick={() => setCurrentTab('admin')} className="mt-3 text-xs text-blue-600 dark:text-blue-400 font-black hover:underline">
                           + رفع أول حصة الآن
                         </button>
                       )}
@@ -412,7 +425,7 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
                           <div
                             key={lesson.id}
                             onClick={() => { setSelectedLessonId(lesson.id); setCurrentTab('lesson-detail'); }}
-                            className="bg-slate-50 rounded-2xl border border-slate-100 overflow-hidden cursor-pointer hover:shadow-md hover:border-blue-200 transition-all group"
+                            className="bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-100 dark:border-slate-700/80 overflow-hidden cursor-pointer hover:shadow-md hover:border-blue-200 dark:hover:border-blue-500 transition-all group"
                           >
                             <div className="relative h-28 bg-slate-900 overflow-hidden">
                               <img src={thumbSrc} alt={lesson.title} className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-all duration-500" />
@@ -430,7 +443,7 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
                               </div>
                             </div>
                             <div className="p-3">
-                              <p className="font-black text-slate-800 text-xs leading-snug line-clamp-2">{lesson.title}</p>
+                              <p className="font-black text-slate-800 dark:text-white text-xs leading-snug line-clamp-2">{lesson.title}</p>
                             </div>
                           </div>
                         );
@@ -442,7 +455,7 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
                     <div className="px-6 pb-4 text-center">
                       <button
                         onClick={() => setSubjectFilter(folder.id)}
-                        className="text-xs text-blue-600 font-black hover:underline"
+                        className="text-xs text-blue-600 dark:text-blue-400 font-black hover:underline"
                       >
                         عرض جميع الحصص ({folderLessons.length}) ←
                       </button>
@@ -456,13 +469,13 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
           /* Filtered Lesson Grid */
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-xl font-black text-slate-900 tracking-tight">
+              <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
                 حصص {effectiveSubjectFilter === 'arabic' ? 'اللغة العربية 📖' : 'البرمجة وعلوم الحاسب 💻'}
               </h3>
               {userRole !== 'admin' && (
                 <button
                   onClick={() => setSubjectFilter('all')}
-                  className="text-xs text-slate-500 font-black hover:text-blue-600 flex items-center gap-1"
+                  className="text-xs text-slate-500 dark:text-slate-400 font-black hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1"
                 >
                   ← رجوع للكل
                 </button>
@@ -470,12 +483,12 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
             </div>
 
             {filteredLessons.length === 0 ? (
-              <div className="bg-white p-12 rounded-3xl border border-slate-200 text-center space-y-4 max-w-xl mx-auto">
-                <div className="w-16 h-16 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-2xl mx-auto font-black">
+              <div className="bg-white dark:bg-[#162534] p-12 rounded-3xl border border-slate-200 dark:border-slate-800 text-center space-y-4 max-w-xl mx-auto shadow-lg">
+                <div className="w-16 h-16 rounded-full bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center text-2xl mx-auto font-black">
                   {effectiveSubjectFilter === 'arabic' ? '📖' : '💻'}
                 </div>
-                <h4 className="font-black text-lg text-slate-900">لا توجد حصص لهذا الصف والمادة حالياً</h4>
-                <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                <h4 className="font-black text-lg text-slate-900 dark:text-white">لا توجد حصص لهذا الصف والمادة حالياً</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
                   المنصة جاهزة 100%. قم بالدخول كباشمهندس لرفع أول حصة وشاهدها تعمل فوراً!
                 </p>
                 {userRole === 'admin' && (
@@ -498,7 +511,7 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
                   return (
                     <div
                       key={lesson.id}
-                      className="bg-white rounded-3xl border border-slate-200/80 overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 flex flex-col group"
+                      className="bg-white dark:bg-[#162534] rounded-3xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 flex flex-col group"
                     >
                       <div className="relative h-44 bg-slate-900 overflow-hidden">
                         <img
@@ -532,14 +545,14 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId }) => {
                             <span className="badge badge-blue">{lesson.subject}</span>
                             <span className="text-[10px] text-slate-400 font-bold">منصة المعلم</span>
                           </div>
-                          <h4 className="font-black text-slate-900 text-sm leading-snug group-hover:text-blue-600 transition-all">
+                          <h4 className="font-black text-slate-900 dark:text-white text-sm leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-all">
                             {lesson.title}
                           </h4>
                         </div>
 
                         <button
                           onClick={() => { setSelectedLessonId(lesson.id); setCurrentTab('lesson-detail'); }}
-                          className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center gap-2 transition-all shadow-sm"
+                          className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-extrabold text-xs flex items-center justify-center gap-2 transition-all shadow-sm"
                         >
                           <Play className="w-3.5 h-3.5" />
                           <span>مشاهدة الحصة</span>
