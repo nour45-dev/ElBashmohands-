@@ -108,15 +108,18 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
         </nav>
 
         {/* Right User Bar & Profile Actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3.5 mr-auto lg:mr-6">
           
+          {/* Subtle Vertical Divider */}
+          <div className="hidden lg:block w-[1px] h-6 bg-slate-200 dark:bg-slate-700/60 ml-2" />
+
           {/* Student Wallet Badge */}
           {userRole === 'student' && (
             <div 
               onClick={() => setCurrentTab('wallet')}
-              className="hidden sm:flex items-center gap-2 bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-900 px-3.5 py-1.5 rounded-xl cursor-pointer transition-all shadow-2xs"
+              className="hidden sm:flex items-center gap-2 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 hover:bg-amber-100 text-amber-900 dark:text-amber-300 px-3.5 py-1.5 rounded-xl cursor-pointer transition-all shadow-2xs"
             >
-              <Wallet className="w-4 h-4 text-amber-600" />
+              <Wallet className="w-4 h-4 text-amber-600 dark:text-amber-400" />
               <div className="text-right">
                 <div className="text-[11px] font-black leading-none font-mono">{student?.walletBalance ?? 0} ج.م</div>
               </div>
@@ -127,7 +130,7 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
           <div className="relative">
             <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className={`relative p-2 rounded-xl transition-all border ${showNotifications ? 'bg-amber-500 border-amber-500 text-white shadow-md' : 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-600'}`}
+              className={`relative p-2.5 rounded-xl transition-all border ${showNotifications ? 'bg-amber-500 border-amber-500 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-600'}`}
               title="الإشعارات"
             >
               <Bell className="w-5 h-5" />
@@ -141,7 +144,7 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
             {/* Notification Dropdown Panel */}
             {showNotifications && (
               <div
-                className="absolute left-0 top-full mt-2 w-80 bg-white rounded-3xl border border-slate-200 shadow-2xl z-50 overflow-hidden"
+                className="absolute left-0 top-full mt-2 w-80 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-2xl z-50 overflow-hidden"
                 dir="rtl"
               >
                 {/* Panel Header */}
@@ -164,7 +167,7 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
                 </div>
 
                 {/* Notifications List */}
-                <div className="max-h-72 overflow-y-auto divide-y divide-slate-100">
+                <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
                   {notifications.length === 0 ? (
                     <div className="py-8 text-center">
                       <div className="text-2xl mb-2">🔔</div>
@@ -174,7 +177,7 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
                     notifications.map((n) => (
                       <div
                         key={n.id}
-                        className={`px-4 py-3 hover:bg-slate-50 transition-all ${n.unread ? 'bg-amber-50/60' : ''}`}
+                        className={`px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-all ${n.unread ? 'bg-amber-50/60 dark:bg-amber-500/10' : ''}`}
                       >
                         <div className="flex items-start gap-2.5">
                           {/* Subject Badge */}
