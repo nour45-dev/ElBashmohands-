@@ -101,7 +101,7 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
               className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${currentTab === 'admin' ? 'bg-slate-900 text-amber-400 shadow-sm' : 'bg-slate-900/10 text-slate-900 hover:bg-slate-900 hover:text-white'}`}
             >
               <ShieldCheck className="w-4 h-4 text-amber-500" />
-              لوحة مَنارة
+              لوحة عِلم
             </button>
           )}
 
@@ -328,7 +328,7 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
               className="w-full text-right px-4 py-3 rounded-xl text-xs font-black bg-slate-900 text-amber-400 flex items-center gap-2"
             >
               <ShieldCheck className="w-4 h-4 text-amber-500" />
-              لوحة مَنارة
+              لوحة عِلم
             </button>
           )}
         </div>
