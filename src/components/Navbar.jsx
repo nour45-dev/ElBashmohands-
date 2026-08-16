@@ -38,7 +38,7 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
   const unreadCount = notifications.filter(n => n.unread).length;
 
   return (
-    <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
+    <header className="sticky top-0 z-50 bg-white/95 dark:bg-[#0D1B2A]/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shadow-xs transition-colors">
       
       <div className="container py-3 flex items-center justify-between">
         
@@ -48,13 +48,17 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
         </div>
 
         {/* Desktop Navigation Items */}
-        <nav className="hidden lg:flex items-center gap-1.5 bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/60">
+        <nav className="hidden lg:flex items-center gap-1.5 bg-slate-100/90 dark:bg-[#162534] p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
           
           {userRole !== 'parent' && (
             <>
               <button 
                 onClick={() => setCurrentTab('home')}
-                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${currentTab === 'home' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'}`}
+                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${
+                  currentTab === 'home' 
+                    ? 'bg-white text-blue-700 shadow-sm dark:bg-blue-600 dark:text-white dark:shadow-md' 
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/60 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800/80'
+                }`}
               >
                 <BookOpen className="w-4 h-4" />
                 الرئيسية
@@ -62,7 +66,11 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
 
               <button 
                 onClick={() => setCurrentTab('lessons')}
-                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${currentTab === 'lessons' || currentTab === 'lesson-detail' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'}`}
+                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${
+                  currentTab === 'lessons' || currentTab === 'lesson-detail' 
+                    ? 'bg-white text-blue-700 shadow-sm dark:bg-blue-600 dark:text-white dark:shadow-md' 
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/60 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800/80'
+                }`}
               >
                 <Video className="w-4 h-4" />
                 الحصص والدروس
@@ -70,7 +78,11 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
 
               <button 
                 onClick={() => setCurrentTab('exams')}
-                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${currentTab === 'exams' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'}`}
+                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${
+                  currentTab === 'exams' 
+                    ? 'bg-white text-blue-700 shadow-sm dark:bg-blue-600 dark:text-white dark:shadow-md' 
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/60 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800/80'
+                }`}
               >
                 <Award className="w-4 h-4" />
                 الامتحانات والواجبات
@@ -78,7 +90,11 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
 
               <button 
                 onClick={() => setCurrentTab('wallet')}
-                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${currentTab === 'wallet' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'}`}
+                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${
+                  currentTab === 'wallet' 
+                    ? 'bg-white text-blue-700 shadow-sm dark:bg-blue-600 dark:text-white dark:shadow-md' 
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/60 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800/80'
+                }`}
               >
                 <Wallet className="w-4 h-4" />
                 المحفظة والرصيد
@@ -90,9 +106,13 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
           {(userRole === 'parent' || userRole === 'admin') && (
             <button 
               onClick={() => setCurrentTab('parent-view')}
-              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${currentTab === 'parent-view' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'}`}
+              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${
+                currentTab === 'parent-view' 
+                  ? 'bg-white text-blue-700 shadow-sm dark:bg-blue-600 dark:text-white dark:shadow-md' 
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800/80'
+              }`}
             >
-              <Users className="w-4 h-4 text-emerald-600" />
+              <Users className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               متابعة ولي الأمر
             </button>
           )}
@@ -100,9 +120,13 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
           {userRole === 'admin' && (
             <button 
               onClick={() => setCurrentTab('admin')}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${currentTab === 'admin' ? 'bg-slate-900 text-amber-400 shadow-sm' : 'bg-slate-900/10 text-slate-900 hover:bg-slate-900 hover:text-white'}`}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
+                currentTab === 'admin' 
+                  ? 'bg-slate-900 text-amber-400 shadow-sm dark:bg-amber-500 dark:text-slate-950 dark:shadow-md' 
+                  : 'bg-slate-900/10 text-slate-900 hover:bg-slate-900 hover:text-white dark:bg-amber-500/15 dark:text-amber-400 dark:hover:bg-amber-500 dark:hover:text-slate-950'
+              }`}
             >
-              <ShieldCheck className="w-4 h-4 text-amber-500" />
+              <ShieldCheck className="w-4 h-4 text-amber-500 dark:text-amber-400" />
               لوحة عِلم
             </button>
           )}
@@ -235,15 +259,15 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
           </div>
 
           {/* User Profile Neutral Avatar */}
-          <div className="flex items-center gap-2.5 bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/80">
-            <div className="w-8 h-8 rounded-xl bg-slate-900 text-amber-400 flex items-center justify-center font-black text-xs shadow-xs">
+          <div className="flex items-center gap-2.5 bg-slate-100/90 dark:bg-[#162534] p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
+            <div className="w-8 h-8 rounded-xl bg-slate-900 dark:bg-amber-500 text-amber-400 dark:text-slate-950 flex items-center justify-center font-black text-xs shadow-xs">
               {userRole === 'admin' ? '👨‍💻' : (student?.name?.[0] || '👤')}
             </div>
             <div className="hidden md:block text-right pr-1">
-              <div className="text-xs font-black text-slate-900 leading-none">
+              <div className="text-xs font-black text-slate-900 dark:text-white leading-none">
                 {userRole === 'admin' ? 'المعلم (الأدمن)' : (student?.name || 'جاري التحميل...')}
               </div>
-              <div className="text-[10px] text-amber-600 font-mono font-bold mt-0.5">
+              <div className="text-[10px] text-amber-600 dark:text-amber-400 font-mono font-bold mt-0.5">
                 {userRole === 'admin' ? 'الإدارة المركزية' : `كود: ${student?.code || '...'}`}
               </div>
             </div>
@@ -252,7 +276,7 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
             <button 
               onClick={toggleTheme}
               title={theme === 'light' ? 'الوضع الداكن 🌙' : 'الوضع المضيء ☀️'}
-              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all ml-1 text-sm leading-none"
+              className="p-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-amber-300 transition-all ml-1 text-sm leading-none border border-slate-200/80 dark:border-slate-700 shadow-2xs"
             >
               {theme === 'light' ? '🌙' : '☀️'}
             </button>
@@ -260,7 +284,7 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
             <button 
               onClick={logoutUser}
               title="تسجيل الخروج"
-              className="p-1.5 rounded-xl hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-all mr-1"
+              className="p-1.5 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-400 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-all mr-1"
             >
               <LogOut className="w-4 h-4" />
             </button>
@@ -269,7 +293,7 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
           {/* Mobile Menu Toggle Button */}
           <button 
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all"
+            className="lg:hidden p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -281,38 +305,38 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
 
       {/* Mobile Drawer Navigation Menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-slate-200 bg-white p-4 space-y-2 animate-in slide-in-from-top duration-200">
+        <div className="lg:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0D1B2A] p-4 space-y-2 animate-in slide-in-from-top duration-200">
           {userRole !== 'parent' && (
             <>
               <button 
                 onClick={() => { setCurrentTab('home'); setMobileMenuOpen(false); }}
-                className="w-full text-right px-4 py-3 rounded-xl text-xs font-extrabold bg-slate-50 text-slate-900 flex items-center gap-2"
+                className="w-full text-right px-4 py-3 rounded-xl text-xs font-extrabold bg-slate-50 dark:bg-[#162534] text-slate-900 dark:text-white flex items-center gap-2 border border-slate-100 dark:border-slate-800"
               >
-                <BookOpen className="w-4 h-4 text-blue-600" />
+                <BookOpen className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 الرئيسية
               </button>
 
               <button 
                 onClick={() => { setCurrentTab('lessons'); setMobileMenuOpen(false); }}
-                className="w-full text-right px-4 py-3 rounded-xl text-xs font-extrabold bg-slate-50 text-slate-900 flex items-center gap-2"
+                className="w-full text-right px-4 py-3 rounded-xl text-xs font-extrabold bg-slate-50 dark:bg-[#162534] text-slate-900 dark:text-white flex items-center gap-2 border border-slate-100 dark:border-slate-800"
               >
-                <Video className="w-4 h-4 text-blue-600" />
+                <Video className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 الحصص والدروس
               </button>
 
               <button 
                 onClick={() => { setCurrentTab('exams'); setMobileMenuOpen(false); }}
-                className="w-full text-right px-4 py-3 rounded-xl text-xs font-extrabold bg-slate-50 text-slate-900 flex items-center gap-2"
+                className="w-full text-right px-4 py-3 rounded-xl text-xs font-extrabold bg-slate-50 dark:bg-[#162534] text-slate-900 dark:text-white flex items-center gap-2 border border-slate-100 dark:border-slate-800"
               >
-                <Award className="w-4 h-4 text-blue-600" />
+                <Award className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 الامتحانات والواجبات
               </button>
 
               <button 
                 onClick={() => { setCurrentTab('wallet'); setMobileMenuOpen(false); }}
-                className="w-full text-right px-4 py-3 rounded-xl text-xs font-extrabold bg-slate-50 text-slate-900 flex items-center gap-2"
+                className="w-full text-right px-4 py-3 rounded-xl text-xs font-extrabold bg-slate-50 dark:bg-[#162534] text-slate-900 dark:text-white flex items-center gap-2 border border-slate-100 dark:border-slate-800"
               >
-                <Wallet className="w-4 h-4 text-amber-600" />
+                <Wallet className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                 المحفظة والرصيد {student ? `(${student.walletBalance} ج.م)` : ''}
               </button>
             </>
@@ -321,9 +345,9 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
           {(userRole === 'parent' || userRole === 'admin') && (
             <button 
               onClick={() => { setCurrentTab('parent-view'); setMobileMenuOpen(false); }}
-              className="w-full text-right px-4 py-3 rounded-xl text-xs font-extrabold bg-slate-50 text-slate-900 flex items-center gap-2"
+              className="w-full text-right px-4 py-3 rounded-xl text-xs font-extrabold bg-slate-50 dark:bg-[#162534] text-slate-900 dark:text-white flex items-center gap-2 border border-slate-100 dark:border-slate-800"
             >
-              <Users className="w-4 h-4 text-emerald-600" />
+              <Users className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               متابعة ولي الأمر
             </button>
           )}
@@ -331,9 +355,9 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
           {userRole === 'admin' && (
             <button 
               onClick={() => { setCurrentTab('admin'); setMobileMenuOpen(false); }}
-              className="w-full text-right px-4 py-3 rounded-xl text-xs font-black bg-slate-900 text-amber-400 flex items-center gap-2"
+              className="w-full text-right px-4 py-3 rounded-xl text-xs font-black bg-slate-900 dark:bg-amber-500 text-amber-400 dark:text-slate-950 flex items-center gap-2"
             >
-              <ShieldCheck className="w-4 h-4 text-amber-500" />
+              <ShieldCheck className="w-4 h-4 text-amber-500 dark:text-slate-950" />
               لوحة عِلم
             </button>
           )}
