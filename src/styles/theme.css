@@ -52,161 +52,53 @@
 /* =========================================================
    🌓 DARK MODE OVERRIDES (DEFAULT BRAND STYLE)
    ========================================================= */
-html:not(.light-mode) {
+html:not(.light-mode), html.dark {
   background-color: #0D1B2A !important;
   color: #FFFFFF !important;
 }
 
-html:not(.light-mode) body {
+html:not(.light-mode) body, html.dark body {
   background-color: #0D1B2A !important;
   color: #FFFFFF !important;
 }
 
-/* Card and section backgrounds */
+/* Card and section backgrounds in dark mode */
 html:not(.light-mode) .bg-slate-950,
-html:not(.light-mode) .bg-slate-950\/80,
-html:not(.light-mode) .bg-slate-950\/70,
-html:not(.light-mode) .bg-slate-950\/40 {
+html.dark .bg-slate-950 {
   background-color: #0D1B2A !important;
-  color: #FFFFFF !important;
   border-color: #1e3245 !important;
 }
 
 html:not(.light-mode) .bg-slate-900,
-html:not(.light-mode) .bg-slate-900\/90,
-html:not(.light-mode) .bg-slate-900\/95,
-html:not(.light-mode) .bg-slate-900\/80,
-html:not(.light-mode) .bg-slate-900\/60,
-html:not(.light-mode) .bg-slate-900\/50,
-html:not(.light-mode) .bg-slate-900\/10 {
+html.dark .bg-slate-900 {
   background-color: #162534 !important;
-  color: #FFFFFF !important;
   border-color: #1e3245 !important;
 }
 
-html:not(.light-mode) .bg-white,
-html:not(.light-mode) .bg-white\/90,
-html:not(.light-mode) header {
-  background-color: #162534 !important;
-  color: #FFFFFF !important;
-  border-color: #1e3245 !important;
-}
-
-html:not(.light-mode) .bg-slate-850 {
+html:not(.light-mode) .bg-slate-850,
+html.dark .bg-slate-850 {
   background-color: #111e2d !important;
   border-color: #1e3245 !important;
 }
 
 html:not(.light-mode) .bg-slate-800,
-html:not(.light-mode) .bg-slate-800\/80 {
+html.dark .bg-slate-800 {
   background-color: #1e3245 !important;
-  color: #FFFFFF !important;
   border-color: #274059 !important;
 }
 
-html:not(.light-mode) .bg-slate-100,
-html:not(.light-mode) .bg-slate-100\/80,
-html:not(.light-mode) .bg-slate-100\/50 {
-  background-color: #0D1B2A !important;
-  color: #FFFFFF !important;
-  border-color: #1e3245 !important;
-}
-
-html:not(.light-mode) .bg-slate-50 {
-  background-color: #0D1B2A !important;
-  color: #FFFFFF !important;
-  border-color: #1e3245 !important;
-}
-
-/* Hover overrides in dark mode */
-html:not(.light-mode) .hover\:bg-slate-50:hover,
-html:not(.light-mode) .hover\:bg-slate-100:hover,
-html:not(.light-mode) .hover\:bg-slate-800:hover,
-html:not(.light-mode) .hover\:bg-slate-900:hover {
-  background-color: #1e3245 !important;
-}
-
-html:not(.light-mode) .bg-white\/5 {
-  background-color: rgba(255, 255, 255, 0.03) !important;
-}
-
-/* Gradients */
-html:not(.light-mode) .from-slate-900,
-html:not(.light-mode) .from-slate-950,
-html:not(.light-mode) .from-slate-950\/70,
-html:not(.light-mode) .from-slate-800 {
-  --tw-gradient-from: #0D1B2A !important;
-  --tw-gradient-to: #162534 !important;
-}
-
-html:not(.light-mode) .via-blue-950 {
-  --tw-gradient-via: #0f1c30 !important;
-}
-
-html:not(.light-mode) .to-slate-900,
-html:not(.light-mode) .to-slate-800,
-html:not(.light-mode) .to-slate-900\/60 {
-  --tw-gradient-to: #162534 !important;
-}
-
-/* Borders */
-html:not(.light-mode) .border-slate-800,
-html:not(.light-mode) .border-slate-700,
-html:not(.light-mode) .border-slate-200\/80,
-html:not(.light-mode) .border-slate-200,
-html:not(.light-mode) .border-slate-100,
-html:not(.light-mode) .border-white\/10 {
+html:not(.light-mode) header,
+html.dark header {
+  background-color: rgba(22, 37, 52, 0.95) !important;
   border-color: #1e3245 !important;
 }
 
 /* Active navigation links in dark mode */
 html:not(.light-mode) header .bg-white,
-html:not(.light-mode) header .bg-white.shadow-sm,
-html:not(.light-mode) .bg-white.shadow-sm {
+html.dark header .bg-white {
   background-color: #1e3245 !important;
   color: #D4A017 !important;
   border-color: #274059 !important;
-}
-
-/* Texts */
-html:not(.light-mode) .text-white,
-html:not(.light-mode) .text-slate-100 {
-  color: #FFFFFF !important;
-}
-
-html:not(.light-mode) .text-slate-900,
-html:not(.light-mode) .text-slate-800,
-html:not(.light-mode) .text-slate-700,
-html:not(.light-mode) .text-slate-600 {
-  color: #cbd5e1 !important;
-}
-
-html:not(.light-mode) .text-slate-300 {
-  color: #F5E8C7 !important;
-}
-
-html:not(.light-mode) .text-slate-400 {
-  color: #cbd5e1 !important;
-}
-
-html:not(.light-mode) .text-slate-500 {
-  color: #94a3b8 !important;
-}
-
-html:not(.light-mode) .bg-amber-500\/10,
-html:not(.light-mode) .bg-amber-500\/20 {
-  background-color: rgba(212, 160, 23, 0.1) !important;
-}
-
-html:not(.light-mode) .text-amber-300,
-html:not(.light-mode) .text-amber-400,
-html:not(.light-mode) .text-amber-500 {
-  color: #D4A017 !important;
-}
-
-html:not(.light-mode) .border-amber-500\/20,
-html:not(.light-mode) .border-amber-500\/30 {
-  border-color: rgba(212, 160, 23, 0.25) !important;
 }
 
 /* Reset & Base */
@@ -593,52 +485,32 @@ html.light-mode .bg-white.shadow-sm {
   border-color: #cbd5e1 !important;
 }
 
-/* Texts */
-html.light-mode .text-white,
-html.light-mode .text-slate-100 {
-  color: #0f172a !important;
-}
-
-html.light-mode .text-slate-200 {
-  color: #1e293b !important;
-}
-
-html.light-mode .text-slate-300,
-html.light-mode .text-slate-300\.font-bold {
-  color: #334155 !important;
-}
-
-html.light-mode .text-slate-400 {
-  color: #475569 !important;
-}
-
-html.light-mode .text-slate-500 {
-  color: #64748b !important;
-}
-
-html.light-mode .text-slate-600 {
-  color: #475569 !important;
-}
-
-html.light-mode .text-slate-700 {
-  color: #334155 !important;
-}
-
-html.light-mode .text-slate-800 {
-  color: #1e293b !important;
+/* Texts in light mode */
+html.light-mode h1,
+html.light-mode h2,
+html.light-mode h3,
+html.light-mode h4 {
+  color: #0f172a;
 }
 
 html.light-mode .text-slate-900 {
-  color: #0f172a !important;
+  color: #0f172a;
 }
 
-html.light-mode .text-slate-950 {
-  color: #000000 !important;
+html.light-mode .text-slate-800 {
+  color: #1e293b;
 }
 
-html.light-mode .text-blue-300,
-html.light-mode .text-blue-400 {
-  color: #1d4ed8 !important;
+html.light-mode .text-slate-700 {
+  color: #334155;
+}
+
+html.light-mode .text-slate-600 {
+  color: #475569;
+}
+
+html.light-mode .text-slate-500 {
+  color: #64748b;
 }
 
 /* Borders */
