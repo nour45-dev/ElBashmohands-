@@ -203,8 +203,8 @@ export const HeroFloatingScene = ({ setCurrentTab }) => {
           👨‍💻
         </div>
         <div className="text-right">
-          <div className="text-[11px] font-black text-blue-600 dark:text-blue-400 leading-tight">م. نور الدين</div>
-          <div className="text-[9px] text-slate-500 dark:text-slate-400 font-bold">شرح وتطبيق برمجي</div>
+          <div className="text-[11px] font-black text-amber-600 dark:text-amber-400 leading-tight">أ/ سيد عبد العاطي</div>
+          <div className="text-[9px] text-slate-500 dark:text-slate-400 font-bold">أسرار اللغة العربية</div>
         </div>
       </div>
 
@@ -214,8 +214,8 @@ export const HeroFloatingScene = ({ setCurrentTab }) => {
           📖
         </div>
         <div className="text-right">
-          <div className="text-[11px] font-black text-amber-600 dark:text-amber-400 leading-tight">أ/ سيد عبد العاطي</div>
-          <div className="text-[9px] text-slate-500 dark:text-slate-400 font-bold">أسرار اللغة العربية</div>
+          <div className="text-[11px] font-black text-blue-600 dark:text-blue-400 leading-tight">م. نور الدين</div>
+          <div className="text-[9px] text-slate-500 dark:text-slate-400 font-bold">شرح وتطبيق برمجي</div>
         </div>
       </div>
 
