@@ -409,12 +409,79 @@ html:not(.light-mode) ::-webkit-scrollbar-thumb:hover {
   50% { transform: translateY(-8px); }
 }
 
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-16px) rotate(3deg); }
+}
+
+@keyframes floatReverse {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(16px) rotate(-3deg); }
+}
+
+@keyframes floatFast {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-10px) scale(1.04); }
+}
+
+@keyframes blobMotion {
+  0%, 100% { transform: translate(0px, 0px) scale(1); }
+  33% { transform: translate(25px, -30px) scale(1.1); }
+  66% { transform: translate(-20px, 20px) scale(0.95); }
+}
+
+@keyframes dashFlow {
+  to { stroke-dashoffset: -60; }
+}
+
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 .animate-pulse-glow {
   animation: pulseGlow 2.5s infinite ease-in-out;
 }
 
 .animate-float {
   animation: float 4s infinite ease-in-out;
+}
+
+.animate-float-slow {
+  animation: floatSlow 6s infinite ease-in-out;
+}
+
+.animate-float-reverse {
+  animation: floatReverse 7s infinite ease-in-out;
+}
+
+.animate-float-fast {
+  animation: floatFast 3.5s infinite ease-in-out;
+}
+
+.animate-blob {
+  animation: blobMotion 8s infinite ease-in-out;
+}
+
+.animate-spin-slow {
+  animation: spinSlow 25s linear infinite;
+}
+
+.animate-dash {
+  animation: dashFlow 2s linear infinite;
+}
+
+/* 3D Geometric Isometric Shadow and Shading */
+.shape-3d-cube {
+  filter: drop-shadow(0 12px 18px rgba(13, 27, 42, 0.18));
+  transition: transform 0.3s ease;
+}
+.shape-3d-cube:hover {
+  transform: translateY(-6px) scale(1.08) rotate(4deg);
+}
+
+.hero-phone-mockup {
+  filter: drop-shadow(0 25px 40px rgba(13, 27, 42, 0.22));
 }
 
 /* ==========================================
@@ -537,7 +604,7 @@ html.light-mode .text-slate-200 {
 }
 
 html.light-mode .text-slate-300,
-html.light-mode .text-slate-300\font-bold {
+html.light-mode .text-slate-300\.font-bold {
   color: #334155 !important;
 }
 
@@ -610,3 +677,5 @@ html:not(.light-mode) .elm-logo-text {
 html.light-mode .elm-logo-text {
   fill: #0D1B2A !important;
 }
+
+
