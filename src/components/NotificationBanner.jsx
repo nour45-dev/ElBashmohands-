@@ -7,10 +7,12 @@ export const NotificationBanner = () => {
   const [visible, setVisible] = useState(false);
   const [currentIdx, setCurrentIdx] = useState(0);
 
-  // Read notifications tracked in localStorage per student to avoid showing again after logout/login
+  // Read notifications tracked permanently in localStorage per student
+  const studentKey = student?.id || student?.phone || 'registered_student';
+
   const [readNotifIds, setReadNotifIds] = useState(() => {
     try {
-      const stored = localStorage.getItem(`read_notifs_${student?.id || 'guest'}`);
+      const stored = localStorage.getItem(`read_notifs_${studentKey}`);
       if (!stored) return [];
       const parsed = JSON.parse(stored);
       return Array.isArray(parsed) ? parsed : [];
@@ -28,13 +30,13 @@ export const NotificationBanner = () => {
   const unreadCount = relevantNotifs.length;
 
   useEffect(() => {
-    const hasShown = sessionStorage.getItem('hasShownNotifications');
-    if (unreadCount > 0 && userRole === 'student' && !hasShown) {
+    // Check permanent localStorage flag to ensure welcome/onboarding notification is shown only once
+    const hasSeenWelcome = localStorage.getItem(`has_seen_welcome_${studentKey}`);
+    if (unreadCount > 0 && userRole === 'student' && !hasSeenWelcome) {
       setVisible(true);
       setCurrentIdx(0);
-      sessionStorage.setItem('hasShownNotifications', 'true');
     }
-  }, [unreadCount, userRole]);
+  }, [unreadCount, userRole, studentKey]);
 
   if (!visible || relevantNotifs.length === 0 || userRole !== 'student') return null;
 
@@ -45,7 +47,8 @@ export const NotificationBanner = () => {
     const updatedReadIds = [...readNotifIds, ...newlyRead];
     setReadNotifIds(updatedReadIds);
     try {
-      localStorage.setItem(`read_notifs_${student?.id || 'guest'}`, JSON.stringify(updatedReadIds));
+      localStorage.setItem(`read_notifs_${studentKey}`, JSON.stringify(updatedReadIds));
+      localStorage.setItem(`has_seen_welcome_${studentKey}`, 'true');
     } catch (e) {
       console.error(e);
     }
@@ -57,7 +60,7 @@ export const NotificationBanner = () => {
   };
 
   const handleClose = () => {
-    setVisible(false);
+    markAllRead();
   };
 
   const handleNext = () => {
