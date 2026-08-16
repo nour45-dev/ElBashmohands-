@@ -47,8 +47,11 @@ export const AppProvider = ({ children }) => {
   const [smsLogs, setSmsLogs] = useState([]);
   const [activeWhatsAppModal, setActiveWhatsAppModal] = useState(null);
 
-  // Theme states (Light / Dark)
-  const [theme, setTheme] = useState(localStorage.getItem('manara_theme') || 'dark');
+  // Theme states (Light / Dark) - Default: Light Mode
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem('manara_theme');
+    return saved !== null ? saved : 'light';
+  });
 
   const toggleTheme = () => {
     setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
@@ -365,7 +368,7 @@ export const AppProvider = ({ children }) => {
         }, 'parent');
 
         triggerSmsSend({
-          title: `تم تأكيد إضافة ${req.amount} جنيه لرصيدك بمحفظة الباشمهندس`,
+          title: `تم تأكيد إضافة ${req.amount} جنيه لرصيدك بمحفظة المعلم`,
           studentName: req.studentName,
           parentPhone: req.parentPhone,
           studentPhone: req.studentPhone
@@ -597,7 +600,7 @@ export const AppProvider = ({ children }) => {
   const getParentFullWhatsAppReport = (std = currentStudent) => {
     const lastExam = examHistory[0] || { quizTitle: 'اختبار البرمجة الموثق', score: 5, total: 5, percentage: 100 };
 
-    return `📌 *تقرير متابعة ولي الأمر الموثق - منصة الباشمهندس للبرمجة* 💻
+    return `📌 *تقرير متابعة ولي الأمر الموثق - منصة منصة عِلم التعليمية* 💻
 ━━━━━━━━━━━━━━━━━━━━
 👤 *اسم الطالب:* ${std.name}
 🆔 *كود الطالب:* ${std.code}
@@ -607,9 +610,9 @@ export const AppProvider = ({ children }) => {
 🏆 *الترتيب في أوائل الدفعة:* المركز #${std.rank || 1}
 📝 *آخر امتحان:* ${lastExam.quizTitle} (${lastExam.score} من ${lastExam.total} - ${lastExam.percentage}%)
 
-💡 *ملاحظة الباشمهندس:* الطالب متميز جداً وملتزم بكورسات وتطبيقات البرمجة العملية.
+💡 *ملاحظة المعلم:* الطالب متميز جداً وملتزم بكورسات وتطبيقات البرمجة العملية.
 
-🔗 لمتابعة المحتوى والدروس على منصة الباشمهندس:
+🔗 لمتابعة المحتوى والدروس على منصة المعلم:
 https://elbashmohands.dev`;
   };
 
@@ -618,7 +621,7 @@ https://elbashmohands.dev`;
     if (payload.isFullParentReport) {
       return getParentFullWhatsAppReport(currentStudent);
     }
-    return `📌 *إشعار من منصة الباشمهندس للبرمجة*
+    return `📌 *إشعار من منصة منصة عِلم التعليمية*
 👤 *الطالب:* ${payload.studentName || currentStudent?.name}
 🎓 *الصف:* ${payload.gradeName || currentStudent?.gradeName}
 📝 *الموضوع:* ${payload.examTitle || payload.title || 'تقرير البرمجة الموثق'}
@@ -660,9 +663,9 @@ https://elbashmohands.dev`;
 
     let msgText = '';
     if (payload.isFullParentReport) {
-      msgText = `📌 تقرير منصة الباشمهندس\nالطالب: ${currentStudent?.name}\nالاشتراك: ${currentStudent?.subscriptionType || 'مجاني'}\nالرصيد: ${currentStudent?.walletBalance || 0} ج\nالنقاط: ${currentStudent?.points || 0}`;
+      msgText = `📌 تقرير منصة المعلم\nالطالب: ${currentStudent?.name}\nالاشتراك: ${currentStudent?.subscriptionType || 'مجاني'}\nالرصيد: ${currentStudent?.walletBalance || 0} ج\nالنقاط: ${currentStudent?.points || 0}`;
     } else {
-      msgText = `📌 تنبيه من منصة الباشمهندس للبرمجة\n${payload.examTitle || payload.title || 'إشعار جديد'}\nالطالب: ${payload.studentName || currentStudent?.name || ''}`;
+      msgText = `📌 تنبيه من منصة منصة عِلم التعليمية\n${payload.examTitle || payload.title || 'إشعار جديد'}\nالطالب: ${payload.studentName || currentStudent?.name || ''}`;
     }
 
     const formattedPhone = targetPhone.replace(/\s/g, '').startsWith('0') ? '2' + targetPhone.replace(/\s/g, '') : targetPhone.replace(/\s/g, '');
@@ -718,7 +721,7 @@ https://elbashmohands.dev`;
 
     const broadcastLinks = targetStudents.map(st => {
       const targetPhone = st.phone || st.parentPhone;
-      const msg = `🎉 *حصة جديدة على منصة الباشمهندس!*\n\n📚 *${lessonData.title}*\n📖 المادة: ${lessonData.subject || 'برمجة'}\n🎓 الصف: ${gradeLabel}\n💰 السعر: ${priceLabel}\n\n🔗 ادخل المنصة وشاهد الحصة الآن!\n📱 للتواصل: 01002169889`;
+      const msg = `🎉 *حصة جديدة على منصة المعلم!*\n\n📚 *${lessonData.title}*\n📖 المادة: ${lessonData.subject || 'برمجة'}\n🎓 الصف: ${gradeLabel}\n💰 السعر: ${priceLabel}\n\n🔗 ادخل المنصة وشاهد الحصة الآن!\n📱 للتواصل: 01002169889`;
       const formatted = (targetPhone || '').replace(/\s/g, '').startsWith('0') ? '2' + (targetPhone || '').replace(/\s/g, '') : (targetPhone || '').replace(/\s/g, '');
       return {
         studentName: st.name,
