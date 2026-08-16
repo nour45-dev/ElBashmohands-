@@ -155,6 +155,27 @@ html.dark .bg-slate-900 {
   border-color: #1e3245 !important;
 }
 
+html:not(.light-mode) .bg-white,
+html.dark .bg-white {
+  background-color: #162534 !important;
+  color: #FFFFFF !important;
+  border-color: #1e3245 !important;
+}
+
+html:not(.light-mode) .bg-slate-50,
+html.dark .bg-slate-50 {
+  background-color: #111e2d !important;
+  color: #FFFFFF !important;
+  border-color: #1e3245 !important;
+}
+
+html:not(.light-mode) .bg-slate-100,
+html.dark .bg-slate-100 {
+  background-color: #1e3245 !important;
+  color: #FFFFFF !important;
+  border-color: #274059 !important;
+}
+
 html:not(.light-mode) .bg-slate-850,
 html.dark .bg-slate-850 {
   background-color: #111e2d !important;
@@ -179,6 +200,28 @@ html.dark header .bg-white {
   background-color: #1e3245 !important;
   color: #D4A017 !important;
   border-color: #274059 !important;
+}
+
+/* Text contrast in dark mode */
+html:not(.light-mode) .text-slate-900,
+html:not(.light-mode) .text-slate-800,
+html:not(.light-mode) .text-slate-700,
+html.dark .text-slate-900,
+html.dark .text-slate-800,
+html.dark .text-slate-700 {
+  color: #FFFFFF !important;
+}
+
+html:not(.light-mode) .text-slate-600,
+html:not(.light-mode) .text-slate-500,
+html.dark .text-slate-600,
+html.dark .text-slate-500 {
+  color: #cbd5e1 !important;
+}
+
+html:not(.light-mode) .text-slate-400,
+html.dark .text-slate-400 {
+  color: #94a3b8 !important;
 }
 
 /* Reset & Base */
