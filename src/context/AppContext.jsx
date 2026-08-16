@@ -108,11 +108,39 @@ export const AppProvider = ({ children }) => {
       const resNotifs = await fetch('/api/notifications');
       if (resNotifs.ok) {
         const data = await resNotifs.json();
-        setNotifications(data);
+        const readIds = JSON.parse(localStorage.getItem('read_notif_ids') || '[]');
+        const processed = data.map(n => ({
+          ...n,
+          unread: readIds.includes(n.id) ? false : (n.unread ?? false)
+        }));
+        setNotifications(processed);
       }
     } catch (err) {
       console.error('Failed to fetch public data:', err);
     }
+  };
+
+  const markNotificationAsRead = (id) => {
+    try {
+      const readIds = JSON.parse(localStorage.getItem('read_notif_ids') || '[]');
+      if (!readIds.includes(id)) {
+        readIds.push(id);
+        localStorage.setItem('read_notif_ids', JSON.stringify(readIds));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, unread: false } : n));
+  };
+
+  const markAllNotificationsAsRead = () => {
+    try {
+      const allIds = notifications.map(n => n.id);
+      localStorage.setItem('read_notif_ids', JSON.stringify(allIds));
+    } catch (e) {
+      console.error(e);
+    }
+    setNotifications(prev => prev.map(n => ({ ...n, unread: false })));
   };
 
   // Load student-specific data
@@ -1010,6 +1038,8 @@ https://elbashmohands.dev`;
       smsLogs,
       notifications,
       setNotifications,
+      markNotificationAsRead,
+      markAllNotificationsAsRead,
       addNotification,
       rechargeWallet,
       submitPaymentRequest,
