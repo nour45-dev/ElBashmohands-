@@ -146,13 +146,13 @@ export const WalletView = () => {
       {activeTab === 'recharge' && (
         <div className="space-y-8 animate-in fade-in">
           
-          <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200/80 shadow-md space-y-6">
-            <div className="border-b border-slate-100 pb-4 space-y-1">
-              <h3 className="font-black text-slate-900 text-lg flex items-center gap-2">
-                <Zap className="w-5 h-5 text-purple-600" />
+          <div className="bg-white dark:bg-[#162534] p-6 md:p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-md space-y-6">
+            <div className="border-b border-slate-100 dark:border-slate-800 pb-4 space-y-1">
+              <h3 className="font-black text-slate-900 dark:text-white text-lg flex items-center gap-2">
+                <Zap className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                 اختر طريقة الدفع المناسبة واشحن محفظتك بسهولة ⚡
               </h3>
-              <p className="text-xs text-slate-500 font-medium">قم بتحويل المبلغ على الرقم الرسمي الموحد للمنصة، ثم ارفع صورة الإيصال للموافقة الفورية من الأدمن.</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">قم بتحويل المبلغ على الرقم الرسمي الموحد للمنصة، ثم ارفع صورة الإيصال للموافقة الفورية من الأدمن.</p>
             </div>
 
             {/* Payment Channels Tabs */}
@@ -160,24 +160,24 @@ export const WalletView = () => {
               <button
                 type="button"
                 onClick={() => setPaymentMethod('instapay')}
-                className={`p-4 rounded-2xl border flex flex-col items-center justify-center gap-2 transition-all ${paymentMethod === 'instapay' ? 'bg-purple-50 border-purple-500 text-purple-900 font-black ring-2 ring-purple-500/20' : 'bg-slate-50 border-slate-200 text-slate-700 font-bold'}`}
+                className={`p-4 rounded-2xl border flex flex-col items-center justify-center gap-2 transition-all ${paymentMethod === 'instapay' ? 'bg-purple-50 dark:bg-purple-950/40 border-purple-500 text-purple-900 dark:text-purple-300 font-black ring-2 ring-purple-500/20' : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold'}`}
               >
-                <Zap className="w-6 h-6 text-purple-600" />
+                <Zap className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                 <span className="text-sm font-black">انستا باي InstaPay ⚡</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setPaymentMethod('vodafone')}
-                className={`p-4 rounded-2xl border flex flex-col items-center justify-center gap-2 transition-all ${paymentMethod === 'vodafone' ? 'bg-rose-50 border-rose-500 text-rose-900 font-black ring-2 ring-rose-500/20' : 'bg-slate-50 border-slate-200 text-slate-700 font-bold'}`}
+                className={`p-4 rounded-2xl border flex flex-col items-center justify-center gap-2 transition-all ${paymentMethod === 'vodafone' ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-500 text-rose-900 dark:text-rose-300 font-black ring-2 ring-rose-500/20' : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold'}`}
               >
-                <Smartphone className="w-6 h-6 text-rose-600" />
+                <Smartphone className="w-6 h-6 text-rose-600 dark:text-rose-400" />
                 <span className="text-sm font-black">فودافون كاش (Vodafone Cash)</span>
               </button>
             </div>
 
             {/* Custom Guidance Instructions Box for Each Selected Method */}
-            <div className="bg-slate-900 text-white p-5 rounded-2xl space-y-3 text-right">
+            <div className="bg-slate-900 dark:bg-slate-950 text-white p-5 rounded-2xl space-y-3 text-right border border-slate-800">
               
               {paymentMethod === 'instapay' && (
                 <div className="space-y-1.5 text-xs">
@@ -209,14 +209,14 @@ export const WalletView = () => {
               
               {/* Amount Selector */}
               <div>
-                <label className="block text-xs font-black text-slate-700 mb-1">المبلغ المراد شحنه:</label>
+                <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">المبلغ المراد شحنه:</label>
                 <div className="flex flex-wrap items-center gap-2">
                   {[50, 100, 150, 200, 300, 1200].map(amt => (
                     <button
                       key={amt}
                       type="button"
                       onClick={() => setSelectedAmount(amt)}
-                      className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all ${selectedAmount === amt ? 'bg-slate-900 text-white shadow-md' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+                      className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all ${selectedAmount === amt ? 'bg-slate-900 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
                     >
                       {amt} ج.م
                     </button>
@@ -226,26 +226,26 @@ export const WalletView = () => {
 
               {/* Reference Number */}
               <div>
-                <label className="block text-xs font-black text-slate-700 mb-1">مرجع العملية / رقم الموبايل المحول منه:</label>
+                <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">مرجع العملية / رقم الموبايل المحول منه:</label>
                 <input
                   type="text"
                   required
                   value={refNumber}
                   onChange={(e) => setRefNumber(e.target.value)}
                   placeholder="أدخل رقم العملية أو الموبايل المحول منه هنا..."
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs font-mono font-bold outline-none dir-ltr"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs font-mono font-bold text-slate-900 dark:text-white outline-none dir-ltr"
                 />
               </div>
 
               {/* Proof Image Screenshot Upload Box */}
               <div className="space-y-2">
-                <label className="block text-xs font-black text-slate-700">رفع صورة إيصال التحويل (Screenshot):</label>
+                <label className="block text-xs font-black text-slate-700 dark:text-slate-300">رفع صورة إيصال التحويل (Screenshot):</label>
                 <div 
                   onClick={() => proofInputRef.current && proofInputRef.current.click()}
-                  className="border-2 border-dashed border-purple-300 hover:border-purple-500 p-5 rounded-2xl bg-purple-50/50 text-center space-y-2 cursor-pointer transition-all"
+                  className="border-2 border-dashed border-purple-300 dark:border-purple-600/50 hover:border-purple-500 p-5 rounded-2xl bg-purple-50/50 dark:bg-purple-950/20 text-center space-y-2 cursor-pointer transition-all"
                 >
-                  <Upload className="w-7 h-7 text-purple-600 mx-auto animate-bounce" />
-                  <div className="text-xs font-black text-slate-800">اضغط لرفع صورة سكرين شوت الإيصال من موبايلك 📱</div>
+                  <Upload className="w-7 h-7 text-purple-600 dark:text-purple-400 mx-auto animate-bounce" />
+                  <div className="text-xs font-black text-slate-800 dark:text-slate-200">اضغط لرفع صورة سكرين شوت الإيصال من موبايلك 📱</div>
                   <input
                     ref={proofInputRef}
                     type="file"
@@ -254,7 +254,7 @@ export const WalletView = () => {
                     className="hidden"
                   />
                   {proofFile && (
-                    <div className="bg-emerald-50 text-emerald-800 p-2 rounded-xl text-xs font-bold">
+                    <div className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 p-2 rounded-xl text-xs font-bold">
                       تم تحديد صورة الإيصال: {proofFile.name} ✅
                     </div>
                   )}
@@ -280,18 +280,18 @@ export const WalletView = () => {
           </div>
 
           {/* Student Submitted Requests Status Table */}
-          <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-md space-y-4">
-            <h3 className="font-black text-slate-900 text-base">سجل طلبات الشحن الخاصة بك</h3>
+          <div className="bg-white dark:bg-[#162534] p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-md space-y-4">
+            <h3 className="font-black text-slate-900 dark:text-white text-base">سجل طلبات الشحن الخاصة بك</h3>
             
             {studentRequests.length === 0 ? (
               <div className="text-center py-6 text-xs text-slate-400 font-bold">لا توجد طلبات شحن سابقة.</div>
             ) : (
               <div className="space-y-3">
                 {studentRequests.map(req => (
-                  <div key={req.id} className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex items-center justify-between">
+                  <div key={req.id} className="bg-slate-50 dark:bg-slate-800/80 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center justify-between">
                     <div className="space-y-1">
-                      <div className="text-xs font-black text-slate-900">{req.amount} جنيه • ({req.method.toUpperCase()})</div>
-                      <div className="text-[10px] text-slate-500 font-mono">المرجع: {req.refNumber} • {req.requestDate}</div>
+                      <div className="text-xs font-black text-slate-900 dark:text-white">{req.amount} جنيه • ({req.method.toUpperCase()})</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">المرجع: {req.refNumber} • {req.requestDate}</div>
                     </div>
 
                     <div>
@@ -329,15 +329,15 @@ export const WalletView = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             {/* Plan 1: Monthly Subscription */}
-            <div className="bg-white p-6 rounded-3xl border-2 border-slate-200 hover:border-blue-500 shadow-md space-y-4 flex flex-col justify-between transition-all">
+            <div className="bg-white dark:bg-[#162534] p-6 rounded-3xl border-2 border-slate-200 dark:border-slate-800 hover:border-blue-500 shadow-md space-y-4 flex flex-col justify-between transition-all">
               <div className="space-y-3">
-                <div className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs font-black px-3 py-1 rounded-full">
+                <div className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-black px-3 py-1 rounded-full">
                   <GraduationCap className="w-4 h-4" />
                   <span>الاشتراك الشهري (8 حصص اختيارية) 📅</span>
                 </div>
 
-                <h3 className="text-2xl font-black text-slate-900">150 جنيه <span className="text-xs text-slate-500 font-bold">/ شهرياً</span></h3>
-                <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white">150 جنيه <span className="text-xs text-slate-500 dark:text-slate-400 font-bold">/ شهرياً</span></h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
                   يمنحك رصيد 8 حصص اختيارية لفتح أي 8 فيديوهات تختارها بنفسك في صفك الدراسي ({student.gradeName}).
                 </p>
               </div>
