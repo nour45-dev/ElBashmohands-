@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ElmLogo } from '../components/ElmLogo';
+import { Cube3D, Cylinder3D, Cone3D, GraduationCap3D, WavyRibbon } from '../components/FloatingShapes';
 import { 
   User, 
   Lock, 
@@ -139,8 +140,22 @@ export const LoginView = () => {
     <div className="min-h-screen bg-slate-950 text-white flex flex-col justify-center items-center p-4 relative overflow-hidden font-sans">
       
       {/* Dynamic Background Glow Elements */}
-      <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-amber-500/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl pointer-events-none animate-blob" />
+      <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-amber-500/20 rounded-full blur-3xl pointer-events-none animate-blob" style={{ animationDelay: '3s' }} />
+
+      {/* Floating 3D Shapes */}
+      <div className="absolute top-12 right-10 pointer-events-none opacity-60 hidden md:block animate-float-slow">
+        <Cube3D size={56} color="gold" />
+      </div>
+      <div className="absolute bottom-16 left-12 pointer-events-none opacity-60 hidden md:block animate-float-reverse">
+        <Cylinder3D size={48} color="emerald" />
+      </div>
+      <div className="absolute top-24 left-16 pointer-events-none opacity-50 hidden md:block animate-float-fast">
+        <GraduationCap3D size={54} />
+      </div>
+      <div className="absolute bottom-24 right-16 pointer-events-none opacity-50 hidden md:block animate-float-slow">
+        <Cone3D size={46} />
+      </div>
 
       {/* Main Login Workspace Container */}
       <div className="w-full max-w-lg space-y-6 relative z-10 my-8">
