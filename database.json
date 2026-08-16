@@ -1,0 +1,175 @@
+{
+  "students": [
+    {
+      "id": "std_101",
+      "code": "ENG-101",
+      "name": "أحمد محمود العبد",
+      "email": "ahmed@bashmohandis.com",
+      "phone": "01012345678",
+      "parentPhone": "01198765432",
+      "password": "$2b$10$6RHR0cZASLRzQYF2VoGbkuoM4IVRAw88uvImfCmTb/.UNixkoDWYS",
+      "grade": "3sec",
+      "gradeName": "الصف الثالث الثانوي (تانوية عامة)",
+      "avatar": null,
+      "walletBalance": 0,
+      "subscriptionStatus": "active",
+      "subscriptionType": "شهري",
+      "monthlyCreditsLeft": 8,
+      "points": 120,
+      "streakDays": 5,
+      "rank": 1,
+      "badges": [
+        {
+          "id": "b1",
+          "name": "عضو جديد 💻",
+          "icon": "💻",
+          "desc": "انضم لمنصة الباشمهندس"
+        }
+      ]
+    }
+  ],
+  "lessons": [
+    {
+      "id": "les_demo_1",
+      "title": "مقدمة في لغة Python وكتابة أول برنامج",
+      "subject": "برمجة وعلوم الحاسب",
+      "grade": "3sec",
+      "duration": "45 دقيقة",
+      "price": 25,
+      "videoType": "url",
+      "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "thumbnail": "https://images.unsplash.com/photo-1526379879527-8559ecfcaec0?auto=format&fit=crop&q=80&w=600",
+      "description": "شرح مبسط وممتع لأساسيات المتغيرات وعمليات الإدخال والإخراج في Python.",
+      "attachmentType": "pdf",
+      "attachmentPdf": "مذكرة_Python_الحصة_الأولى.pdf",
+      "attachmentFileUrl": null,
+      "viewsCount": 142,
+      "isUnlocked": false,
+      "attachedQuiz": {
+        "id": "qz_demo_1",
+        "title": "الامتحان الإلكتروني للحصة الأولى - لغة Python",
+        "rewardPoints": 50,
+        "durationMinutes": 20,
+        "questions": [
+          {
+            "id": 1,
+            "question": "أي من الكلمات التالية تستخدم لطباعة مخرجات في لغة Python؟",
+            "options": [
+              "echo",
+              "print()",
+              "Console.WriteLine()",
+              "printf()"
+            ],
+            "correctIndex": 1
+          },
+          {
+            "id": 2,
+            "question": "كيف يتم تعريف المتغير x بقيمة نصية في Python؟",
+            "options": [
+              "int x = \"Hello\"",
+              "x = \"Hello\"",
+              "var x = \"Hello\"",
+              "string x = \"Hello\""
+            ],
+            "correctIndex": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "les_demo_2",
+      "title": "شرح درس البلاغة - الكناية وأسرار الجمال",
+      "subject": "اللغة العربية",
+      "grade": "3sec",
+      "duration": "40 دقيقة",
+      "price": 25,
+      "videoType": "url",
+      "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "thumbnail": "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&q=80&w=600",
+      "description": "شرح تفصيلي لدرس الكناية وأنواعها (عن صفة، عن موصوف، عن نسبة) وتدريبات البلاغة للمرحلة الثانوية.",
+      "attachmentType": "pdf",
+      "attachmentPdf": "مذكرة_البلاغة_الكناية.pdf",
+      "attachmentFileUrl": null,
+      "viewsCount": 98,
+      "isUnlocked": false,
+      "attachedQuiz": {
+        "id": "qz_demo_2",
+        "title": "امتحان البلاغة الإلكتروني - درس الكناية",
+        "rewardPoints": 50,
+        "durationMinutes": 15,
+        "questions": [
+          {
+            "id": 1,
+            "question": "قال الشاعر: \"فما جازه جود ولا حل دونه ... ولكن يسير الجود حيث يسير\" — ما نوع الكناية هنا؟",
+            "options": [
+              "كناية عن صفة",
+              "كناية عن موصوف",
+              "كناية عن نسبة",
+              "استعارة تصريحية"
+            ],
+            "correctIndex": 2
+          }
+        ]
+      }
+    }
+  ],
+  "coupons": [
+    {
+      "id": "coup_1",
+      "code": "BASHMO2026",
+      "type": "percent",
+      "value": 50,
+      "targetGrade": "all",
+      "maxUses": 100,
+      "usedCount": 14,
+      "active": true
+    },
+    {
+      "id": "coup_2",
+      "code": "FREE100",
+      "type": "free",
+      "value": 100,
+      "targetGrade": "3sec",
+      "maxUses": 50,
+      "usedCount": 8,
+      "active": true
+    }
+  ],
+  "payments": [
+    {
+      "id": "req_1001",
+      "studentId": "std_101",
+      "studentName": "أحمد محمود العبد",
+      "studentPhone": "01012345678",
+      "parentPhone": "01198765432",
+      "amount": 150,
+      "method": "instapay",
+      "refNumber": "INSTA-88741259",
+      "proofImage": "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&q=80&w=400",
+      "status": "pending",
+      "requestDate": "١١‏/٨‏/٢٠٢٦"
+    }
+  ],
+  "questions": [
+    {
+      "id": "q_101",
+      "lessonId": "les_demo_1",
+      "studentName": "أحمد محمود العبد",
+      "studentPhone": "01012345678",
+      "questionText": "يا باشمهندس ازاي أفرق بين List و Tuple في لغة Python؟",
+      "replyText": "أهلاً يا أحمد! الـ List قابلة للتعديل (mutable)، بينما الـ Tuple ثابته ولا يمكن تعديل عناصرها بعد إنشائها.",
+      "repliedAt": "منذ ساعتين",
+      "status": "answered"
+    }
+  ],
+  "notifications": [
+    {
+      "id": "n1",
+      "title": "مرحباً بك في منصة عِلم التعليمية! 🎓",
+      "body": "نتمنى لك رحلة موفقة وتفوقاً مستمراً في دراستك.",
+      "time": "الآن",
+      "unread": true
+    }
+  ],
+  "exams": []
+}
