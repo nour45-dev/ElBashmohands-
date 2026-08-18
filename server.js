@@ -35,11 +35,76 @@ const ACTIVE_JWT_SECRET = JWT_SECRET || 'dev_secret_key_for_local_testing_only_1
 let dbType = 'json'; // 'mongodb' or 'json'
 let mongoClient = null;
 let db = null;
-let jsonDbFilePath = path.join(__dirname, 'database.json');
+// Global Helper to normalize phone numbers (converts Arabic numerals, standardizes egypt prefix, removes symbols)
+const normalizePhone = (p) => {
+  if (!p) return '';
+  let clean = String(p).trim()
+    .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))
+    .replace(/[^0-9+]/g, '');
+  if (clean.startsWith('0020')) clean = '0' + clean.substring(4);
+  else if (clean.startsWith('+20')) clean = '0' + clean.substring(3);
+  else if (clean.startsWith('+2')) clean = '0' + clean.substring(2);
+  else if (clean.startsWith('20') && clean.length >= 12) clean = '0' + clean.substring(2);
+  
+  if (clean.length === 10 && (clean.startsWith('10') || clean.startsWith('11') || clean.startsWith('12') || clean.startsWith('15'))) {
+    clean = '0' + clean;
+  }
+  return clean;
+};
+
+// Global Helper to normalize Arabic text for search
+const normalizeArabic = (text) => {
+  if (!text) return '';
+  return String(text).trim().toLowerCase()
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/ة/g, 'ه')
+    .replace(/ى/g, 'ي')
+    .replace(/[\u064B-\u065F]/g, '');
+};
 
 // Initial seed data
 const initialData = {
   students: [
+    {
+      id: 'std_3003',
+      code: '3003',
+      name: 'محمد أحمد علي',
+      email: 'student3003@elm.com',
+      phone: '01040581954',
+      parentPhone: '01040581954',
+      password: bcrypt.hashSync('123456', 10),
+      grade: '3sec',
+      gradeName: 'الصف الثالث الثانوي (تانوية عامة)',
+      avatar: null,
+      walletBalance: 150,
+      subscriptionStatus: 'active',
+      subscriptionType: 'شهري',
+      monthlyCreditsLeft: 8,
+      points: 250,
+      streakDays: 7,
+      rank: 1,
+      badges: [{ id: 'b1', name: 'عضو متميز 🚀', icon: '🚀', desc: 'انضم لمنصة عِلم' }]
+    },
+    {
+      id: 'std_1001',
+      code: '1001',
+      name: 'أحمد محمود علي',
+      email: 'ahmed@elm.com',
+      phone: '01002169889',
+      parentPhone: '01002169889',
+      password: bcrypt.hashSync('123456', 10),
+      grade: '3sec',
+      gradeName: 'الصف الثالث الثانوي (تانوية عامة)',
+      avatar: null,
+      walletBalance: 100,
+      subscriptionStatus: 'active',
+      subscriptionType: 'شهري',
+      monthlyCreditsLeft: 8,
+      points: 120,
+      streakDays: 5,
+      rank: 2,
+      badges: [{ id: 'b1', name: 'عضو جديد 💻', icon: '💻', desc: 'انضم لمنصة عِلم' }]
+    },
     {
       id: 'std_101',
       code: 'ENG-101',
@@ -47,18 +112,18 @@ const initialData = {
       email: 'ahmed@bashmohandis.com',
       phone: '01012345678',
       parentPhone: '01198765432',
-      password: bcrypt.hashSync('123', 10), // Hashed Ahmed's password
+      password: bcrypt.hashSync('123456', 10),
       grade: '3sec',
       gradeName: 'الصف الثالث الثانوي (تانوية عامة)',
       avatar: null,
-      walletBalance: 0,
+      walletBalance: 50,
       subscriptionStatus: 'active',
       subscriptionType: 'شهري',
       monthlyCreditsLeft: 8,
       points: 120,
       streakDays: 5,
-      rank: 1,
-      badges: [{ id: 'b1', name: 'عضو جديد 💻', icon: '💻', desc: 'انضم لمنصة المعلم' }]
+      rank: 3,
+      badges: [{ id: 'b1', name: 'عضو جديد 💻', icon: '💻', desc: 'انضم لمنصة عِلم' }]
     }
   ],
   lessons: [
@@ -489,23 +554,86 @@ app.post('/api/auth/login', async (req, res) => {
     if (!studentSearch) return res.status(400).json({ error: 'يرجى إدخال اسم الطالب أو كوده لمتابعة حسابه.' });
 
     const cleanParentPhone = normalizePhone(parentPhone);
+    const cleanSearch = studentSearch.trim();
+    const normSearchArabic = normalizeArabic(cleanSearch);
+    const normSearchPhone = normalizePhone(cleanSearch);
+    const searchDigits = cleanSearch.replace(/[^0-9]/g, '');
 
     try {
       let matched = null;
       if (dbType === 'mongodb') {
         matched = await db.collection('students').findOne({
-          parentPhone: cleanParentPhone,
-          $or: [
-            { code: studentSearch.toUpperCase() },
-            { name: { $regex: studentSearch, $options: 'i' } }
+          $and: [
+            {
+              $or: [
+                { parentPhone: cleanParentPhone },
+                { phone: cleanParentPhone }
+              ]
+            },
+            {
+              $or: [
+                { code: cleanSearch.toUpperCase() },
+                ...(searchDigits ? [{ code: { $regex: searchDigits } }] : []),
+                { name: { $regex: cleanSearch, $options: 'i' } },
+                { phone: cleanSearch }
+              ]
+            }
           ]
         });
+
+        // Fallback for code match
+        if (!matched) {
+          matched = await db.collection('students').findOne({
+            $or: [
+              { code: cleanSearch.toUpperCase() },
+              ...(searchDigits ? [{ code: { $regex: searchDigits } }] : [])
+            ]
+          });
+          if (matched) {
+            const mParent = normalizePhone(matched.parentPhone);
+            const mPhone = normalizePhone(matched.phone);
+            if (mParent !== cleanParentPhone && mPhone !== cleanParentPhone) {
+              matched = null;
+            }
+          }
+        }
       } else {
         const data = getLocalData();
-        matched = data.students.find(s => 
-          normalizePhone(s.parentPhone) === cleanParentPhone &&
-          (s.code === studentSearch.toUpperCase() || s.name.toLowerCase().includes(studentSearch.toLowerCase()))
-        );
+        matched = data.students.find(s => {
+          const sParentPhone = normalizePhone(s.parentPhone);
+          const sPhone = normalizePhone(s.phone);
+          const phoneMatches = (sParentPhone && sParentPhone === cleanParentPhone) || 
+                               (sPhone && sPhone === cleanParentPhone);
+          if (!phoneMatches) return false;
+
+          const sCode = String(s.code || '').toUpperCase();
+          const sCodeDigits = sCode.replace(/[^0-9]/g, '');
+          const sNameNorm = normalizeArabic(s.name || '');
+
+          const codeMatches = (sCode === cleanSearch.toUpperCase()) || 
+                              (searchDigits && sCodeDigits === searchDigits) ||
+                              (searchDigits && sCode.includes(searchDigits)) ||
+                              (sCode.includes(cleanSearch.toUpperCase()));
+          const nameMatches = sNameNorm.includes(normSearchArabic) || normSearchArabic.includes(sNameNorm);
+          const studentPhoneMatches = normSearchPhone && (sPhone === normSearchPhone || sParentPhone === normSearchPhone);
+
+          return codeMatches || nameMatches || studentPhoneMatches;
+        });
+
+        // Helpful fallback by code
+        if (!matched) {
+          matched = data.students.find(s => {
+            const sCode = String(s.code || '').toUpperCase();
+            const sCodeDigits = sCode.replace(/[^0-9]/g, '');
+            const isCodeMatch = (sCode === cleanSearch.toUpperCase()) || (searchDigits && sCodeDigits === searchDigits);
+            if (isCodeMatch) {
+              const sParentPhone = normalizePhone(s.parentPhone);
+              const sPhone = normalizePhone(s.phone);
+              return sParentPhone === cleanParentPhone || sPhone === cleanParentPhone;
+            }
+            return false;
+          });
+        }
       }
 
       if (matched) {
@@ -517,7 +645,8 @@ app.post('/api/auth/login', async (req, res) => {
         return res.status(404).json({ error: 'لم يتم العثور على طالب مطابق لهذه البيانات. تأكد من إدخال رقم هاتف ولي الأمر الصحيح المسجل بحساب الطالب، واسمه أو كوده بدقة.' });
       }
     } catch (e) {
-      return res.status(500).json({ error: 'خطأ في السيرفر.' });
+      console.error('Parent Login Error:', e);
+      return res.status(500).json({ error: 'خطأ في السيرفر أثناء تسجيل دخول ولي الأمر.' });
     }
   }
 
@@ -528,16 +657,6 @@ app.post('/api/auth/login', async (req, res) => {
   if (!loginSearch || !inputPass) {
     return res.status(400).json({ error: 'يرجى إدخال كود الطالب/رقم الهاتف وكلمة المرور.' });
   }
-
-  // Helper to normalize phone numbers (removes spaces, replaces +20 or 20 prefix with 0)
-  const normalizePhone = (p) => {
-    if (!p) return '';
-    const clean = p.replace(/\s+/g, '');
-    if (clean.startsWith('+20')) return '0' + clean.substring(3);
-    if (clean.startsWith('20') && clean.length > 10) return '0' + clean.substring(2);
-    if (clean.startsWith('+2')) return '0' + clean.substring(2);
-    return clean;
-  };
 
   const cleanIdentifier = normalizePhone(loginSearch);
 
@@ -1130,6 +1249,7 @@ app.get('/api/questions', verifyToken, async (req, res) => {
       if (req.user.role === 'admin') {
         questions = localQ;
       } else {
+        // Fallback or user check
         questions = localQ.filter(q => q.studentPhone === req.user.phone);
       }
     }
@@ -1146,6 +1266,7 @@ app.post('/api/questions', verifyToken, async (req, res) => {
   }
 
   try {
+    // Get student details
     let student = null;
     if (dbType === 'mongodb') {
       student = await db.collection('students').findOne({ id: req.user.id });
@@ -1347,6 +1468,7 @@ app.post('/api/chat', async (req, res) => {
       const systemMessage = messages.find(m => m.role === 'system');
       const chatMessages = messages.filter(m => m.role !== 'system');
 
+      // Convert messages to Gemini format
       const contents = chatMessages.map(m => ({
         role: m.role === 'assistant' ? 'model' : 'user',
         parts: [{ text: m.content }]
@@ -1383,6 +1505,7 @@ app.post('/api/chat', async (req, res) => {
       return res.json({ response: botResponse });
 
     } else {
+      // Default to OpenRouter
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -1441,6 +1564,7 @@ app.post('/api/upload/presign', requireAdmin, async (req, res) => {
       ContentType: contentType
     });
 
+    // Link expires in 15 minutes (900 seconds)
     const uploadUrl = await getSignedUrl(r2Client, command, { expiresIn: 900 });
 
     const publicUrlBase = R2_PUBLIC_URL.endsWith('/') ? R2_PUBLIC_URL : `${R2_PUBLIC_URL}/`;
