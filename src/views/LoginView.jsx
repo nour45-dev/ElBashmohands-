@@ -756,6 +756,102 @@ export const LoginView = () => {
 
         </div>
 
+        {/* ═══ Section: إزاي المنصة بتشتغل؟ (The 4-Step Roadmap) ═══ */}
+        <section className="bg-slate-100/90 dark:bg-[#111e2d] border border-slate-200 dark:border-slate-800 p-8 md:p-12 rounded-[2.5rem] shadow-xl dark:shadow-2xl space-y-10 relative overflow-hidden transition-colors">
+          
+          {/* Section Header */}
+          <div className="text-center space-y-3 max-w-2xl mx-auto">
+            <div className="inline-flex items-center gap-2 bg-blue-500/10 text-blue-600 dark:text-blue-400 px-4 py-1.5 rounded-full text-xs font-black">
+              <Zap className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+              <span>خطواتك البسيطة نحو الدرجة النهائية 🚀</span>
+            </div>
+            <h2 className="text-2xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+              إزاي منصة <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-amber-600 dark:from-amber-400 dark:to-amber-500">عِلم</span> بتشتغل؟
+            </h2>
+            <p className="text-xs md:text-sm text-slate-600 dark:text-slate-300 font-bold leading-relaxed">
+              صممنا لك تجربة تعليمية ممتعة وسلسة تاخد بإيدك خطوة بخطوة من أول اختيار الحصة لحد التقفيل والدرجات النهائية.
+            </p>
+          </div>
+
+          {/* 4 Interactive Journey Step Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
+            
+            {/* Step 1 */}
+            <div className="bg-white dark:bg-[#162534] border-2 border-slate-200 dark:border-slate-700/80 hover:border-blue-500 p-6 rounded-3xl shadow-md dark:shadow-xl space-y-4 text-right transition-all duration-300 hover:-translate-y-2 group relative">
+              <div className="w-12 h-12 rounded-2xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl font-black shadow-sm group-hover:scale-110 transition-transform">
+                🎯
+              </div>
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-black text-blue-600 dark:text-blue-400">الخطوة الأولى</span>
+                <h3 className="text-base font-black text-slate-900 dark:text-white">اختر صفك ومادتك</h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300 font-bold leading-relaxed">
+                  حدد مرحلتك الدراسية (أولى، ثانية، أو ثالثة ثانوي) واختر بين كورسات البرمجة أو دروس اللغة العربية بضغطة واحدة.
+                </p>
+              </div>
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center gap-1.5 text-[11px] font-black text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                <span>سهولة وسرعة فائقة</span>
+                <CheckCircle2 className="w-3.5 h-3.5 text-blue-500" />
+              </div>
+            </div>
+
+            {/* Step 2 */}
+            <div className="bg-white dark:bg-[#162534] border-2 border-slate-200 dark:border-slate-700/80 hover:border-amber-500 p-6 rounded-3xl shadow-md dark:shadow-xl space-y-4 text-right transition-all duration-300 hover:-translate-y-2 group relative">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl font-black shadow-sm group-hover:scale-110 transition-transform">
+                🎬
+              </div>
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-black text-amber-600 dark:text-amber-400">الخطوة الثانية</span>
+                <h3 className="text-base font-black text-slate-900 dark:text-white">شاهد الحصة بتركيز</h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300 font-bold leading-relaxed">
+                  استمتع بشرح تفاعلي مبسط على مشغل فيديو محمي عالي الجودة، مع إمكانية تحميل وطباعة مذكرة الدرس PDF مباشرة.
+                </p>
+              </div>
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center gap-1.5 text-[11px] font-black text-slate-500 dark:text-slate-400 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                <span>مذكرات PDF مدمجة</span>
+                <FileText className="w-3.5 h-3.5 text-amber-500" />
+              </div>
+            </div>
+
+            {/* Step 3 */}
+            <div className="bg-white dark:bg-[#162534] border-2 border-slate-200 dark:border-slate-700/80 hover:border-emerald-500 p-6 rounded-3xl shadow-md dark:shadow-xl space-y-4 text-right transition-all duration-300 hover:-translate-y-2 group relative">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl font-black shadow-sm group-hover:scale-110 transition-transform">
+                📝
+              </div>
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400">الخطوة الثالثة</span>
+                <h3 className="text-base font-black text-slate-900 dark:text-white">حل الامتحان الإلكتروني</h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300 font-bold leading-relaxed">
+                  اختبر فهمك بامتحان إلكتروني بوقت محدد، واستلم تصحيحك الفوري مع مراجعة نموذج الإجابات وتفسير كل سؤال.
+                </p>
+              </div>
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center gap-1.5 text-[11px] font-black text-slate-500 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                <span>تصحيح فوري + نقاط XP</span>
+                <Award className="w-3.5 h-3.5 text-emerald-500" />
+              </div>
+            </div>
+
+            {/* Step 4 */}
+            <div className="bg-white dark:bg-[#162534] border-2 border-slate-200 dark:border-slate-700/80 hover:border-purple-500 p-6 rounded-3xl shadow-md dark:shadow-xl space-y-4 text-right transition-all duration-300 hover:-translate-y-2 group relative">
+              <div className="w-12 h-12 rounded-2xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center text-xl font-black shadow-sm group-hover:scale-110 transition-transform">
+                📲
+              </div>
+              <div className="space-y-1.5">
+                <span className="text-[11px] font-black text-purple-600 dark:text-purple-400">الخطوة الرابعة</span>
+                <h3 className="text-base font-black text-slate-900 dark:text-white">اسأل واستلم تقريرك</h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300 font-bold leading-relaxed">
+                  اطرح أي استفسار تحت الفيديو ليجيبك المعلم، ويتم إرسال تقرير أدائك الموثق مباشرة إلى ولي أمرك على الواتساب.
+                </p>
+              </div>
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center gap-1.5 text-[11px] font-black text-slate-500 dark:text-slate-400 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                <span>متابعة واتساب للأهل</span>
+                <Smartphone className="w-3.5 h-3.5 text-purple-500" />
+              </div>
+            </div>
+
+          </div>
+
+        </section>
+
         {/* ═══ Section: المميزات والضمانات ═══ */}
         <section className="pt-6 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
           {[
