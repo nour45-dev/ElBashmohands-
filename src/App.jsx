@@ -36,7 +36,7 @@ class ErrorBoundary extends Component {
           <div className="w-16 h-16 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-3xl font-black">
             💻
           </div>
-          <h2 className="text-2xl font-black text-white">منصة الباشمهندس للبرمجة - حدث تنبيه بسيط</h2>
+          <h2 className="text-2xl font-black text-white">منصة منصة عِلم التعليمية - حدث تنبيه بسيط</h2>
           <p className="text-xs text-slate-400 max-w-md">
             تم استعادة المنصة تلقائياً. اضغط على الزر أدناه لإعادة تنشيط الصفحة والمتابعة بنجاح!
           </p>
@@ -74,7 +74,7 @@ const MainContent = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col justify-between bg-slate-950 text-slate-100 font-sans">
+    <div className="min-h-screen flex flex-col justify-between bg-[#F8FAFC] dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans transition-colors">
       
       {/* In-App Notification Popup for Students */}
       <NotificationBanner />
