@@ -139,7 +139,7 @@ const MainContent = () => {
 };
 
 export default function App() {
-  return (
+  return ( 
     <ErrorBoundary>
       <AppProvider>
         <MainContent />
