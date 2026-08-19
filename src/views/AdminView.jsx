@@ -37,7 +37,7 @@ import {
   Share2
 } from 'lucide-react';
 
-export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
+export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveId }) => {
   const { 
     studentsDB,
     lessons, 
