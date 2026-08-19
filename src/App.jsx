@@ -96,7 +96,12 @@ const MainContent = () => {
       <NotificationBanner />
 
       {/* Top Header Navigation */}
-      <Navbar currentTab={currentTab} setCurrentTab={setCurrentTab} />
+      <Navbar 
+        currentTab={currentTab} 
+        setCurrentTab={setCurrentTab} 
+        setSelectedLiveId={setSelectedLiveId} 
+        setSelectedLessonId={setSelectedLessonId} 
+      />
 
       {/* Main Workspace View */}
       <main className="flex-1 container pt-6">
