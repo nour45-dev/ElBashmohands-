@@ -156,8 +156,69 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
   // In-Browser Native Camera & Screen Share Live Studio State (for Teacher)
   const [localStream, setLocalStream] = useState(false);
 
+  // In-App Live Broadcast Recording Controller
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const [recordingSavedUrl, setRecordingSavedUrl] = useState(currentSession?.recordingUrl || null);
+  const mediaRecorderRef = useRef(null);
+  const recordedChunksRef = useRef([]);
+
+  useEffect(() => {
+    let interval;
+    if (isRecording) {
+      interval = setInterval(() => setRecordingSeconds(prev => prev + 1), 1000);
+    } else {
+      setRecordingSeconds(0);
+    }
+    return () => clearInterval(interval);
+  }, [isRecording]);
+
+  const formatRecordingDuration = (totalSecs) => {
+    const mins = Math.floor(totalSecs / 60);
+    const secs = totalSecs % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
+
+  const handleStartRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" }, audio: true });
+      recordedChunksRef.current = [];
+      const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus' });
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          recordedChunksRef.current.push(e.data);
+        }
+      };
+
+      recorder.onstop = async () => {
+        const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+        const videoUrl = URL.createObjectURL(blob);
+        setRecordingSavedUrl(videoUrl);
+        setIsRecording(false);
+        await adminUpdateLiveStatus(currentSession.id, currentSession.status, videoUrl);
+        await refreshLiveSession(currentSession.id);
+        alert('تم إيقاف وحفظ تسجيل الحصة بنجاح في لوحة المعلم وأرشيف الحصص! 💾🎉');
+      };
+
+      recorder.start(1000);
+      mediaRecorderRef.current = recorder;
+      setIsRecording(true);
+    } catch (err) {
+      console.log('Recording cancelled or not permitted');
+    }
+  };
+
+  const handleStopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stream.getTracks().forEach(t => t.stop());
+    }
+  };
+
   const stopLocalStream = () => {
     setLocalStream(false);
+    handleStopRecording();
   };
 
   // Countdown timer calculation
@@ -533,13 +594,13 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                   </a>
                 </div>
               ) : (
-                /* Native Zero-Latency Classroom Feed */
+                /* Native Zero-Latency Google Meet Style Room Feed */
                 <div className="relative w-full h-full flex items-center justify-center bg-slate-950">
                   {isTeacher ? (
                     localStream ? (
                       <iframe
-                        src={`https://vdo.ninja/?push=elm_live_${currentSession.id}&webcam&screenshare&autostart&cleanoutput=1`}
-                        title="Teacher Live Studio"
+                        src={`https://vdo.ninja/?room=elm_live_${currentSession.id}&push=teacher_${adminIdentity}&label=${encodeURIComponent(studentDisplayName)}&webcam&mic&screenshare&chat=0&cleanoutput=1`}
+                        title="Teacher Live Room"
                         className="w-full h-full border-0"
                         allow="camera; microphone; display-capture; autoplay; clipboard-write; fullscreen"
                         allowFullScreen
@@ -552,7 +613,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                         <div className="space-y-1">
                           <h3 className="text-lg md:text-xl font-black">قاعة الشرح المباشر (مثل Google Meet) 💻</h3>
                           <p className="text-xs text-slate-300 font-bold leading-relaxed">
-                            جاهز لبدء الحصة؟ شغل الكاميرا والمايك أو شارك شاشة جهازك لشرح المذكرات والتمارين للطلاب فوراً.
+                            تتيح لك القاعة التحكم الكامل في الكاميرا، المايكروفون، مشاركة الشاشة، وتسجيل الحصة كاملة وحفظها تلقائياً للطلاب.
                           </p>
                         </div>
                         <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
@@ -561,19 +622,19 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                             className="bg-blue-600 hover:bg-blue-500 text-white font-black text-xs px-6 py-3 rounded-2xl shadow-xl transition-all flex items-center gap-2 hover:scale-105"
                           >
                             <Radio className="w-4 h-4" />
-                            <span>بدء وتشغيل البث المباشر (كاميرا وشاشة) 📹</span>
+                            <span>دخول وبدء قاعة الحصة التفاعلية 📹</span>
                           </button>
                         </div>
                       </div>
                     )
                   ) : (
-                    /* Student View Screen - Guaranteed Real-time WebRTC Feed */
+                    /* Student View Screen - Interactive Google Meet Room */
                     isAdmitted ? (
                       <iframe
-                        src={`https://vdo.ninja/?view=elm_live_${currentSession.id}&autoplay=1&cleanoutput=1&transparent=1`}
-                        title="Student Live Stream"
+                        src={`https://vdo.ninja/?room=elm_live_${currentSession.id}&push=std_${studentCode}&label=${encodeURIComponent(studentDisplayName)}&webcam&mic&screenshare&chat=0&cleanoutput=1`}
+                        title="Student Live Room"
                         className="w-full h-full border-0"
-                        allow="camera; microphone; autoplay; clipboard-write; fullscreen"
+                        allow="camera; microphone; display-capture; autoplay; clipboard-write; fullscreen"
                         allowFullScreen
                       />
                     ) : null
@@ -651,9 +712,28 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
             <div className="bg-slate-900/95 backdrop-blur-md border-t border-slate-800 px-4 py-3 z-30 flex items-center justify-between gap-3">
               
               {/* Left / Teacher Studio Media Controls */}
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {isTeacher ? (
                   <>
+                    {/* Live Screen & Audio Recording Button */}
+                    {isRecording ? (
+                      <button
+                        onClick={handleStopRecording}
+                        className="px-4 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs flex items-center gap-2 shadow-lg animate-pulse"
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping" />
+                        <span>جاري التسجيل ({formatRecordingDuration(recordingSeconds)}) • [💾 إيقاف وحفظ]</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleStartRecording}
+                        className="px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-rose-400 font-black text-xs flex items-center gap-1.5 shadow-md transition-all hover:scale-105"
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                        <span>🔴 بدء تسجيل الحصة</span>
+                      </button>
+                    )}
+
                     {/* End Stream Button */}
                     <button
                       onClick={async () => {
@@ -663,7 +743,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                           await refreshLiveSession(currentSession.id);
                         }
                       }}
-                      className="px-3.5 py-3 rounded-2xl bg-rose-600/90 hover:bg-rose-600 text-white text-xs font-black transition-all shadow-md flex items-center gap-1"
+                      className="px-3.5 py-2.5 rounded-2xl bg-rose-600/90 hover:bg-rose-600 text-white text-xs font-black transition-all shadow-md flex items-center gap-1"
                     >
                       <span>⏹️ إنهاء البث</span>
                     </button>
