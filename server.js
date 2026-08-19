@@ -2392,6 +2392,11 @@ app.get('/api/live/:id/signal/ice', async (req, res) => {
   return res.json({ success: true, candidates: relevant });
 });
 
+// Health check endpoint for Railway & Monitoring
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
+});
+
 // Serve static files from dist folder
 app.use(express.static(path.join(__dirname, 'dist')));
 
@@ -2402,7 +2407,7 @@ app.get('*', (req, res) => {
 
 // Initialize database then start server
 initializeDatabase().then(() => {
-  app.listen(PORT, () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT} in ${NODE_ENV} mode.`);
   });
 });
