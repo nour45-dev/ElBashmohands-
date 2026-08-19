@@ -154,7 +154,72 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
     }
   };
 
-  const [localStream, setLocalStream] = useState(false);
+  // Live Screen Recording State
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const mediaRecorderRef = useRef(null);
+  const recordedChunksRef = useRef([]);
+
+  useEffect(() => {
+    let interval;
+    if (isRecording) {
+      interval = setInterval(() => setRecordingSeconds(prev => prev + 1), 1000);
+    } else {
+      setRecordingSeconds(0);
+    }
+    return () => clearInterval(interval);
+  }, [isRecording]);
+
+  const formatRecordingDuration = (totalSecs) => {
+    const mins = Math.floor(totalSecs / 60);
+    const secs = totalSecs % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
+
+  const handleStartRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" }, audio: true });
+      recordedChunksRef.current = [];
+      const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus' });
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          recordedChunksRef.current.push(e.data);
+        }
+      };
+
+      recorder.onstop = async () => {
+        setIsRecording(false);
+        const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+        const file = new File([blob], `live_record_${currentSession.id}.webm`, { type: 'video/webm' });
+
+        try {
+          alert('جاري رفع تسجيل الحصة تلقائياً على السيرفر...');
+          const uploadRes = await uploadVideoFile(file);
+          if (uploadRes?.url) {
+            await adminUpdateLiveStatus(currentSession.id, currentSession.status, uploadRes.url);
+            await refreshLiveSession(currentSession.id);
+            alert('تم رفع وتخزين تسجيل الحصة تلقائياً بنجاح! 💾🎉');
+          }
+        } catch (e) {
+          console.error('Auto upload error', e);
+        }
+      };
+
+      recorder.start(1000);
+      mediaRecorderRef.current = recorder;
+      setIsRecording(true);
+    } catch (err) {
+      console.log('Recording cancelled or not permitted');
+    }
+  };
+
+  const handleStopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stream.getTracks().forEach(t => t.stop());
+    }
+  };
 
   // Countdown timer calculation
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
@@ -276,7 +341,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
               {currentSession?.status === 'live' ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-black animate-pulse">
                   <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-                  <span>مباشر الآن 🔴</span>
+                  <span>Google Meet مباشر 🔴</span>
                 </span>
               ) : currentSession?.status === 'scheduled' ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-600 dark:text-blue-400 text-xs font-black">
@@ -304,7 +369,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
             <button
               onClick={async () => {
                 if (window.confirm('هل أنت متأكد من إنهاء وإيقاف البث المباشر لجميع الطلاب الآن؟')) {
-                  setLocalStream(false);
+                  handleStopRecording();
                   await adminUpdateLiveStatus(currentSession.id, 'ended');
                   await refreshLiveSession(currentSession.id);
                 }
@@ -346,10 +411,10 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
       {/* ═══ Main Live Classroom Grid (Video + Real-time Interactive Sidebar) ═══ */}
       <div className={`grid grid-cols-1 ${isTheater ? 'lg:grid-cols-1' : 'lg:grid-cols-12'} gap-6 items-start`}>
         
-        {/* Left / Main Column (Video Player + Live Interactive Overlays + Details) */}
+        {/* Left / Main Column (Google Meet Hub + Live Details) */}
         <div className={`${isTheater ? 'lg:col-span-12' : 'lg:col-span-8'} space-y-6`}>
           
-          {/* Main Video Stream Player Container */}
+          {/* Main Google Meet Classroom Container */}
           <div 
             ref={videoContainerRef}
             className="relative bg-slate-950 rounded-3xl overflow-hidden border border-slate-800 shadow-2xl aspect-video group flex flex-col justify-between"
@@ -357,9 +422,9 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
             
             {/* Top Live Overlay Header Badge */}
             <div className="absolute top-4 right-4 z-30 flex items-center gap-2 pointer-events-none">
-              <div className="bg-rose-600 text-white px-3 py-1 rounded-full text-xs font-black flex items-center gap-1.5 shadow-lg">
-                <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-                <span>LIVE HD</span>
+              <div className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-black flex items-center gap-1.5 shadow-lg">
+                <Video className="w-3.5 h-3.5" />
+                <span>GOOGLE MEET HD</span>
               </div>
               <div className="bg-black/70 backdrop-blur-md text-white/90 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 border border-white/10">
                 <Users className="w-3.5 h-3.5 text-amber-400" />
@@ -367,7 +432,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
               </div>
             </div>
 
-            {/* Teacher Admission Request Floating Banner (Google Meet Style) */}
+            {/* Teacher Admission Request Floating Banner */}
             {isTeacher && pendingRequests.length > 0 && (
               <div className="absolute top-16 right-4 left-4 md:left-auto md:w-96 z-50 bg-slate-900/95 backdrop-blur-md border-2 border-blue-500 p-4 rounded-3xl shadow-2xl text-right animate-in slide-in-from-top space-y-3">
                 <div className="flex items-center justify-between">
@@ -417,7 +482,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
               </div>
             )}
 
-            {/* Top Left Subject / Fullscreen Status */}
+            {/* Top Left Subject / Instructor Status */}
             <div className="absolute top-4 left-4 z-30 flex items-center gap-2 pointer-events-none">
               <span className="bg-black/60 backdrop-blur-md text-amber-400 px-3 py-1 rounded-full text-xs font-black border border-amber-500/20">
                 {currentSession.instructor} • {currentSession.subject}
@@ -496,97 +561,61 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                     </>
                   )}
                 </div>
-              ) : currentSession.streamType === 'youtube_live' && currentSession.streamUrl && !currentSession.streamUrl.includes('platform_native') && !currentSession.streamUrl.includes('meet.google') ? (
-                <iframe
-                  src={formatVideoEmbedUrl(currentSession.streamUrl)}
-                  title={currentSession.title}
-                  className="w-full h-full object-cover border-0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
-                  allowFullScreen
-                />
-              ) : currentSession.streamUrl?.includes('meet.google.com') ? (
-                <div className="flex flex-col items-center justify-center p-8 text-center space-y-4 text-white max-w-lg">
-                  <div className="w-20 h-20 rounded-3xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-4xl shadow-2xl">
-                    📹
+              ) : (
+                /* Google Meet Official Direct Classroom */
+                <div className="flex flex-col items-center justify-center p-8 text-center space-y-6 text-white max-w-xl animate-in fade-in">
+                  <div className="relative">
+                    <div className="w-24 h-24 rounded-3xl bg-blue-600/20 border-2 border-blue-500/50 flex items-center justify-center text-5xl shadow-2xl animate-pulse">
+                      📹
+                    </div>
+                    <span className="absolute -bottom-2 -right-2 bg-emerald-500 text-slate-950 text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-lg border border-emerald-400">
+                      مباشر ومجاني 100%
+                    </span>
                   </div>
-                  <div className="space-y-1">
-                    <h3 className="text-xl font-black">حصة Google Meet المباشرة 🚀</h3>
-                    <p className="text-xs text-slate-300 font-bold leading-relaxed">
+
+                  <div className="space-y-2">
+                    <span className="text-xs font-black text-amber-400 bg-amber-500/15 border border-amber-500/30 px-3 py-1 rounded-full">
+                      قاعة Google Meet الرسمية التفاعلية 🚀
+                    </span>
+                    <h3 className="text-xl md:text-2xl font-black text-white">{currentSession.title}</h3>
+                    <p className="text-xs text-slate-300 font-bold leading-relaxed max-w-md mx-auto">
                       {isTeacher 
-                        ? 'أنت مستضيف هذا الاجتماع. اضغط على الزر أدناه لفتح قاعة Google Meet وبدء الشرح ومشاركة الشاشة والكاميرا.'
-                        : 'تم قبولك بالقاعة بنجاح! اضغط على الزر أدناه للانضمام إلى اجتماع Google Meet والتفاعل بالصوت والصورة مع المستر.'}
+                        ? 'أنت مستضيف هذا البث. اضغط على الزر أدناه لبدء قاعة Google Meet، مشاركة شاشة اللابتوب ومذكرات الـ PDF، والتحدث مع الطلاب بالصوت والصورة بدون أي حد للوقت.'
+                        : 'تم قبولك بنجاح! اضغط على الزر أدناه للدخول لقاعة Google Meet مع المستر للمشاركة بالمايك، طرح الأسئلة، ومشاهدة الشرح بجودة HD.'}
                     </p>
                   </div>
-                  <a
-                    href={currentSession.streamUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="bg-blue-600 hover:bg-blue-500 text-white font-black text-sm px-8 py-3.5 rounded-2xl shadow-xl transition-all flex items-center gap-2 hover:scale-105"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    <span>{isTeacher ? 'فتح وإدارة اجتماع Google Meet الآن 📹' : 'دخول اجتماع Google Meet المباشر مع المستر 🚀'}</span>
-                  </a>
-                </div>
-              ) : (
-                /* Real-Time Live Broadcast & Screen Share Classroom */
-                <div className="relative w-full h-full flex items-center justify-center bg-slate-950">
-                  {isTeacher ? (
-                    localStream ? (
-                      <div className="relative w-full h-full flex flex-col bg-black">
-                        <iframe
-                          src={`https://vdo.ninja/?push=elm_room_${currentSession.id}&screenshare=1&webcam=1&mic=1&label=${encodeURIComponent(studentDisplayName)}`}
-                          title="Teacher Broadcaster"
-                          className="w-full h-full border-0 min-h-[480px]"
-                          allow="camera; microphone; display-capture; autoplay; clipboard-write; fullscreen; speaker; self *"
-                          allowFullScreen
-                        />
-                        
-                        {/* Live Studio Floating Toolbar */}
-                        <div className="absolute top-4 left-4 z-40 flex items-center gap-2 bg-slate-900/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-700">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                          <span className="text-[11px] font-black text-emerald-400">البث المباشر ومشاركة الشاشة نشطة 🖥️</span>
-                          <button
-                            onClick={() => setLocalStream(false)}
-                            className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold px-2 py-0.5 rounded-md mr-2"
-                          >
-                            إيقاف ✕
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center p-6 text-center space-y-4 text-white max-w-md animate-in fade-in">
-                        <div className="w-20 h-20 rounded-3xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-4xl shadow-2xl animate-pulse">
-                          🎥
-                        </div>
-                        <div className="space-y-1">
-                          <h3 className="text-lg md:text-xl font-black">أستوديو البث والشرح المباشر 💻</h3>
-                          <p className="text-xs text-slate-300 font-bold leading-relaxed">
-                            اضغط على الزر أدناه لبدء مشاركة الشاشة ومذكرات الشرح أو الكاميرا مع الطلاب بالصوت والصورة فوراً.
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-                          <button
-                            onClick={() => setLocalStream(true)}
-                            className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-6 py-3.5 rounded-2xl shadow-xl transition-all flex items-center gap-2 hover:scale-105"
-                          >
-                            <Share2 className="w-4 h-4" />
-                            <span>🖥️ بدء مشاركة الشاشة والشرح المباشر للطلاب</span>
-                          </button>
-                        </div>
-                      </div>
-                    )
-                  ) : (
-                    /* Student Live Viewer Screen */
-                    isAdmitted ? (
-                      <iframe
-                        src={`https://vdo.ninja/?view=elm_room_${currentSession.id}&autoplay=1&cleanoutput=1`}
-                        title="Student Live Viewer"
-                        className="w-full h-full border-0 min-h-[480px]"
-                        allow="camera; microphone; display-capture; autoplay; clipboard-write; fullscreen; speaker; self *"
-                        allowFullScreen
-                      />
-                    ) : null
-                  )}
+
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full max-w-md pt-2">
+                    <a
+                      href={currentSession.streamUrl || 'https://meet.google.com/new'}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full sm:w-auto flex-1 bg-blue-600 hover:bg-blue-500 text-white font-black text-sm px-8 py-4 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2 hover:scale-105"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      <span>{isTeacher ? 'فتح وإدارة قاعة Google Meet الآن 📹' : 'دخول اجتماع Google Meet مع المستر 🚀'}</span>
+                    </a>
+
+                    {isTeacher && (
+                      <button
+                        onClick={isRecording ? handleStopRecording : handleStartRecording}
+                        className={`w-full sm:w-auto px-5 py-4 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2 shadow-lg ${
+                          isRecording 
+                            ? 'bg-rose-600 text-white animate-pulse' 
+                            : 'bg-slate-800 hover:bg-slate-700 text-rose-400 border border-slate-700'
+                        }`}
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                        <span>{isRecording ? `جاري التسجيل (${formatRecordingDuration(recordingSeconds)})` : '🔴 تسجيل الحصة'}</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-slate-900/80 border border-slate-800 w-full text-xs font-bold text-slate-400 flex items-center justify-between">
+                    <span>⚡ جودة فائقة 1080p</span>
+                    <span>🎙️ مايك وكاميرا ومشاركة شاشة كاملة</span>
+                    <span>♾️ بدون حد 5 دقائق</span>
+                  </div>
                 </div>
               )}
 
@@ -665,7 +694,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                   <button
                     onClick={async () => {
                       if (window.confirm('هل أنت متأكد من إنهاء وإيقاف البث المباشر لجميع الطلاب الآن؟')) {
-                        setLocalStream(false);
+                        handleStopRecording();
                         await adminUpdateLiveStatus(currentSession.id, 'ended');
                         await refreshLiveSession(currentSession.id);
                       }
@@ -759,7 +788,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                       className="bg-rose-600 hover:bg-rose-500 text-white font-black text-xs px-6 py-3 rounded-2xl shadow-xl transition-all flex items-center gap-2 hover:scale-105 animate-pulse"
                     >
                       <Radio className="w-4 h-4" />
-                      <span>بدء وفتح قاعة الفيديو الآن 🔴</span>
+                      <span>بدء وفتح قاعة Google Meet الآن 🔴</span>
                     </button>
                   ) : (
                     <a
@@ -790,7 +819,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                   <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center space-y-3 bg-slate-950 text-white">
                     <div className="text-4xl">📼</div>
                     <h3 className="text-base font-black">انتهى البث المباشر</h3>
-                    <p className="text-xs text-slate-400 font-bold">جاري معالجة تسجيل الحصة لتكون متاحة بجودة عالية في الأرشيف قريباً.</p>
+                    <p className="text-xs text-slate-400 font-bold">تسجيل الحصة متاح في أرشيف الأدمن ويمكن نشره في كروت المواد للطلاب.</p>
                   </div>
                 )}
               </div>
