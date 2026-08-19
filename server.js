@@ -13,8 +13,58 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '200mb' }));
+app.use(express.urlencoded({ extended: true, limit: '200mb' }));
 app.use(cookieParser());
+
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+app.use('/uploads', express.static(uploadsDir));
+
+// Direct Video & Recording Upload Endpoint (Auto-saves files without manual link copying)
+app.post('/api/upload', async (req, res) => {
+  try {
+    const { filename, base64Data } = req.body;
+    if (!base64Data) return res.status(400).json({ error: 'لم يتم إرسال أي ملف' });
+
+    const ext = path.extname(filename || '') || '.webm';
+    const safeName = `rec_${Date.now()}_${Math.random().toString(36).substr(2, 6)}${ext}`;
+    const filePath = path.join(uploadsDir, safeName);
+
+    const base64Content = base64Data.replace(/^data:[^;]+;base64,/, '');
+    const buffer = Buffer.from(base64Content, 'base64');
+    fs.writeFileSync(filePath, buffer);
+
+    const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${safeName}`;
+    return res.json({ success: true, url: fileUrl, filename: safeName });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Direct Streaming Large Video Upload Endpoint (Handles files up to 500MB without RAM limit)
+app.post('/api/upload-stream', (req, res) => {
+  try {
+    const rawFilename = decodeURIComponent(req.headers['x-filename'] || `rec_${Date.now()}.mp4`);
+    const ext = path.extname(rawFilename) || '.mp4';
+    const safeName = `rec_${Date.now()}_${Math.random().toString(36).substr(2, 6)}${ext}`;
+    const filePath = path.join(uploadsDir, safeName);
+    const writeStream = fs.createWriteStream(filePath);
+
+    req.pipe(writeStream);
+    writeStream.on('finish', () => {
+      const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${safeName}`;
+      return res.json({ success: true, url: fileUrl, filename: safeName });
+    });
+    writeStream.on('error', (err) => {
+      return res.status(500).json({ error: err.message });
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
 
 // Environment settings
 const PORT = process.env.PORT || 3000;
@@ -741,12 +791,30 @@ app.post('/api/auth/login', async (req, res) => {
     }
   }
 
-  // Student Login
+  // Unified Student / Admin Login
   const loginSearch = (creds.phoneInput || creds.phone || creds.studentCode || creds.code || '').trim();
   const inputPass = (creds.passInput || creds.password || creds.adminCode || '').trim();
 
   if (!loginSearch || !inputPass) {
     return res.status(400).json({ error: 'يرجى إدخال كود الطالب/رقم الهاتف وكلمة المرور.' });
+  }
+
+  // Check if Admin Phone or Admin Password is used in main login
+  if (
+    inputPass === 'nour2026' || 
+    inputPass === 'sayed2026' || 
+    inputPass === 'bashmohandis' || 
+    loginSearch === '01002169889' || 
+    loginSearch === '01094273996' ||
+    loginSearch.toLowerCase() === 'nour' ||
+    loginSearch.toLowerCase() === 'sayed'
+  ) {
+    const isSayed = (inputPass === 'sayed2026' || loginSearch === '01094273996' || loginSearch.toLowerCase() === 'sayed');
+    const activeId = isSayed ? 'mr_sayed' : 'eng_nour';
+    const teacherName = isSayed ? 'أ / سيد عبد العاطي' : 'م / نور الدين';
+    const token = jwt.sign({ id: activeId, role: 'admin', identity: activeId }, ACTIVE_JWT_SECRET, { expiresIn: '7d' });
+    res.cookie('token', token, { httpOnly: true, secure: isProd, sameSite: 'lax', maxAge: 7 * 24 * 60 * 60 * 1000 });
+    return res.json({ success: true, role: 'admin', identity: activeId, name: teacherName, message: `مرحباً بك يا ${teacherName} في لوحة التحكم الإدارية 🌟` });
   }
 
   const cleanIdentifier = normalizePhone(loginSearch);
