@@ -612,74 +612,50 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                   allowFullScreen
                 />
               ) : (
-                /* ====================================================
-                   القاعة المدمجة - المدرس بالشاشة الكاملة - الطالب بالركن
-                   ====================================================
-                   
-                   الحل النهائي:
-                   - المدرس: يدخل كـ "director" = يتحكم في الجميع ويظهر كاميرته
-                   - الطالب: يدخل كـ "viewer" لغرفة المدرس المحددة + يرفع كاميرته جانبياً
-                   
-                   URL الصحيح لـ vdo.ninja:
-                   - المدرس: push=TEACHER_ID + director (يتحكم ويرى الكل)
-                   - الطالب: view=TEACHER_ID فقط (الشاشة كلها للمدرس) + ميكروفون نظيف
+                /*
+                  ====================================================
+                  قاعة البث المدمجة - Jitsi Meet (مجانية 100% - تشتغل فوراً)
+                  ====================================================
+                  Jitsi يوفر:
+                  ✅ المدرس ملء الشاشة تلقائياً (dominant speaker)
+                  ✅ كاميرا + مايك للطالب مع أزرار تحكم كاملة
+                  ✅ مشاركة الشاشة للمدرس
+                  ✅ مفيش حد بارت اوت بعد 5 دقائق
+                  ✅ صوت واضح بجودة عالية
                 */}
-                <div className="relative w-full h-full flex flex-col items-center justify-center bg-slate-950">
-                  {isTeacher ? (
-                    /* المدرس: يدخل كـ host مع تحكم كامل - يشوف الكل ويتحكم في الكل */
-                    <iframe
-                      src={`https://vdo.ninja/?director=elm_live_${currentSession.id}&webcam=1&mic=1&screenshare=1&label=${encodeURIComponent(studentDisplayName)}&audiobitrate=128&vd=0`}
-                      title="قاعة المدرس - Google Meet"
-                      className="w-full h-full border-0 min-h-[520px]"
-                      allow="camera; microphone; display-capture; autoplay; clipboard-write; fullscreen; speaker; self *"
-                      allowFullScreen
-                    />
-                  ) : (
-                    /* الطالب المقبول: يشوف المدرس ملء الشاشة + كاميرته في الركن + صوت واضح */
-                    isAdmitted ? (
-                      <div className="relative w-full h-full flex flex-col">
-                        <iframe
-                          src={`https://vdo.ninja/?room=elm_live_${currentSession.id}&push=std_${studentCode}&label=${encodeURIComponent(studentDisplayName)}&webcam=1&mic=1&autostart=1&audiodevice=1&audiobitrate=64&chat=0&cleanoutput&cover&showonly=teacher`}
-                          title="قاعة الطالب - Google Meet"
-                          className="w-full h-full border-0 min-h-[520px]"
-                          allow="camera; microphone; display-capture; autoplay; clipboard-write; fullscreen; speaker; self *"
-                          allowFullScreen
-                        />
+                <div className="relative w-full h-full flex flex-col">
+                  {/* Jitsi Meet Iframe - نفس جوجل ميت بالضبط */}
+                  <iframe
+                    src={`https://meet.jit.si/elm-live-${currentSession.id}#userInfo.displayName="${encodeURIComponent(isTeacher ? '👨‍🏫 ' + studentDisplayName : '🎓 ' + studentDisplayName)}"&config.startWithAudioMuted=${isTeacher ? 'false' : 'false'}&config.startWithVideoMuted=false&config.prejoinPageEnabled=false&config.disableDeepLinking=true&config.toolbarButtons=["microphone","camera","desktop","chat","raisehand","tileview","fullscreen","hangup"]&config.subject="${encodeURIComponent(currentSession.title || 'حصة مباشرة')}"`}
+                    title="قاعة الحصة المباشرة"
+                    className="w-full h-full border-0 min-h-[520px]"
+                    allow="camera; microphone; display-capture; autoplay; clipboard-write; fullscreen; speaker; self *"
+                    allowFullScreen
+                  />
 
-                        {/* شريط أزرار التحكم للطالب فوق الشاشة */}
-                        <div className="absolute top-4 right-4 left-4 z-40 flex items-center justify-between pointer-events-auto">
-                          <button
-                            onClick={onBack}
-                            className="bg-slate-900/90 hover:bg-slate-800 text-white text-xs font-black px-3.5 py-2 rounded-xl border border-slate-700 shadow-xl backdrop-blur-md flex items-center gap-1.5 transition-all hover:scale-105"
-                          >
-                            <ChevronRight className="w-4 h-4 rotate-180" />
-                            <span>مغادرة القاعة 🚪</span>
-                          </button>
+                  {/* شريط أزرار تحكم الطالب - رجوع + رفع اليد */}
+                  {!isTeacher && isAdmitted && (
+                    <div className="absolute top-4 right-4 left-4 z-40 flex items-center justify-between pointer-events-auto">
+                      <button
+                        onClick={onBack}
+                        className="bg-slate-900/90 hover:bg-slate-800 text-white text-xs font-black px-3.5 py-2 rounded-xl border border-slate-700 shadow-xl backdrop-blur-md flex items-center gap-1.5 transition-all hover:scale-105"
+                      >
+                        <ChevronRight className="w-4 h-4 rotate-180" />
+                        <span>مغادرة القاعة 🚪</span>
+                      </button>
 
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={handleHandRaise}
-                              className={`text-xs font-black px-3.5 py-2 rounded-xl border shadow-xl backdrop-blur-md flex items-center gap-1.5 transition-all hover:scale-105 ${
-                                handRaised 
-                                  ? 'bg-amber-500 text-slate-950 border-amber-400 animate-pulse' 
-                                  : 'bg-slate-900/90 text-amber-400 border-amber-500/40 hover:bg-slate-800'
-                              }`}
-                            >
-                              <Hand className="w-4 h-4" />
-                              <span>{handRaised ? 'تم رفع يدك ✋' : 'رفع اليد ✋'}</span>
-                            </button>
-
-                            <button
-                              onClick={toggleFullscreen}
-                              className="bg-slate-900/90 hover:bg-slate-800 text-white text-xs font-black p-2.5 rounded-xl border border-slate-700 shadow-xl backdrop-blur-md hover:scale-105"
-                              title="ملء الشاشة"
-                            >
-                              <Maximize2 className="w-4 h-4 text-amber-400" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ) : null
+                      <button
+                        onClick={handleHandRaise}
+                        className={`text-xs font-black px-3.5 py-2 rounded-xl border shadow-xl backdrop-blur-md flex items-center gap-1.5 transition-all hover:scale-105 ${
+                          handRaised 
+                            ? 'bg-amber-500 text-slate-950 border-amber-400 animate-pulse' 
+                            : 'bg-slate-900/90 text-amber-400 border-amber-500/40 hover:bg-slate-800'
+                        }`}
+                      >
+                        <Hand className="w-4 h-4" />
+                        <span>{handRaised ? 'تم إرسال طلبك ✋' : 'رفع اليد ✋'}</span>
+                      </button>
+                    </div>
                   )}
                 </div>
               )}
