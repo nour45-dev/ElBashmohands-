@@ -41,12 +41,17 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
     sendLiveChatMessage, 
     submitLivePollVote, 
     sendHandRaiseRequest, 
+    requestJoinLive,
+    admitStudentLive,
+    admitAllStudentsLive,
+    sendLiveHeartbeat,
     student, 
     userRole, 
     adminIdentity,
     currentGrade 
   } = useApp();
 
+  // Find target session or use first available
   const [currentSessionId, setCurrentSessionId] = useState(selectedLiveId || liveSessionsDB[0]?.id || 'live_demo_1');
 
   useEffect(() => {
@@ -63,6 +68,46 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
   }, [selectedLiveId, liveSessionsDB]);
 
   const currentSession = liveSessionsDB.find(s => s.id === currentSessionId) || activeLiveSession || liveSessionsDB[0];
+
+  const studentCode = student?.code || (userRole === 'admin' ? 'ADM-2026' : '3001');
+  const studentDisplayName = userRole === 'admin' 
+    ? (adminIdentity === 'mr_sayed' ? 'أ / سيد عبد العاطي' : 'م / نور الدين') 
+    : (student?.name || 'طالب منصة عِلم');
+  const studentPhone = student?.phone || '01002169889';
+
+  const isTeacher = userRole === 'admin';
+
+  // Real-time Join Request status for Student
+  const myJoinRequest = currentSession?.joinRequests?.find(r => r.studentCode === studentCode);
+  const isAdmitted = isTeacher || (myJoinRequest?.status === 'admitted');
+  const isPendingAdmission = !isTeacher && myJoinRequest?.status === 'pending';
+  const isRejectedAdmission = !isTeacher && myJoinRequest?.status === 'rejected';
+
+  const [isRequestingJoin, setIsRequestingJoin] = useState(false);
+
+  const handleAskToJoin = async () => {
+    setIsRequestingJoin(true);
+    await requestJoinLive(currentSession.id);
+    await refreshLiveSession(currentSession.id);
+    setIsRequestingJoin(false);
+  };
+
+  // Pending admission requests for Teacher (Google Meet style)
+  const pendingRequests = currentSession?.joinRequests?.filter(r => r.status === 'pending') || [];
+
+  // Actual Real-Time Viewers Count (No fake 342)
+  const actualViewersCount = currentSession?.viewersCount || 1;
+
+  // Heartbeat & Real-time Live Presence
+  useEffect(() => {
+    if (!currentSession?.id) return;
+    sendLiveHeartbeat(currentSession.id);
+    const interval = setInterval(() => {
+      sendLiveHeartbeat(currentSession.id);
+      refreshLiveSession(currentSession.id);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, [currentSession?.id]);
 
   // Tab: 'chat' | 'qa' | 'archive'
   const [sidebarTab, setSidebarTab] = useState('chat');
@@ -179,115 +224,127 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
   // Countdown timer calculation
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
 
+  // Floating Watermark coordinates
+  const [watermarkPos, setWatermarkPos] = useState({ top: '15%', left: '20%' });
+
+  // Refresh live session every 4 seconds for real-time chat & polls
   useEffect(() => {
-    if (!currentSession?.scheduledAt) return;
+    if (!currentSession?.id) return;
+    refreshLiveSession(currentSession.id);
     const interval = setInterval(() => {
-      const diff = new Date(currentSession.scheduledAt).getTime() - new Date().getTime();
+      refreshLiveSession(currentSession.id);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [currentSession?.id]);
+
+  // Floating watermark reposition timer
+  useEffect(() => {
+    const wmInterval = setInterval(() => {
+      const randomTop = Math.floor(Math.random() * 70 + 10) + '%';
+      const randomLeft = Math.floor(Math.random() * 60 + 15) + '%';
+      setWatermarkPos({ top: randomTop, left: randomLeft });
+    }, 8000);
+    return () => clearInterval(wmInterval);
+  }, []);
+
+  // Countdown calculation
+  useEffect(() => {
+    if (currentSession?.status !== 'scheduled') return;
+    const targetDate = new Date(currentSession.scheduledAt || Date.now() + 3600000).getTime();
+
+    const updateCountdown = () => {
+      const now = new Date().getTime();
+      const diff = targetDate - now;
       if (diff <= 0) {
         setTimeLeft({ hours: 0, minutes: 0, seconds: 0 });
       } else {
-        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const hours = Math.floor((diff / (1000 * 60 * 60)));
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((diff % (1000 * 60)) / 1000);
         setTimeLeft({ hours, minutes, seconds });
       }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [currentSession?.scheduledAt]);
+    };
 
-  // Anti-piracy watermark floating position
-  const [watermarkPos, setWatermarkPos] = useState({ top: '15%', left: '15%' });
+    updateCountdown();
+    const cdInterval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(cdInterval);
+  }, [currentSession?.scheduledAt, currentSession?.status]);
 
+  // Scroll chat to bottom on new message
   useEffect(() => {
-    const interval = setInterval(() => {
-      const top = `${Math.floor(Math.random() * 70) + 10}%`;
-      const left = `${Math.floor(Math.random() * 70) + 10}%`;
-      setWatermarkPos({ top, left });
-    }, 12000);
-    return () => clearInterval(interval);
-  }, []);
+    if (chatBottomRef.current) {
+      chatBottomRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [currentSession?.chatMessages?.length]);
 
-  // Scroll chat to bottom
-  useEffect(() => {
-    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [currentSession?.chatMessages, sidebarTab]);
-
-  // Send message in chat
-  const handleSendMessage = async (e) => {
+  // Handle Send Chat
+  const handleSendChat = async (e) => {
     e.preventDefault();
     if (!chatInput.trim() || isSendingChat) return;
     setIsSendingChat(true);
-    try {
-      await sendLiveChatMessage(currentSession.id, chatInput.trim());
+    const res = await sendLiveChatMessage(currentSession.id, chatInput);
+    if (res.success) {
       setChatInput('');
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsSendingChat(false);
     }
+    setIsSendingChat(false);
   };
 
-  // Trigger floating reaction emoji
+  // Add floating reaction
   const triggerReaction = (emoji) => {
     const id = Date.now() + Math.random();
-    const x = Math.floor(Math.random() * 60) + 20;
-    setFloatingReactions(prev => [...prev, { id, emoji, x }]);
+    setFloatingReactions(prev => [...prev, { id, emoji, x: Math.random() * 60 + 20 }]);
     setTimeout(() => {
       setFloatingReactions(prev => prev.filter(r => r.id !== id));
     }, 2500);
   };
 
-  // Submit hand raise
+  // Handle Poll Vote
+  const handleVotePoll = async (pollId, optIdx) => {
+    if (pollVoted || selectedPollOption !== null) return;
+    setSelectedPollOption(optIdx);
+    setPollVoted(true);
+    await submitLivePollVote(currentSession.id, pollId, optIdx);
+  };
+
+  // Handle Hand Raise
   const handleHandRaise = async () => {
     if (handRaised) return;
     setHandRaised(true);
     const res = await sendHandRaiseRequest(currentSession.id);
     if (res.success) {
-      setHandRaiseSuccessMsg('تم رفع يدك بنجاح! سيصل تنبيه للمستر وسيقوم بفتح المايك لك ✋');
+      setHandRaiseSuccessMsg('تم إرسال طلب المداخلة للمعلم بنجاح! سيتم إتاحة المداخلة لك قريباً.');
       setTimeout(() => setHandRaiseSuccessMsg(null), 5000);
     }
   };
 
-  // Vote on live poll
-  const handleVotePoll = async (pollId, optionIndex) => {
-    if (pollVoted) return;
-    setSelectedPollOption(optionIndex);
-    setPollVoted(true);
-    await submitLivePollVote(currentSession.id, pollId, optionIndex);
-  };
-
-  // Share session link
   const handleShareLink = () => {
-    const shareUrl = `${window.location.origin}/#live?session=${currentSession.id}`;
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(shareUrl);
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 3000);
-    }
+    const url = window.location.origin + `/?live=${currentSession?.id}`;
+    navigator.clipboard?.writeText(url);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 3000);
   };
 
-  const studentDisplayName = userRole === 'admin'
-    ? (adminIdentity === 'mr_sayed' ? 'أ / سيد عبد العاطي' : 'م / نور الدين')
-    : (student?.name || 'طالب منصة عِلم');
-
-  const studentCode = student?.code || 'ADM-2026';
-  const studentPhone = student?.phone || '01002169889';
-
+  // Active Poll
   const activePoll = currentSession?.polls?.find(p => p.isActive);
 
+  // Student details for dynamic watermark
+  const studentDisplayName = student?.name || 'طالب منصة عِلم';
+  const studentCode = student?.code || '3003';
+  const studentPhone = student?.phone || '01002169889';
+
   return (
-    <div className="space-y-6 pb-20 relative" dir="rtl">
+    <div className="space-y-6 animate-in fade-in pb-12">
       
-      {/* ═══ Top Header Breadcrumb & Status Strip ═══ */}
-      <div className="bg-white dark:bg-[#162534] p-4 md:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* ═══ Top Breadcrumbs & Control Bar ═══ */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-[#162534] p-4 md:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
         
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={onBack}
-            className="p-2.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-all"
-            title="الرجوع للرئيسية"
+            className="p-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all font-black flex items-center gap-1.5 text-xs shadow-xs"
           >
-            <ChevronRight className="w-5 h-5 rotate-180" />
+            <ChevronRight className="w-4 h-4" />
+            <span>العودة للرئيسية</span>
           </button>
 
           <div className="h-6 w-[1px] bg-slate-200 dark:bg-slate-700 hidden sm:block" />
@@ -372,9 +429,59 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
               </div>
               <div className="bg-black/70 backdrop-blur-md text-white/90 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 border border-white/10">
                 <Users className="w-3.5 h-3.5 text-amber-400" />
-                <span>{currentSession.viewersCount || 342} متواجد الآن</span>
+                <span>{actualViewersCount} متواجد الآن</span>
               </div>
             </div>
+
+            {/* Teacher Admission Request Floating Banner (Google Meet Style) */}
+            {isTeacher && pendingRequests.length > 0 && (
+              <div className="absolute top-16 right-4 left-4 md:left-auto md:w-96 z-50 bg-slate-900/95 backdrop-blur-md border-2 border-blue-500 p-4 rounded-3xl shadow-2xl text-right animate-in slide-in-from-top space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🔔</span>
+                    <div>
+                      <h4 className="text-xs md:text-sm font-black text-white">
+                        طلب انضمام جديد ({pendingRequests.length})
+                      </h4>
+                      <span className="text-[10px] text-slate-400 font-bold">يريد طلاب الانضمام إلى حصتك</span>
+                    </div>
+                  </div>
+                  {pendingRequests.length > 1 && (
+                    <button
+                      onClick={() => admitAllStudentsLive(currentSession.id)}
+                      className="bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-black px-3 py-1.5 rounded-xl transition-all"
+                    >
+                      قبول الكل ✓
+                    </button>
+                  )}
+                </div>
+
+                <div className="max-h-48 overflow-y-auto space-y-2">
+                  {pendingRequests.map(req => (
+                    <div key={req.id} className="p-2.5 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-between gap-2">
+                      <div>
+                        <div className="text-xs font-black text-white">{req.studentName}</div>
+                        <div className="text-[10px] text-slate-400 font-mono">كود: {req.studentCode} • {req.requestedAt}</div>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => admitStudentLive(currentSession.id, req.id, true)}
+                          className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black px-3 py-1 rounded-xl shadow-xs"
+                        >
+                          سماح ✓
+                        </button>
+                        <button
+                          onClick={() => admitStudentLive(currentSession.id, req.id, false)}
+                          className="bg-rose-600/80 hover:bg-rose-600 text-white text-xs font-black px-2 py-1 rounded-xl"
+                        >
+                          رفض ✕
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Top Left Subject / Fullscreen Status */}
             <div className="absolute top-4 left-4 z-30 flex items-center gap-2 pointer-events-none">
@@ -394,8 +501,69 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
             {/* 1. Main Live Stream Video Screen Area */}
             <div className="relative w-full h-full flex-1 flex items-center justify-center bg-slate-950 overflow-hidden">
               
-              {/* External YouTube / Stream if selected */}
-              {currentSession.streamType === 'youtube_live' && currentSession.streamUrl && !currentSession.streamUrl.includes('platform_native') && !currentSession.streamUrl.includes('meet.google') ? (
+              {/* Student Not Admitted -> Show Google Meet Ask to Join / Waiting Room */}
+              {!isAdmitted ? (
+                <div className="flex flex-col items-center justify-center p-8 text-center space-y-4 text-white max-w-md animate-in fade-in">
+                  {isPendingAdmission ? (
+                    <>
+                      <div className="w-20 h-20 rounded-3xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-4xl shadow-2xl animate-pulse">
+                        ⏳
+                      </div>
+                      <div className="space-y-1.5">
+                        <h3 className="text-lg md:text-xl font-black text-amber-400">جاري انتظار موافقة المعلم للدخول...</h3>
+                        <p className="text-xs text-slate-300 font-bold leading-relaxed">
+                          تم إرسال طلب الانضمام للمستر. ستفتح الحصة والشات فور موافقة المعلم على دخولك.
+                        </p>
+                      </div>
+                      <div className="inline-flex items-center gap-2 bg-slate-900 border border-amber-500/30 text-amber-300 text-xs font-bold px-4 py-2 rounded-full">
+                        <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                        <span>في غرفة الانتظار المباشرة (Waiting Lobby)</span>
+                      </div>
+                    </>
+                  ) : isRejectedAdmission ? (
+                    <>
+                      <div className="w-20 h-20 rounded-3xl bg-rose-600/20 border border-rose-500/40 text-rose-400 flex items-center justify-center text-4xl shadow-2xl">
+                        ❌
+                      </div>
+                      <div className="space-y-1.5">
+                        <h3 className="text-lg font-black text-rose-400">تم رفض طلب الدخول</h3>
+                        <p className="text-xs text-slate-300 font-bold">يرجى التواصل مع إدارة المنصة أو المستر للسماح لك بالدخول.</p>
+                      </div>
+                      <button
+                        onClick={handleAskToJoin}
+                        className="bg-blue-600 hover:bg-blue-500 text-white font-black text-xs px-6 py-2.5 rounded-xl transition-all"
+                      >
+                        إعادة طلب الانضمام 🔄
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-20 h-20 rounded-3xl bg-blue-600/20 border border-blue-500/40 text-blue-400 flex items-center justify-center text-4xl shadow-2xl">
+                        👋
+                      </div>
+                      <div className="space-y-1.5">
+                        <h3 className="text-xl font-black">جاهز للانضمام للحصة المباشرة؟</h3>
+                        <p className="text-xs text-slate-300 font-bold">
+                          المحاضر <span className="text-amber-400 font-black">{currentSession.instructor}</span> متواجد الآن في قاعة البث.
+                        </p>
+                      </div>
+                      <div className="bg-slate-900/80 border border-slate-800 p-3 rounded-2xl w-full text-xs font-bold text-slate-300 flex items-center justify-between">
+                        <span>👤 {studentDisplayName}</span>
+                        <span className="font-mono text-amber-400">كود: {studentCode}</span>
+                      </div>
+                      <button
+                        onClick={handleAskToJoin}
+                        disabled={isRequestingJoin}
+                        className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black text-sm py-4 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2 hover:scale-[1.02]"
+                      >
+                        <Radio className="w-4 h-4" />
+                        <span>{isRequestingJoin ? 'جاري إرسال الطلب...' : 'طلب الانضمام للحصة (Ask to Join) 🚀'}</span>
+                      </button>
+                    </>
+                  )}
+                </div>
+              ) : currentSession.streamType === 'youtube_live' && currentSession.streamUrl && !currentSession.streamUrl.includes('platform_native') && !currentSession.streamUrl.includes('meet.google') ? (
+                /* External YouTube / Stream if selected */
                 <iframe
                   src={formatVideoEmbedUrl(currentSession.streamUrl)}
                   title={currentSession.title}
@@ -467,7 +635,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                   )}
 
                   {/* Student View Screen */}
-                  {!localStream && !isTeacher && (
+                  {!localStream && !isTeacher && isAdmitted && (
                     <div className="flex flex-col items-center justify-center p-6 text-center space-y-4 text-white max-w-md">
                       <div className="w-20 h-20 rounded-3xl bg-rose-600/20 border border-rose-500/40 text-rose-400 flex items-center justify-center text-4xl shadow-2xl animate-bounce">
                         📡
@@ -480,7 +648,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                       </div>
                       <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-black px-4 py-1.5 rounded-full">
                         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                        <span>متصل بالقاعة بنجاح ✓</span>
+                        <span>تم قبولك بالقاعة بنجاح ✓</span>
                       </div>
                     </div>
                   )}
@@ -711,7 +879,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                       className="bg-rose-600 hover:bg-rose-500 text-white font-black text-xs px-6 py-3 rounded-2xl shadow-xl transition-all flex items-center gap-2 hover:scale-105 animate-pulse"
                     >
                       <Radio className="w-4 h-4" />
-                      <span>بدء وفتح قاعة الفيديو (مثل Google Meet) الآن 🔴</span>
+                      <span>بدء وفتح قاعة الفيديو (مثل Zoom) الآن 🔴</span>
                     </button>
                   ) : (
                     <a
@@ -750,60 +918,103 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
 
           </div>
 
-          {/* Session Overview Box */}
+          {/* ═══ Fast Interactive Reactions & Hand Raise Bar ═══ */}
+          <div className="bg-white dark:bg-[#162534] p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-3">
+            
+            {/* Quick Reactions */}
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <span className="text-xs font-black text-slate-500 dark:text-slate-400 ml-1 hidden sm:inline">تفاعل مع المستر:</span>
+              {[
+                { emoji: '❤️', label: 'حب' },
+                { emoji: '🔥', label: 'حماس' },
+                { emoji: '👏', label: 'تسقيف' },
+                { emoji: '💡', label: 'فهمت' },
+                { emoji: '🙋‍♂️', label: 'سؤال' },
+                { emoji: '💯', label: 'عاش' }
+              ].map((rec, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => triggerReaction(rec.emoji)}
+                  title={rec.label}
+                  className="w-10 h-10 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 flex items-center justify-center text-lg hover:scale-110 active:scale-95 transition-all shadow-2xs"
+                >
+                  {rec.emoji}
+                </button>
+              ))}
+            </div>
+
+            {/* Student Hand Raise Button */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleHandRaise}
+                disabled={handRaised}
+                className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center gap-2 shadow-md ${
+                  handRaised 
+                    ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' 
+                    : 'bg-amber-500 hover:bg-amber-400 text-slate-950 hover:scale-105'
+                }`}
+              >
+                <Hand className={`w-4 h-4 ${handRaised ? 'text-emerald-500' : 'text-slate-950 animate-bounce'}`} />
+                <span>{handRaised ? 'تم طلب المداخلة ✋' : 'طلب مداخلة مع المستر'}</span>
+              </button>
+            </div>
+
+          </div>
+
+          {handRaiseSuccessMsg && (
+            <div className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 p-3 rounded-2xl text-xs font-black flex items-center gap-2 animate-in fade-in">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+              <span>{handRaiseSuccessMsg}</span>
+            </div>
+          )}
+
+          {/* ═══ Session Information & Instructor Card ═══ */}
           <div className="bg-white dark:bg-[#162534] p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center text-2xl font-black">
-                  👨‍🏫
+            
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-600 flex items-center justify-center text-white text-2xl shadow-md">
+                  {currentSession?.instructorId === 'mr_sayed' ? '📖' : '💻'}
                 </div>
                 <div>
-                  <h3 className="font-black text-slate-900 dark:text-white text-base">
-                    {currentSession.instructor}
+                  <h3 className="font-black text-base md:text-lg text-slate-900 dark:text-white">
+                    {currentSession?.instructor}
                   </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">
-                    محاضر المادة • {currentSession.subject}
+                  <p className="text-xs font-bold text-amber-600 dark:text-amber-400">
+                    {currentSession?.instructorId === 'mr_sayed' ? 'خبير ومُعلم اللغة العربية للثانوية العامة' : 'محاضر البرمجة وعلوم الحاسب'}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-xl">
-                  {currentSession.gradeName}
-                </span>
+              <div className="text-right">
+                <span className="text-[11px] font-black text-slate-500 dark:text-slate-400 block">الصف الدراسي</span>
+                <span className="text-xs font-black text-slate-800 dark:text-slate-200">{currentSession?.gradeName}</span>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <h4 className="text-xs font-black text-slate-800 dark:text-slate-200">عن هذه الحصة:</h4>
-              <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-300 font-medium">
-                {currentSession.description || 'شرح تفاعلي مباشر مع حل تدريبات وزارية ونماذج امتحانات وإجابة على أسئلة الطلاب لحظة بلحظة.'}
+            <div className="border-t border-slate-100 dark:border-slate-800 pt-4 space-y-2">
+              <h4 className="text-xs font-black text-slate-700 dark:text-slate-300">موضوع ومحاور الحصة المباشرة:</h4>
+              <p className="text-xs md:text-sm text-slate-600 dark:text-slate-300 font-bold leading-relaxed">
+                {currentSession?.description}
               </p>
             </div>
 
-            {handRaiseSuccessMsg && (
-              <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-black flex items-center gap-2 animate-in fade-in">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                <span>{handRaiseSuccessMsg}</span>
-              </div>
-            )}
           </div>
 
         </div>
 
-        {/* Right / Sidebar: Real-time Live Chat & Interactive QA Queue */}
-        <div className={`${isTheater ? 'lg:col-span-12' : 'lg:col-span-4'} space-y-4`}>
-          
-          <div className="bg-white dark:bg-[#162534] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[560px]">
+        {/* Right Column / Interactive Sidebar (Live Chat, Q&A, Other Lives) */}
+        {!isTheater && (
+          <div className="lg:col-span-4 bg-white dark:bg-[#162534] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden flex flex-col h-[640px]">
             
-            {/* Sidebar Tabs */}
-            <div className="flex items-center border-b border-slate-100 dark:border-slate-800 p-2 bg-slate-50/50 dark:bg-slate-900/50">
+            {/* Sidebar Tabs Switcher */}
+            <div className="bg-slate-100 dark:bg-slate-900/80 p-1.5 border-b border-slate-200 dark:border-slate-800 flex items-center gap-1 text-xs font-black">
               <button
                 onClick={() => setSidebarTab('chat')}
-                className={`flex-1 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-2.5 rounded-xl transition-all text-center flex items-center justify-center gap-1.5 ${
                   sidebarTab === 'chat'
-                    ? 'bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 shadow-xs'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                    ? 'bg-white dark:bg-blue-600 text-blue-600 dark:text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <MessageSquare className="w-3.5 h-3.5" />
@@ -811,62 +1022,56 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
               </button>
 
               <button
-                onClick={() => setSidebarTab('qa')}
-                className={`flex-1 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
-                  sidebarTab === 'qa'
-                    ? 'bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 shadow-xs'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                onClick={() => setSidebarTab('archive')}
+                className={`flex-1 py-2.5 rounded-xl transition-all text-center flex items-center justify-center gap-1.5 ${
+                  sidebarTab === 'archive'
+                    ? 'bg-white dark:bg-blue-600 text-blue-600 dark:text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
-                <HelpCircle className="w-3.5 h-3.5" />
-                <span>أسئلة ومداخلات ({currentSession?.handRaises?.length || 0})</span>
+                <Radio className="w-3.5 h-3.5" />
+                <span>كل البثوث ({liveSessionsDB.length})</span>
               </button>
             </div>
 
-            {/* Chat Tab Body */}
+            {/* TAB 1: Real-time Live Chat Feed */}
             {sidebarTab === 'chat' && (
               <div className="flex-1 flex flex-col justify-between overflow-hidden">
                 
-                {/* Chat Messages Scroll Container */}
-                <div className="flex-1 p-4 overflow-y-auto space-y-3">
-                  <div className="p-2.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 rounded-2xl text-[11px] font-bold text-amber-800 dark:text-amber-300 text-center">
-                    📢 تنبيه: اكتب سؤالك بوضوح وسيتم الإجابة عليه أثناء البث مباشرة.
-                  </div>
+                {/* Pinned Teacher Announcement if any */}
+                <div className="bg-amber-500/10 border-b border-amber-500/20 px-3.5 py-2 flex items-center gap-2 text-xs font-bold text-amber-700 dark:text-amber-400">
+                  <Pin className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                  <span className="truncate">تنبيه: اكتب سؤالك بوضوح وسيتم الإجابة عليه أثناء البث مباشرة.</span>
+                </div>
 
+                {/* Messages Scrollable List */}
+                <div className="flex-1 p-3.5 space-y-2.5 overflow-y-auto custom-scrollbar">
                   {(!currentSession?.chatMessages || currentSession.chatMessages.length === 0) ? (
-                    <div className="text-center py-12 text-slate-400 space-y-2">
-                      <MessageSquare className="w-8 h-8 mx-auto stroke-[1.5] text-slate-300 dark:text-slate-600" />
-                      <p className="text-xs font-bold">لا توجد رسائل بعد. كن أول من يرحب بالمستر والزملاء!</p>
+                    <div className="h-full flex flex-col items-center justify-center text-center p-4 text-slate-400 space-y-2">
+                      <div className="text-3xl">💬</div>
+                      <p className="text-xs font-bold">لا توجد رسائل بعد. كن أول من يكتب في الشات!</p>
                     </div>
                   ) : (
                     currentSession.chatMessages.map(msg => {
-                      const isMe = msg.senderCode === studentCode || (isTeacher && msg.isAdmin);
+                      const isTeacher = msg.senderRole === 'teacher';
                       return (
-                        <div 
+                        <div
                           key={msg.id}
-                          className={`flex flex-col space-y-1 ${isMe ? 'items-end' : 'items-start'}`}
+                          className={`p-2.5 rounded-2xl text-xs space-y-1 transition-all ${
+                            isTeacher 
+                              ? 'bg-amber-500/15 border border-amber-500/30 text-slate-900 dark:text-white' 
+                              : 'bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-slate-800 dark:text-slate-200'
+                          }`}
                         >
-                          <div className="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400 font-bold">
-                            <span>{msg.senderName}</span>
-                            {msg.isAdmin && (
-                              <span className="bg-amber-500 text-slate-950 px-1.5 py-0.2 rounded font-black text-[9px]">
-                                المعلم
-                              </span>
-                            )}
-                            <span className="text-[9px] font-mono text-slate-400">
-                              {new Date(msg.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
+                          <div className="flex items-center justify-between">
+                            <span className={`font-black flex items-center gap-1 ${isTeacher ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                              {isTeacher && <span>🎓</span>}
+                              <span>{msg.senderName}</span>
+                              {isTeacher && <span className="text-[10px] bg-amber-500 text-slate-950 px-1.5 py-0.2 rounded font-black">المعلم</span>}
                             </span>
+                            <span className="text-[10px] text-slate-400 font-mono">{msg.timestamp || 'الآن'}</span>
                           </div>
-
-                          <div className={`p-3 rounded-2xl text-xs font-medium max-w-[85%] leading-relaxed ${
-                            msg.isAdmin
-                              ? 'bg-amber-500/15 border border-amber-500/30 text-amber-950 dark:text-amber-100 rounded-tr-none'
-                              : isMe
-                                ? 'bg-slate-900 dark:bg-slate-700 text-white rounded-tr-none'
-                                : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-none'
-                          }`}>
-                            {msg.text}
-                          </div>
+                          <p className="text-xs font-bold leading-relaxed break-words">{msg.text}</p>
                         </div>
                       );
                     })
@@ -874,22 +1079,20 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                   <div ref={chatBottomRef} />
                 </div>
 
-                {/* Chat Input Footer */}
-                <form 
-                  onSubmit={handleSendMessage}
-                  className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center gap-2"
-                >
+                {/* Chat Send Input Box */}
+                <form onSubmit={handleSendChat} className="p-3 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center gap-2">
                   <input
                     type="text"
+                    required
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     placeholder="اكتب رسالتك أو سؤالك في الشات..."
-                    className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 outline-none"
+                    className="flex-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
                   />
                   <button
                     type="submit"
-                    disabled={!chatInput.trim() || isSendingChat}
-                    className="p-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black transition-all disabled:opacity-40 shadow-xs"
+                    disabled={isSendingChat || !chatInput.trim()}
+                    className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white p-2.5 rounded-xl transition-all shadow-md flex-shrink-0"
                   >
                     <Send className="w-4 h-4 rotate-180" />
                   </button>
@@ -898,46 +1101,57 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
               </div>
             )}
 
-            {/* QA & Hand Raise Queue Tab Body */}
-            {sidebarTab === 'qa' && (
-              <div className="flex-1 p-4 overflow-y-auto space-y-3">
-                <div className="p-3 rounded-2xl bg-blue-500/10 border border-blue-500/25 text-blue-700 dark:text-blue-300 text-xs font-bold text-center">
-                  ✋ قائمة الطلاب الراغبين في التحدث والمداخلة بالمايك
+            {/* TAB 2: All Live Sessions & Archive List */}
+            {sidebarTab === 'archive' && (
+              <div className="flex-1 p-3.5 space-y-3 overflow-y-auto custom-scrollbar">
+                <div className="text-xs font-black text-slate-700 dark:text-slate-300 mb-1">
+                  جدول البثوث المباشرة لحسابك:
                 </div>
 
-                {(!currentSession?.handRaises || currentSession.handRaises.length === 0) ? (
-                  <div className="text-center py-12 text-slate-400 space-y-2">
-                    <Hand className="w-8 h-8 mx-auto stroke-[1.5] text-slate-300 dark:text-slate-600" />
-                    <p className="text-xs font-bold">لا توجد طلبات مداخلة حالياً.</p>
-                  </div>
-                ) : (
-                  currentSession.handRaises.map((hr, idx) => (
-                    <div 
-                      key={hr.id || idx}
-                      className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3"
+                {liveSessionsDB.map(s => {
+                  const isCurrent = s.id === currentSession.id;
+                  return (
+                    <div
+                      key={s.id}
+                      onClick={() => { setCurrentSessionId(s.id); if (onSelectLive) onSelectLive(s.id); }}
+                      className={`p-3 rounded-2xl border cursor-pointer transition-all space-y-2 ${
+                        isCurrent 
+                          ? 'bg-blue-50 dark:bg-blue-600/20 border-blue-500 ring-2 ring-blue-500/20' 
+                          : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-slate-400'
+                      }`}
                     >
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center text-sm font-black">
-                          ✋
-                        </div>
-                        <div>
-                          <h5 className="text-xs font-black text-slate-900 dark:text-white">{hr.studentName}</h5>
-                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-bold">كود: {hr.studentCode}</span>
-                        </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-400">
+                          {s.subject}
+                        </span>
+                        {s.status === 'live' ? (
+                          <span className="text-[10px] font-black text-rose-500 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
+                            <span>مباشر الآن 🔴</span>
+                          </span>
+                        ) : s.status === 'scheduled' ? (
+                          <span className="text-[10px] font-bold text-blue-500">⏳ مجدول</span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-emerald-500">📼 مسجل</span>
+                        )}
                       </div>
 
-                      <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400">
-                        في الانتظار ⏳
-                      </span>
+                      <h4 className="text-xs font-black text-slate-900 dark:text-white leading-tight">
+                        {s.title}
+                      </h4>
+
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
+                        <span>{s.instructor}</span>
+                        <span className="font-mono">{new Date(s.scheduledAt).toLocaleDateString('ar-EG')}</span>
+                      </div>
                     </div>
-                  ))
-                )}
+                  );
+                })}
               </div>
             )}
 
           </div>
-
-        </div>
+        )}
 
       </div>
 
