@@ -990,55 +990,81 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
               <div>
                 <h3 className="font-black text-slate-900 dark:text-white text-base md:text-lg">
-                  قائمة حصص البث المباشر ({liveSessionsDB.length})
+                  قائمة حصص البث المباشر ({
+                    (liveSessionsDB || []).filter(s => isSayedAdmin ? (s.subject === 'اللغة العربية' || s.subject?.includes('عربي') || s.subject === 'arabic' || s.instructor?.includes('سيد')) : (s.subject === 'برمجة وعلوم الحاسب' || s.subject?.includes('برمج') || s.subject === 'programming' || s.instructor?.includes('نور'))).length
+                  })
                 </h3>
                 <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5 font-bold">
-                  تحكم بحالة البث، ابدأ البث الحي، وابعت الإشعارات للطلاب
+                  {isSayedAdmin ? 'خاص بحصص مادة اللغة العربية (مستر سيد عبد العاطي)' : 'خاص بحصص مادة البرمجة وعلوم الحاسب (م / نور الدين)'}
                 </p>
               </div>
             </div>
 
-            {liveSessionsDB.length === 0 ? (
-              <div className="text-center py-12 text-slate-400 space-y-2">
-                <Radio className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 stroke-[1.5]" />
-                <p className="text-xs font-bold">لا توجد حصص بث مباشر مسجلة حتى الآن.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {liveSessionsDB.map(s => {
-                  const isStudioActive = selectedStudioSessionId === s.id;
-                  return (
-                    <div 
-                      key={s.id}
-                      className={`p-5 rounded-3xl border transition-all space-y-4 ${
-                        s.status === 'live'
-                          ? 'bg-rose-500/5 dark:bg-rose-500/10 border-rose-500/40 ring-2 ring-rose-500/20'
-                          : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800'
-                      }`}
-                    >
-                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                        
-                        <div className="space-y-1.5">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400">
-                              {s.subject} • {s.gradeName}
-                            </span>
+            {(() => {
+              const teacherLiveSessions = (liveSessionsDB || []).filter(s => {
+                if (isSayedAdmin) {
+                  return s.subject === 'اللغة العربية' || s.subject?.includes('عربي') || s.subject === 'arabic' || s.instructor?.includes('سيد');
+                } else if (isNourAdmin) {
+                  return s.subject === 'برمجة وعلوم الحاسب' || s.subject?.includes('برمج') || s.subject === 'programming' || s.instructor?.includes('نور');
+                }
+                return true;
+              });
 
-                            {s.status === 'live' ? (
-                              <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-rose-600 text-white text-xs font-black animate-pulse shadow-xs">
-                                <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-                                <span>مباشر الآن 🔴</span>
+              if (teacherLiveSessions.length === 0) {
+                return (
+                  <div className="text-center py-12 text-slate-400 space-y-2">
+                    <Radio className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 stroke-[1.5]" />
+                    <p className="text-xs font-bold">لا توجد حصص بث مباشر مسجلة لمادتك حتى الآن.</p>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="space-y-4">
+                  {teacherLiveSessions.map(s => {
+                    const isStudioActive = selectedStudioSessionId === s.id;
+                    const safeDateString = (() => {
+                      if (!s.scheduledAt) return 'الآن';
+                      try {
+                        const d = new Date(s.scheduledAt);
+                        return isNaN(d.getTime()) ? 'الآن' : d.toLocaleString('ar-EG');
+                      } catch (e) {
+                        return 'الآن';
+                      }
+                    })();
+
+                    return (
+                      <div 
+                        key={s.id}
+                        className={`p-5 rounded-3xl border transition-all space-y-4 ${
+                          s.status === 'live'
+                            ? 'bg-rose-500/5 dark:bg-rose-500/10 border-rose-500/40 ring-2 ring-rose-500/20'
+                            : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800'
+                        }`}
+                      >
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                          
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400">
+                                {s.subject} • {s.gradeName}
                               </span>
-                            ) : s.status === 'scheduled' ? (
-                              <span className="text-xs font-black text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2.5 py-0.5 rounded-full border border-blue-500/20">
-                                ⏳ موعد البث: {new Date(s.scheduledAt).toLocaleString('ar-EG')}
-                              </span>
-                            ) : (
-                              <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-                                📼 مسجل ومنتهي
-                              </span>
-                            )}
-                          </div>
+
+                              {s.status === 'live' ? (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-rose-600 text-white text-xs font-black animate-pulse shadow-xs">
+                                  <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                                  <span>مباشر الآن 🔴</span>
+                                </span>
+                              ) : s.status === 'scheduled' ? (
+                                <span className="text-xs font-black text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2.5 py-0.5 rounded-full border border-blue-500/20">
+                                  ⏳ موعد البث: {safeDateString}
+                                </span>
+                              ) : (
+                                <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                                  📼 مسجل ومنتهي
+                                </span>
+                              )}
+                            </div>
 
                           <h4 className="text-base font-black text-slate-900 dark:text-white">
                             {s.title}
