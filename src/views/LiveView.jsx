@@ -580,7 +580,9 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                   <div className="space-y-1">
                     <h3 className="text-xl font-black">حصة Google Meet المباشرة 🚀</h3>
                     <p className="text-xs text-slate-300 font-bold leading-relaxed">
-                      هذا البث مستضاف عبر Google Meet المباشر. اضغط على الزر أدناه للدخول إلى القاعة والتفاعل بالصوت والصورة.
+                      {isTeacher 
+                        ? 'أنت مستضيف هذا الاجتماع. اضغط على الزر أدناه لفتح قاعة Google Meet وبدء الشرح ومشاركة الشاشة والكاميرا.'
+                        : 'تم قبولك بالقاعة بنجاح! اضغط على الزر أدناه للانضمام إلى اجتماع Google Meet والتفاعل بالصوت والصورة مع المستر.'}
                     </p>
                   </div>
                   <a
@@ -590,7 +592,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                     className="bg-blue-600 hover:bg-blue-500 text-white font-black text-sm px-8 py-3.5 rounded-2xl shadow-xl transition-all flex items-center gap-2 hover:scale-105"
                   >
                     <ExternalLink className="w-4 h-4" />
-                    <span>دخول اجتماع Google Meet الآن 🚀</span>
+                    <span>{isTeacher ? 'فتح وإدارة اجتماع Google Meet الآن 📹' : 'دخول اجتماع Google Meet المباشر مع المستر 🚀'}</span>
                   </a>
                 </div>
               ) : (
