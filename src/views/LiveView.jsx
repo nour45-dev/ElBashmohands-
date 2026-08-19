@@ -249,6 +249,19 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
     peer.on('call', (incomingCall) => {
       console.log('Student connecting to live stream...');
       incomingCall.answer(activeStreamRef.current || stream);
+
+      // Listen for incoming student microphone voice
+      incomingCall.on('stream', (studentStream) => {
+        try {
+          if (studentStream && studentStream.getAudioTracks().length > 0) {
+            const studentAudio = new Audio();
+            studentAudio.srcObject = studentStream;
+            studentAudio.play().catch(() => {});
+          }
+        } catch (err) {
+          console.log('Error playing student audio on teacher device:', err);
+        }
+      });
     });
 
     peer.on('error', (err) => {
@@ -259,8 +272,37 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
   // Student Video & Audio Receiver State
   const remoteVideoRef = useRef(null);
   const studentPeerRef = useRef(null);
+  const studentCallRef = useRef(null);
   const [hasRemoteVideo, setHasRemoteVideo] = useState(false);
   const [isAudioMutedByBrowser, setIsAudioMutedByBrowser] = useState(true);
+  const [isStudentMicActive, setIsStudentMicActive] = useState(false);
+  const [studentMicStream, setStudentMicStream] = useState(null);
+
+  // Student toggle live microphone to speak to teacher
+  const toggleStudentMic = async () => {
+    try {
+      if (isStudentMicActive && studentMicStream) {
+        studentMicStream.getTracks().forEach(t => t.stop());
+        setStudentMicStream(null);
+        setIsStudentMicActive(false);
+      } else {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        setStudentMicStream(stream);
+        setIsStudentMicActive(true);
+
+        // Replace audio track on WebRTC connection so teacher hears the student
+        if (studentCallRef.current?.peerConnection) {
+          const senders = studentCallRef.current.peerConnection.getSenders();
+          const audioSender = senders.find(s => s.track && s.track.kind === 'audio') || senders[0];
+          if (audioSender && stream.getAudioTracks()[0]) {
+            audioSender.replaceTrack(stream.getAudioTracks()[0]);
+          }
+        }
+      }
+    } catch (e) {
+      alert('يرجى السماح بصلاحيات الميكروفون للتحدث مع المعلم في الحصة!');
+    }
+  };
 
   // Student PeerJS Receiver Listener
   useEffect(() => {
@@ -296,9 +338,11 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
           const dummyVideoTrack = canvasStream.getVideoTracks()[0];
           dummyVideoTrack.enabled = false;
 
-          const dummyStream = new MediaStream([dummyAudioTrack, dummyVideoTrack]);
+          const initialStream = studentMicStream || new MediaStream([dummyAudioTrack, dummyVideoTrack]);
 
-          const call = studentPeer.call(targetTeacherId, dummyStream);
+          const call = studentPeer.call(targetTeacherId, initialStream);
+          studentCallRef.current = call;
+
           if (call) {
             call.on('stream', (teacherStream) => {
               console.log('Teacher stream received with tracks:', teacherStream.getTracks().map(t => t.kind));
@@ -403,24 +447,27 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
 
         try {
           const uploadRes = await uploadVideoFile(file);
-          if (uploadRes?.url) {
-            setRecordingSavedUrl(uploadRes.url);
-            await adminUpdateLiveStatus(currentSession.id, currentSession.status, uploadRes.url);
-            await refreshLiveSession(currentSession.id);
-            alert('تم تسجيل ورفع الحصة تلقائياً وحفظها في أرشيف الأدمن بنجاح! 💾🎉');
-          } else {
-            const videoUrl = URL.createObjectURL(blob);
-            setRecordingSavedUrl(videoUrl);
-            await adminUpdateLiveStatus(currentSession.id, currentSession.status, videoUrl);
-            await refreshLiveSession(currentSession.id);
-            alert('تم حفظ تسجيل الحصة بنجاح! 💾');
-          }
+          const finalUrl = uploadRes?.url || URL.createObjectURL(blob);
+          setRecordingSavedUrl(finalUrl);
+          
+          // Save recording automatically to live session & lesson archive
+          await adminUpdateLiveStatus(currentSession.id, currentSession.status, finalUrl);
+          await refreshLiveSession(currentSession.id);
+          alert('تم حفظ تسجيل الحصة تلقائياً وإضافته إلى أرشيف الحصص بنجاح! 💾🎉');
         } catch (e) {
           console.error('Auto upload error', e);
         } finally {
           setIsUploadingRecording(false);
         }
       };
+
+      recorder.start(1000);
+      mediaRecorderRef.current = recorder;
+      setIsRecording(true);
+    } catch (err) {
+      console.log('Recording cancelled or not permitted');
+    }
+  };
 
       recorder.start(1000);
       mediaRecorderRef.current = recorder;
@@ -1064,13 +1111,15 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                         <Hand className="w-5 h-5" />
                       </button>
 
-                      {/* Mic Button for Student */}
+                      {/* Mic Button for Student (2-Way Speaking) */}
                       <button
-                        onClick={() => alert('يمكنك التحدث بالمايك فور إتاحة المعلم للكلمة! ✋')}
-                        title="طلب التحدث"
-                        className="w-11 h-11 rounded-full flex items-center justify-center bg-[#3c4043] hover:bg-[#4a4e51] text-white transition-all"
+                        onClick={toggleStudentMic}
+                        title={isStudentMicActive ? 'كتم المايك' : 'تشغيل المايك والتحدث مع المعلم'}
+                        className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                          isStudentMicActive ? 'bg-emerald-600 text-white animate-pulse shadow-lg' : 'bg-[#3c4043] hover:bg-[#4a4e51] text-white'
+                        }`}
                       >
-                        <Mic className="w-5 h-5" />
+                        {isStudentMicActive ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5 text-rose-400" />}
                       </button>
 
                       {/* Leave Meeting Button */}
