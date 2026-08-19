@@ -268,18 +268,16 @@ export const LoginView = () => {
                 متابعة ولي الأمر 👨‍👦
               </button>
 
-              {adminUnlocked && (
-                <button
-                  onClick={() => { setActiveTab('admin-login'); setErrorMessage(null); setSuccessMessage(null); }}
-                  className={`flex-1 py-3 px-3 rounded-xl transition-all whitespace-nowrap text-center ${
-                    activeTab === 'admin-login' 
-                      ? 'bg-amber-500 text-slate-950 shadow-md' 
-                      : 'text-amber-600 dark:text-amber-400 hover:bg-white/50 dark:hover:bg-slate-800/50'
-                  }`}
-                >
-                  لوحة الإدارة 💻
-                </button>
-              )}
+              <button
+                onClick={() => { setActiveTab('admin-login'); setErrorMessage(null); setSuccessMessage(null); }}
+                className={`flex-1 py-3 px-3 rounded-xl transition-all whitespace-nowrap text-center font-black ${
+                  activeTab === 'admin-login' 
+                    ? 'bg-amber-500 text-slate-950 shadow-md' 
+                    : 'text-amber-600 dark:text-amber-400 hover:bg-white/50 dark:hover:bg-slate-800/50'
+                }`}
+              >
+                لوحة الإدارة 💻
+              </button>
             </div>
 
             {/* Secret Gate Modal */}
