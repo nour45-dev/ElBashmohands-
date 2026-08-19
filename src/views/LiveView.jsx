@@ -45,6 +45,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
     admitStudentLive,
     admitAllStudentsLive,
     sendLiveHeartbeat,
+    uploadVideoFile,
     student, 
     userRole, 
     adminIdentity,
@@ -95,7 +96,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
   // Pending admission requests for Teacher (Google Meet style)
   const pendingRequests = currentSession?.joinRequests?.filter(r => r.status === 'pending') || [];
 
-  // Actual Real-Time Viewers Count (No fake 342)
+  // Actual Real-Time Viewers Count (No fake numbers)
   const actualViewersCount = currentSession?.viewersCount || 1;
 
   // Heartbeat & Real-time Live Presence
@@ -153,8 +154,12 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
     }
   };
 
-  // In-Browser Native Camera & Screen Share Live Studio State (for Teacher)
+  // Google Meet Interactive Media Controls
   const [localStream, setLocalStream] = useState(false);
+  const [isMicMuted, setIsMicMuted] = useState(false);
+  const [isCameraOff, setIsCameraOff] = useState(false);
+  const [isSharingScreen, setIsSharingScreen] = useState(false);
+  const [isUploadingRecording, setIsUploadingRecording] = useState(false);
 
   // In-App Live Broadcast Recording Controller
   const [isRecording, setIsRecording] = useState(false);
@@ -192,13 +197,31 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
       };
 
       recorder.onstop = async () => {
-        const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
-        const videoUrl = URL.createObjectURL(blob);
-        setRecordingSavedUrl(videoUrl);
         setIsRecording(false);
-        await adminUpdateLiveStatus(currentSession.id, currentSession.status, videoUrl);
-        await refreshLiveSession(currentSession.id);
-        alert('تم إيقاف وحفظ تسجيل الحصة بنجاح في لوحة المعلم وأرشيف الحصص! 💾🎉');
+        setIsUploadingRecording(true);
+        const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+        const file = new File([blob], `live_record_${currentSession.id}.webm`, { type: 'video/webm' });
+
+        try {
+          // Automatic Upload to Server without manual link copying!
+          const uploadRes = await uploadVideoFile(file);
+          if (uploadRes?.url) {
+            setRecordingSavedUrl(uploadRes.url);
+            await adminUpdateLiveStatus(currentSession.id, currentSession.status, uploadRes.url);
+            await refreshLiveSession(currentSession.id);
+            alert('تم تسجيل ورفع الحصة تلقائياً على السيرفر وحفظ الرابط بنجاح في أرشيف الأدمن! 💾🎉');
+          } else {
+            const videoUrl = URL.createObjectURL(blob);
+            setRecordingSavedUrl(videoUrl);
+            await adminUpdateLiveStatus(currentSession.id, currentSession.status, videoUrl);
+            await refreshLiveSession(currentSession.id);
+            alert('تم حفظ تسجيل الحصة بنجاح! 💾');
+          }
+        } catch (e) {
+          console.error('Auto upload error', e);
+        } finally {
+          setIsUploadingRecording(false);
+        }
       };
 
       recorder.start(1000);
@@ -710,29 +733,75 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
 
             </div>
 
-            {/* ═══ Google Meet Style Bottom Floating Toolbar (شريط تحكم جوجل ميت) ═══ */}
-            <div className="bg-slate-900/95 backdrop-blur-md border-t border-slate-800 px-4 py-3 z-30 flex items-center justify-between gap-3">
+            {/* ═══ Google Meet Style Bottom Floating Toolbar (شريط تحكم جوجل ميت الكامل) ═══ */}
+            <div className="bg-slate-900/95 backdrop-blur-md border-t border-slate-800 px-4 py-3 z-30 flex flex-wrap items-center justify-between gap-3">
               
-              {/* Left / Teacher Studio Media Controls */}
+              {/* Left & Center / Google Meet Media Controls for Teacher and Student */}
               <div className="flex flex-wrap items-center gap-2">
                 {isTeacher ? (
                   <>
-                    {/* Live Screen & Audio Recording Button */}
+                    {/* Teacher Mic Toggle Button */}
+                    <button
+                      onClick={() => setIsMicMuted(!isMicMuted)}
+                      title={isMicMuted ? 'تشغيل المايك' : 'كتم المايك'}
+                      className={`p-3 rounded-2xl font-black text-xs transition-all flex items-center gap-1.5 shadow-md ${
+                        isMicMuted 
+                          ? 'bg-rose-600 hover:bg-rose-500 text-white' 
+                          : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                      }`}
+                    >
+                      <Volume2 className="w-4 h-4" />
+                      <span className="hidden sm:inline">{isMicMuted ? 'المايك مكتوم 🔇' : 'المايك شغال 🎙️'}</span>
+                    </button>
+
+                    {/* Teacher Camera Toggle Button */}
+                    <button
+                      onClick={() => setIsCameraOff(!isCameraOff)}
+                      title={isCameraOff ? 'تشغيل الكاميرا' : 'إيقاف الكاميرا'}
+                      className={`p-3 rounded-2xl font-black text-xs transition-all flex items-center gap-1.5 shadow-md ${
+                        isCameraOff 
+                          ? 'bg-rose-600 hover:bg-rose-500 text-white' 
+                          : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                      }`}
+                    >
+                      <Video className="w-4 h-4" />
+                      <span className="hidden sm:inline">{isCameraOff ? 'الكاميرا متوقفة 🚫' : 'الكاميرا شغالة 📹'}</span>
+                    </button>
+
+                    {/* Teacher Screen Share Toggle Button */}
+                    <button
+                      onClick={() => setIsSharingScreen(!isSharingScreen)}
+                      title="مشاركة الشاشة"
+                      className={`p-3 rounded-2xl font-black text-xs transition-all flex items-center gap-1.5 shadow-md ${
+                        isSharingScreen 
+                          ? 'bg-emerald-600 hover:bg-emerald-500 text-white animate-pulse' 
+                          : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                      }`}
+                    >
+                      <Share2 className="w-4 h-4" />
+                      <span className="hidden sm:inline">{isSharingScreen ? 'مشاركة الشاشة نشطة 🖥️' : 'مشاركة الشاشة 🖥️'}</span>
+                    </button>
+
+                    {/* Live Screen & Audio Recording Button (Auto Server Upload) */}
                     {isRecording ? (
                       <button
                         onClick={handleStopRecording}
                         className="px-4 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs flex items-center gap-2 shadow-lg animate-pulse"
                       >
                         <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping" />
-                        <span>جاري التسجيل ({formatRecordingDuration(recordingSeconds)}) • [💾 إيقاف وحفظ]</span>
+                        <span>جاري التسجيل ({formatRecordingDuration(recordingSeconds)}) • [💾 إيقاف ورفع تلقائي]</span>
                       </button>
+                    ) : isUploadingRecording ? (
+                      <div className="px-4 py-2.5 rounded-2xl bg-amber-500 text-slate-950 font-black text-xs flex items-center gap-2 animate-pulse shadow-md">
+                        <span>⏳ جاري رفع وتخزين الفيديو في الأرشيف تلقائياً...</span>
+                      </div>
                     ) : (
                       <button
                         onClick={handleStartRecording}
                         className="px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-rose-400 font-black text-xs flex items-center gap-1.5 shadow-md transition-all hover:scale-105"
                       >
                         <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-                        <span>🔴 بدء تسجيل الحصة</span>
+                        <span>🔴 تسجيل الحصة ورفعها تلقائياً</span>
                       </button>
                     )}
 
@@ -747,23 +816,52 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                       }}
                       className="px-3.5 py-2.5 rounded-2xl bg-rose-600/90 hover:bg-rose-600 text-white text-xs font-black transition-all shadow-md flex items-center gap-1"
                     >
-                      <span>⏹️ إنهاء البث</span>
+                      <span>⏹️ إنهاء المكالمة</span>
                     </button>
                   </>
                 ) : (
-                  /* Student Interactive Buttons */
-                  <button
-                    onClick={handleHandRaise}
-                    disabled={handRaised}
-                    className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center gap-2 shadow-md ${
-                      handRaised 
-                        ? 'bg-amber-500 text-slate-950 border border-amber-400 font-black' 
-                        : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
-                    }`}
-                  >
-                    <Hand className="w-4 h-4 text-amber-400" />
-                    <span>{handRaised ? 'تم إرسال طلب المداخلة ✋' : 'طلب مداخلة مع المستر ✋'}</span>
-                  </button>
+                  /* Student Google Meet Interactive Buttons */
+                  <>
+                    {/* Student Mic Toggle */}
+                    <button
+                      onClick={() => setIsMicMuted(!isMicMuted)}
+                      className={`px-3.5 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center gap-1.5 shadow-md ${
+                        isMicMuted 
+                          ? 'bg-rose-600 text-white' 
+                          : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                      }`}
+                    >
+                      <Volume2 className="w-4 h-4" />
+                      <span>{isMicMuted ? 'المايك مكتوم' : 'تحدث مع المستر 🎙️'}</span>
+                    </button>
+
+                    {/* Student Camera Toggle */}
+                    <button
+                      onClick={() => setIsCameraOff(!isCameraOff)}
+                      className={`px-3.5 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center gap-1.5 shadow-md ${
+                        isCameraOff 
+                          ? 'bg-rose-600 text-white' 
+                          : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                      }`}
+                    >
+                      <Video className="w-4 h-4" />
+                      <span>{isCameraOff ? 'الكاميرا متوقفة' : 'الكاميرا 📹'}</span>
+                    </button>
+
+                    {/* Student Hand Raise */}
+                    <button
+                      onClick={handleHandRaise}
+                      disabled={handRaised}
+                      className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center gap-2 shadow-md ${
+                        handRaised 
+                          ? 'bg-amber-500 text-slate-950 border border-amber-400 font-black' 
+                          : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                      }`}
+                    >
+                      <Hand className="w-4 h-4 text-amber-400" />
+                      <span>{handRaised ? 'تم رفع اليد ✋' : 'رفع اليد للسؤال ✋'}</span>
+                    </button>
+                  </>
                 )}
               </div>
 
