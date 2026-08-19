@@ -180,6 +180,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
 
   const teacherPeerRef = useRef(null);
   const activeStreamRef = useRef(null);
+  const connectedStudentCallsRef = useRef([]);
 
   const startTeacherCamera = async () => {
     try {
@@ -193,12 +194,32 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
       setIsSharingScreen(false);
       setIsCameraOff(false);
       setIsMicMuted(false);
+      
       setTimeout(() => {
         if (teacherVideoRef.current) {
           teacherVideoRef.current.srcObject = stream;
         }
       }, 100);
-      setupTeacherPeer(stream);
+
+      // If peer already exists, replace video track on all connected student calls without reconnecting
+      if (teacherPeerRef.current && connectedStudentCallsRef.current.length > 0) {
+        const videoTrack = stream.getVideoTracks()[0];
+        connectedStudentCallsRef.current.forEach(call => {
+          try {
+            if (call?.peerConnection) {
+              const senders = call.peerConnection.getSenders();
+              const videoSender = senders.find(s => s.track && s.track.kind === 'video');
+              if (videoSender && videoTrack) {
+                videoSender.replaceTrack(videoTrack);
+              }
+            }
+          } catch (e) {
+            console.log('Error replacing camera track:', e);
+          }
+        });
+      } else {
+        setupTeacherPeer(stream);
+      }
     } catch (e) {
       alert('يرجى السماح بصلاحيات الكاميرا والمايك في المتصفح لبدء البث المباشر!');
     }
@@ -206,24 +227,56 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
 
   const startTeacherScreen = async () => {
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({ 
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({ 
         video: { cursor: "always" }, 
         audio: true 
       });
-      setActiveMediaStream(stream);
-      activeStreamRef.current = stream;
+
+      // Preserve teacher mic audio track along with screen video
+      let audioTracks = activeMediaStream ? activeMediaStream.getAudioTracks() : [];
+      if (audioTracks.length === 0) {
+        try {
+          const mic = await navigator.mediaDevices.getUserMedia({ audio: true });
+          audioTracks = mic.getAudioTracks();
+        } catch (e) {}
+      }
+
+      const screenVideoTrack = screenStream.getVideoTracks()[0];
+      const combinedStream = new MediaStream([screenVideoTrack, ...audioTracks]);
+
+      setActiveMediaStream(combinedStream);
+      activeStreamRef.current = combinedStream;
       setLocalStream(true);
       setIsSharingScreen(true);
       setIsCameraOff(false);
+
       setTimeout(() => {
         if (teacherVideoRef.current) {
-          teacherVideoRef.current.srcObject = stream;
+          teacherVideoRef.current.srcObject = combinedStream;
         }
       }, 100);
-      setupTeacherPeer(stream);
-      stream.getVideoTracks()[0].onended = () => {
-        setIsSharingScreen(false);
-        setLocalStream(false);
+
+      // Seamlessly switch video track on all student connections
+      if (teacherPeerRef.current && connectedStudentCallsRef.current.length > 0) {
+        connectedStudentCallsRef.current.forEach(call => {
+          try {
+            if (call?.peerConnection) {
+              const senders = call.peerConnection.getSenders();
+              const videoSender = senders.find(s => s.track && s.track.kind === 'video');
+              if (videoSender && screenVideoTrack) {
+                videoSender.replaceTrack(screenVideoTrack);
+              }
+            }
+          } catch (e) {
+            console.log('Error replacing screen share track:', e);
+          }
+        });
+      } else {
+        setupTeacherPeer(combinedStream);
+      }
+
+      screenVideoTrack.onended = () => {
+        startTeacherCamera();
       };
     } catch (e) {
       console.log('Screen share cancelled');
@@ -236,6 +289,10 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
     const peerId = `elm_teacher_${currentSession.id.replace(/[^a-zA-Z0-9]/g, '_')}`;
     
     if (teacherPeerRef.current) {
+      // Don't destroy if peer is already active on this ID
+      if (teacherPeerRef.current.id === peerId && !teacherPeerRef.current.destroyed) {
+        return;
+      }
       teacherPeerRef.current.destroy();
     }
 
@@ -248,6 +305,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
 
     peer.on('call', (incomingCall) => {
       console.log('Student connecting to live stream...');
+      connectedStudentCallsRef.current.push(incomingCall);
       incomingCall.answer(activeStreamRef.current || stream);
 
       // Listen for incoming student microphone voice
@@ -1523,10 +1581,19 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
             {sidebarTab === 'archive' && (
               <div className="flex-1 p-3.5 space-y-3 overflow-y-auto custom-scrollbar">
                 <div className="text-xs font-black text-slate-700 dark:text-slate-300 mb-1">
-                  جدول البثوث المباشرة لحسابك:
+                  جدول البثوث المباشرة لمادتك:
                 </div>
 
-                {liveSessionsDB.map(s => {
+                {liveSessionsDB.filter(s => {
+                  if (isTeacher) {
+                    if (adminIdentity === 'mr_sayed') {
+                      return s.subject === 'اللغة العربية' || s.subject?.includes('عربي') || s.subject === 'arabic' || s.instructor?.includes('سيد');
+                    } else if (adminIdentity === 'eng_nour') {
+                      return s.subject === 'برمجة وعلوم الحاسب' || s.subject?.includes('برمج') || s.subject === 'programming' || s.instructor?.includes('نور');
+                    }
+                  }
+                  return true;
+                }).map(s => {
                   const isCurrent = s.id === currentSession.id;
                   return (
                     <div
