@@ -70,7 +70,8 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
     adminUpdateLiveStatus,
     adminDeleteLiveSession,
     adminBroadcastLiveAlert,
-    adminLaunchLivePoll
+    adminLaunchLivePoll,
+    uploadVideoFile
   } = useApp();
 
   const isSayedAdmin = adminIdentity === 'mr_sayed';
@@ -651,15 +652,19 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
     <div className="space-y-8 pb-16">
       
       {/* Admin Header Banner */}
-      <div className="bg-slate-900 text-white p-8 rounded-3xl border border-slate-800 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6">
+      <div className="bg-slate-900 text-white p-6 md:p-8 rounded-3xl border border-slate-800 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="space-y-2 text-right">
-          <div className="inline-flex items-center gap-2 bg-amber-500/20 text-amber-300 text-xs font-black px-3 py-1 rounded-full border border-amber-500/30">
+          <div className="inline-flex items-center gap-2 bg-amber-500/20 text-amber-300 text-xs font-black px-3.5 py-1 rounded-full border border-amber-500/30">
             <ShieldCheck className="w-4 h-4 text-amber-400" />
-            <span>لوحة التحكم الإدارية • المعلم 💻</span>
+            <span>{isSayedAdmin ? 'أ / سيد عبد العاطي • معلم خبير اللغة العربية 📖' : 'م / نور الدين • مهندس البرمجة وعلوم الحاسب 💻'}</span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-black">إدارة الحصص، الأسئلة والردود، المدفوعات، والكوبونات</h1>
+          <h1 className="text-2xl md:text-3xl font-black">
+            {isSayedAdmin ? 'لوحة تحكم مادة اللغة العربية 📖' : 'لوحة تحكم مادة البرمجة وعلوم الحاسب 💻'}
+          </h1>
           <p className="text-xs text-slate-400 font-medium">
-            الرد الفوري على أسئلة الطلاب، تعديل وتحديد أسعار الحصص، والموافقة على سكرين شوت إيصالات الشحن.
+            {isSayedAdmin 
+              ? 'إدارة حصص ومذكرات واختبارات وبثوث مادة اللغة العربية للثانوية العامة.'
+              : 'إدارة حصص وأكواد وتطبيقات واختبارات وبثوث مادة البرمجة وعلوم الحاسب.'}
           </p>
         </div>
 
@@ -668,7 +673,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
             onClick={handleBulkWhatsAppBroadcast}
             className="btn-whatsapp text-xs font-black px-4 py-2.5 rounded-xl shadow-md"
           >
-            بث واتساب لجميع الطلاب 📲
+            بث واتساب لطلاب المادة 📲
           </button>
         </div>
       </div>
@@ -680,7 +685,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
           className={`px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all whitespace-nowrap ${adminTab === 'live' ? 'bg-rose-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
         >
           <Radio className="w-4 h-4 text-rose-400" />
-          <span>🔴 إدارة البث المباشر ({liveSessionsDB.length})</span>
+          <span>🔴 البث المباشر ({liveSessionsDB.filter(s => isSayedAdmin ? (s.subject === 'اللغة العربية' || s.subject?.includes('عرب') || s.subject === 'arabic') : (!s.subject?.includes('عرب') && s.subject !== 'arabic')).length})</span>
           {liveSessionsDB.some(s => s.status === 'live') && (
             <span className="w-2 h-2 rounded-full bg-white animate-ping" />
           )}
@@ -691,7 +696,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
           className={`px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all whitespace-nowrap ${adminTab === 'videos' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
         >
           <Video className="w-4 h-4" />
-          رفع وتعديل وحذف الحصص ({lessons.length})
+          الحصص والمذكرات ({lessons.filter(l => isSayedAdmin ? (l.subject === 'اللغة العربية' || l.subject?.includes('عرب') || l.subject === 'arabic') : (!l.subject?.includes('عرب') && l.subject !== 'arabic')).length})
         </button>
 
         <button
@@ -699,7 +704,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
           className={`px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all whitespace-nowrap ${adminTab === 'coupons' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
         >
           <Ticket className="w-4 h-4 text-amber-500" />
-          إدارة الكوبونات والخصومات ({couponsDB.length})
+          الكوبونات ({couponsDB.length})
         </button>
 
         <button
@@ -707,7 +712,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
           className={`px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all whitespace-nowrap ${adminTab === 'payments' ? 'bg-purple-900 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
         >
           <CreditCard className="w-4 h-4 text-amber-400" />
-          <span>طلبات الشحن والمدفوعات ({pendingPaymentsCount} معلق) 💳</span>
+          <span>المدفوعات ({pendingPaymentsCount} معلق) 💳</span>
         </button>
 
         <button
@@ -715,7 +720,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
           className={`px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all whitespace-nowrap ${adminTab === 'qa' ? 'bg-blue-900 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
         >
           <MessageSquare className="w-4 h-4 text-amber-400" />
-          الأسئلة والردود ({pendingQAQuestionsCount} معلق) 💬
+          الأسئلة والردود ({videoQuestions.filter(q => isSayedAdmin ? (q.subject === 'اللغة العربية' || q.subject?.includes('عرب') || q.subject === 'arabic') : (!q.subject?.includes('عرب') && q.subject !== 'arabic')).length}) 💬
         </button>
 
         <button
@@ -723,7 +728,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
           className={`px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all whitespace-nowrap ${adminTab === 'students' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
         >
           <Users className="w-4 h-4" />
-          إدارة الطلاب ({studentsDB.length})
+          الطلاب ({studentsDB.length})
         </button>
 
         <button
@@ -1080,10 +1085,15 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
 
                           {s.status === 'live' && (
                             <button
-                              onClick={() => adminUpdateLiveStatus(s.id, 'ended')}
-                              className="bg-slate-800 hover:bg-slate-700 text-white text-xs font-black px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5"
+                              onClick={async () => {
+                                if (window.confirm(`هل أنت متأكد من إنهاء وإيقاف بث "${s.title}" لجميع الطلاب الآن؟`)) {
+                                  const res = await adminUpdateLiveStatus(s.id, 'ended');
+                                  alert(res.message || 'تم إنهاء البث بنجاح!');
+                                }
+                              }}
+                              className="bg-rose-700 hover:bg-rose-600 text-white text-xs font-black px-4 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-1.5 animate-pulse"
                             >
-                              <span>⏹️ إنهاء البث</span>
+                              <span>⏹️ إنهاء البث فوراً</span>
                             </button>
                           )}
 
@@ -1285,22 +1295,52 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                       {session.title}
                     </h4>
 
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-black text-slate-600 dark:text-slate-400 block">
-                        رابط تسجيل الحصة (Google Drive / YouTube / File):
-                      </label>
-                      <div className="flex items-center gap-2">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-black text-slate-700 dark:text-slate-300 block">
+                          ملف أو رابط تسجيل الحصة:
+                        </label>
+                        {session.recordingUrl && (
+                          <span className="text-[10px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold px-2 py-0.5 rounded-md">
+                            ✓ التسجيل محفوظ وجاهز
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Direct Video File Upload Button (Zero manual link copying) */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <label className="cursor-pointer bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-3.5 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1.5 hover:scale-105">
+                          <span>📁 رفع فيديو مسجل من جهازك فوراً 🚀</span>
+                          <input
+                            type="file"
+                            accept="video/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              try {
+                                alert('جاري رفع وتخزين الفيديو على السيرفر...');
+                                const res = await uploadVideoFile(file);
+                                if (res?.url) {
+                                  await adminUpdateLiveStatus(session.id, session.status, res.url);
+                                  alert('تم رفع وتخزين الفيديو تلقائياً بنجاح! 💾🎉');
+                                }
+                              } catch (err) {
+                                alert('فشل رفع الفيديو');
+                              }
+                            }}
+                          />
+                        </label>
+
                         <input
                           type="url"
-                          defaultValue={session.recordingUrl || ''}
-                          placeholder="https://drive.google.com/... أو https://youtube.com/..."
-                          onBlur={(e) => {
+                          value={session.recordingUrl || ''}
+                          placeholder="الرابط يوضع تلقائياً عند التسجيل أو الرفع..."
+                          onChange={(e) => {
                             const newUrl = e.target.value.trim();
-                            if (newUrl !== session.recordingUrl) {
-                              adminUpdateLiveStatus(session.id, session.status, newUrl);
-                            }
+                            adminUpdateLiveStatus(session.id, session.status, newUrl);
                           }}
-                          className="flex-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 dark:text-white outline-none dir-ltr"
+                          className="flex-1 min-w-[200px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 dark:text-white outline-none dir-ltr"
                         />
                       </div>
                     </div>
@@ -1308,23 +1348,29 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                     <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
                       <button
                         onClick={async () => {
+                          if (!session.recordingUrl) {
+                            alert('تنبيه: يرجى تسجيل أو رفع فيديو الحصة أولاً عبر زر [📁 رفع فيديو] قبل النشر للطلاب.');
+                            return;
+                          }
+                          const isDirectFile = session.recordingUrl.includes('/uploads/') || session.recordingUrl.endsWith('.mp4') || session.recordingUrl.endsWith('.webm');
                           const newLessonObj = {
                             id: `lesson_live_${session.id}`,
                             title: `📼 تسجيل: ${session.title}`,
                             description: session.description || `تسجيل الحصة المباشرة لمادة ${session.subject}`,
-                            videoUrl: session.recordingUrl || 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
+                            videoUrl: session.recordingUrl,
+                            videoType: isDirectFile ? 'file' : 'youtube',
                             grade: session.grade,
                             subject: session.subject === 'اللغة العربية' ? 'arabic' : 'programming',
-                            duration: '1 ساعة',
+                            duration: session.duration || 'حصة مسجلة',
                             price: 0,
                             isFree: true
                           };
-                          adminAddLesson(newLessonObj);
-                          alert('تم نشر تسجيل الحصة بنجاح في كروت المواد للطلاب! 🎉');
+                          await adminAddLesson(newLessonObj);
+                          alert('تم نشر تسجيل الحصة بنجاح في كروت المواد للطلاب! 🎉 ستظهر الآن في الصفحة الرئيسية.');
                         }}
                         className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-black px-4 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1.5"
                       >
-                        <span>📤 نشر التسجيل في كروت الطلاب</span>
+                        <span>📤 نشر التسجيل فوراً في كروت الطلاب</span>
                       </button>
 
                       {session.recordingUrl && (
@@ -1335,7 +1381,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                           className="bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 text-slate-800 dark:text-slate-200 text-xs font-black px-3 py-2 rounded-xl transition-all flex items-center gap-1"
                         >
                           <Eye className="w-3.5 h-3.5" />
-                          <span>مشاهدة</span>
+                          <span>معاينة</span>
                         </a>
                       )}
                     </div>
