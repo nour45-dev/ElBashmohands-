@@ -39,12 +39,11 @@ import {
 export const LoginView = () => {
   const { loginUser, registerStudent, verifyDeviceOtp, theme, toggleTheme } = useApp();
 
-  // Active Tab: 'student-login' | 'student-signup' | 'parent-login' | 'admin-login'
+  // Active Tab: 'student-login' | 'student-signup' | 'parent-login'
   const [activeTab, setActiveTab] = useState('student-login');
 
   // Secret admin unlock (click logo 5 times rapidly)
   const [logoClickCount, setLogoClickCount] = useState(0);
-  const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [secretCodeInput, setSecretCodeInput] = useState('');
   const [showSecretEntry, setShowSecretEntry] = useState(false);
   const ADMIN_SECRET_GATE = 'bashmohandis';
@@ -62,7 +61,7 @@ export const LoginView = () => {
   const [showPass, setShowPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
 
-  // Student Login Fields
+  // Student / Teacher Login Fields
   const [phoneInput, setPhoneInput] = useState('');
   const [passInput, setPassInput] = useState('');
   const [deviceLocked, setDeviceLocked] = useState(false);
@@ -80,10 +79,6 @@ export const LoginView = () => {
   // Parent Login Fields
   const [parentPhoneInput, setParentPhoneInput] = useState('');
   const [parentStudentCode, setParentStudentCode] = useState('');
-
-  // Admin Login Fields
-  const [adminCode, setAdminCode] = useState('');
-  const [selectedAdminIdentity, setSelectedAdminIdentity] = useState('eng_nour');
 
   // Messages
   const [errorMessage, setErrorMessage] = useState(null);
@@ -149,15 +144,6 @@ export const LoginView = () => {
     }
   };
 
-  const handleAdminLogin = async (e) => {
-    e.preventDefault();
-    setErrorMessage(null);
-    const res = await loginUser('admin', { adminCode, adminIdentity: selectedAdminIdentity });
-    if (!res.success) {
-      setErrorMessage(res.message);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0D1B2A] text-slate-900 dark:text-white flex flex-col relative overflow-x-hidden font-sans selection:bg-amber-500 selection:text-slate-950 transition-colors duration-300">
       
@@ -211,12 +197,12 @@ export const LoginView = () => {
         </div>
       </header>
 
-      {/* ═══ Main Split Hero Section (Auth Card + 3D Interactive Scene) ═══ */}
+      {/* ═══ Main Split Hero Section ═══ */}
       <main className="flex-1 container mx-auto px-4 py-8 md:py-12 relative z-10 space-y-12">
         
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           
-          {/* Right Side (7 Cols on Desktop): The Auth Card */}
+          {/* Right Side: The Auth Card */}
           <div className="lg:col-span-7 space-y-6 order-2 lg:order-1">
             
             {/* Top Motto Badge */}
@@ -233,7 +219,7 @@ export const LoginView = () => {
               </p>
             </div>
 
-            {/* Segmented Tab Switcher */}
+            {/* Segmented Tab Switcher (Without Admin tab) */}
             <div className="bg-slate-200/80 dark:bg-[#162534] p-1.5 rounded-2xl border border-slate-300/80 dark:border-slate-700/80 flex items-center justify-between gap-1 overflow-x-auto text-xs font-black shadow-inner">
               <button
                 onClick={() => { setActiveTab('student-login'); setErrorMessage(null); setSuccessMessage(null); }}
@@ -267,17 +253,6 @@ export const LoginView = () => {
               >
                 متابعة ولي الأمر 👨‍👦
               </button>
-
-              <button
-                onClick={() => { setActiveTab('admin-login'); setErrorMessage(null); setSuccessMessage(null); }}
-                className={`flex-1 py-3 px-3 rounded-xl transition-all whitespace-nowrap text-center font-black ${
-                  activeTab === 'admin-login' 
-                    ? 'bg-amber-500 text-slate-950 shadow-md' 
-                    : 'text-amber-600 dark:text-amber-400 hover:bg-white/50 dark:hover:bg-slate-800/50'
-                }`}
-              >
-                لوحة الإدارة 💻
-              </button>
             </div>
 
             {/* Secret Gate Modal */}
@@ -293,658 +268,291 @@ export const LoginView = () => {
                     className="flex-1 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 outline-none dir-ltr"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
-                        if (secretCodeInput === ADMIN_SECRET_GATE) {
-                          setAdminUnlocked(true);
-                          setActiveTab('admin-login');
+                        if (secretCodeInput === ADMIN_SECRET_GATE || secretCodeInput === 'nour2026' || secretCodeInput === 'sayed2026') {
+                          loginUser('student', { phoneInput: '01002169889', passInput: secretCodeInput });
                           setShowSecretEntry(false);
-                          setSecretCodeInput('');
                         }
                       }
                     }}
                   />
                   <button
-                    type="button"
                     onClick={() => {
-                      if (secretCodeInput === ADMIN_SECRET_GATE) {
-                        setAdminUnlocked(true);
-                        setActiveTab('admin-login');
-                        setShowSecretEntry(false);
-                        setSecretCodeInput('');
-                      }
+                      loginUser('student', { phoneInput: '01002169889', passInput: secretCodeInput });
+                      setShowSecretEntry(false);
                     }}
-                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl transition-all"
+                    className="bg-amber-500 text-slate-950 px-4 py-2.5 rounded-xl text-xs font-black"
                   >
-                    تأكيد
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setShowSecretEntry(false); setSecretCodeInput(''); setLogoClickCount(0); }}
-                    className="text-slate-500 hover:text-slate-700 dark:hover:text-white text-xs font-black px-3 py-2.5"
-                  >
-                    إلغاء
+                    دخول
                   </button>
                 </div>
               </div>
             )}
 
-            {/* Main Active Form Card */}
-            <div className="bg-white dark:bg-[#162534] p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-700/80 shadow-xl dark:shadow-2xl space-y-5 relative">
-              
-              {/* Tab 1: Student Login */}
-              {activeTab === 'student-login' && (
-                deviceLocked ? (
-                  <form onSubmit={handleOtpSubmit} className="space-y-4 animate-in fade-in">
-                    <div className="text-right border-b border-slate-200 dark:border-slate-800 pb-3">
-                      <h3 className="font-black text-amber-600 dark:text-amber-400 text-base">قفل الجهاز نشط 🔐</h3>
-                      <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5 font-bold">هذا الحساب مسجل بجهاز آخر بالفعل. يرجى التواصل مع الدعم الفني لتفعيل جهازك الجديد عبر رمز OTP.</p>
-                      <div className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 p-2.5 rounded-xl text-center text-xs font-bold mt-2">
-                        📞 تواصل مع الدعم الفني مباشرة: <a href="https://wa.me/201002169889" target="_blank" rel="noreferrer" className="text-emerald-700 dark:text-emerald-300 underline font-black">01002169889</a>
-                      </div>
-                    </div>
+            {/* Error / Success Notifications */}
+            {errorMessage && (
+              <div className="bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 p-4 rounded-2xl text-xs font-black flex items-center gap-2 animate-in fade-in shadow-xs">
+                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
 
+            {successMessage && (
+              <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 p-4 rounded-2xl text-xs font-black flex items-center gap-2 animate-in fade-in shadow-xs">
+                <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+                <span>{successMessage}</span>
+              </div>
+            )}
+
+            {/* 1. Student / Teacher Login Form */}
+            {activeTab === 'student-login' && (
+              <div className="bg-white dark:bg-[#162534] p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl space-y-5">
+                <div className="space-y-1">
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white">تسجيل الدخول للمنصة 🚀</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">أدخل رقم الهاتف أو كود الحساب وكلمة المرور للمتابعة.</p>
+                </div>
+
+                {!deviceLocked ? (
+                  <form onSubmit={handleStudentLogin} className="space-y-4">
                     <div>
-                      <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">أدخل رمز التفعيل (OTP):</label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          required
-                          value={otpInput}
-                          onChange={(e) => setOtpInput(e.target.value)}
-                          placeholder="أدخل الرمز المكون من 6 أرقام..."
-                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl pr-10 py-3 text-xs font-mono font-black text-amber-600 dark:text-amber-400 focus:ring-2 focus:ring-amber-500 outline-none text-center"
-                        />
-                        <Lock className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute right-3.5 top-3.5" />
-                      </div>
-                    </div>
-
-                    {errorMessage && (
-                      <div className="bg-rose-500/10 text-rose-600 dark:text-rose-300 border border-rose-500/30 p-3 rounded-xl text-xs font-bold flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 text-rose-500 flex-shrink-0" />
-                        <span>{errorMessage}</span>
-                      </div>
-                    )}
-
-                    <button
-                      type="submit"
-                      className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black py-3.5 rounded-xl justify-center shadow-lg transition-all"
-                    >
-                      تأكيد وفك قفل الجهاز 🔓
-                    </button>
-                  </form>
-                ) : (
-                  <form onSubmit={handleStudentLogin} className="space-y-4 animate-in fade-in">
-                    <div className="text-right border-b border-slate-200 dark:border-slate-800 pb-3">
-                      <h3 className="font-black text-slate-900 dark:text-white text-base">تسجيل دخول الطالب 🎓</h3>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">أدخل رقم هاتفك المسجل أو كود الطالب مع كلمة المرور</p>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">رقم الهاتف أو كود الطالب:</label>
+                      <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1.5">
+                        رقم الموبايل أو كود الحساب 📱:
+                      </label>
                       <div className="relative">
                         <input
                           type="text"
                           required
                           value={phoneInput}
                           onChange={(e) => setPhoneInput(e.target.value)}
-                          placeholder="مثال: 01002169889 أو 3003"
-                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl pr-10 pl-4 py-3 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                          placeholder="01002169889 أو كود الحساب"
+                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none dir-ltr text-right"
                         />
-                        <User className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute right-3.5 top-3.5" />
+                        <Smartphone className="w-4 h-4 text-slate-400 absolute left-4 top-3.5" />
                       </div>
                     </div>
 
                     <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="text-xs font-black text-slate-700 dark:text-slate-300">كلمة المرور:</label>
-                        <a href="https://wa.me/201002169889" target="_blank" rel="noreferrer" className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline">
-                          نسيت كلمة السر؟
-                        </a>
-                      </div>
+                      <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1.5">
+                        كلمة المرور 🔒:
+                      </label>
                       <div className="relative">
                         <input
                           type={showPass ? 'text' : 'password'}
                           required
                           value={passInput}
                           onChange={(e) => setPassInput(e.target.value)}
-                          placeholder="أدخل كلمة المرور الخاصة بك..."
-                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl pr-10 pl-10 py-3 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none dir-ltr"
+                          placeholder="••••••••"
+                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none dir-ltr text-right"
                         />
-                        <Lock className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute right-3.5 top-3.5" />
                         <button
                           type="button"
                           onClick={() => setShowPass(!showPass)}
-                          className="absolute left-3 top-3 text-slate-400 hover:text-slate-700 dark:hover:text-white"
+                          className="text-slate-400 hover:text-slate-600 absolute left-4 top-3.5"
                         >
                           {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
                     </div>
 
-                    {errorMessage && (
-                      <div className="bg-rose-500/10 text-rose-600 dark:text-rose-300 border border-rose-500/30 p-3 rounded-xl text-xs font-bold flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 text-rose-500 flex-shrink-0" />
-                        <span>{errorMessage}</span>
-                      </div>
-                    )}
-
                     <button
                       type="submit"
-                      className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-black py-3.5 rounded-xl justify-center shadow-lg shadow-blue-600/30 transition-all"
+                      className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black text-xs py-3.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 hover:scale-[1.01]"
                     >
-                      تسجيل الدخول للمنصة 🚀
+                      <span>دخول الحساب 🔑</span>
+                      <ArrowLeft className="w-4 h-4" />
                     </button>
                   </form>
-                )
-              )}
-
-              {/* Tab 2: Student Signup */}
-              {activeTab === 'student-signup' && (
-                <form onSubmit={handleStudentSignup} className="space-y-4 animate-in fade-in">
-                  <div className="text-right border-b border-slate-200 dark:border-slate-800 pb-3">
-                    <h3 className="font-black text-slate-900 dark:text-white text-base">إنشاء حساب طالب جديد ✨</h3>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">انضم لآلاف الطلاب المتفوقين في منصة عِلم</p>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">اسم الطالب رباعي:</label>
-                    <div className="relative">
+                ) : (
+                  <form onSubmit={handleOtpSubmit} className="space-y-4">
+                    <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-700 dark:text-amber-400 font-bold">
+                      ⚠️ الحساب مقيد بهذا الجهاز. تم إرسال رمز تحقق OTP.
+                    </div>
+                    <div>
+                      <label className="block text-xs font-black mb-1.5">رمز التحقق OTP:</label>
                       <input
                         type="text"
                         required
-                        value={signupName}
-                        onChange={(e) => setSignupName(e.target.value)}
-                        placeholder="مثال: أحمد محمود علي حسن"
-                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl pr-10 pl-4 py-2.5 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                        value={otpInput}
+                        onChange={(e) => setOtpInput(e.target.value)}
+                        placeholder="أدخل رمز الـ OTP..."
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 rounded-xl p-3 text-center font-mono font-black"
                       />
-                      <User className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute right-3.5 top-3" />
                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">رقم هاتف الطالب:</label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          required
-                          value={signupPhone}
-                          onChange={(e) => setSignupPhone(e.target.value)}
-                          placeholder="010xxxxxxxx"
-                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl pr-10 pl-4 py-2.5 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none dir-ltr"
-                        />
-                        <Smartphone className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute right-3.5 top-3" />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">رقم هاتف ولي الأمر:</label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          required
-                          value={signupParentPhone}
-                          onChange={(e) => setSignupParentPhone(e.target.value)}
-                          placeholder="010xxxxxxxx"
-                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl pr-10 pl-4 py-2.5 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none dir-ltr"
-                        />
-                        <Users className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute right-3.5 top-3" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">الصف الدراسي:</label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { id: '3sec', label: '🎓 ثالثة ثانوي' },
-                        { id: '2sec', label: '📘 ثانية ثانوي' },
-                        { id: '1sec', label: '📗 أولى ثانوي' }
-                      ].map(g => (
-                        <button
-                          key={g.id}
-                          type="button"
-                          onClick={() => setSignupGrade(g.id)}
-                          className={`py-2 px-2 rounded-xl text-xs font-black border transition-all ${
-                            signupGrade === g.id
-                              ? 'bg-blue-600 border-blue-500 text-white shadow-md'
-                              : 'bg-slate-100 dark:bg-slate-950 border-slate-300 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                          }`}
-                        >
-                          {g.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">كلمة المرور:</label>
-                      <div className="relative">
-                        <input
-                          type={showPass ? 'text' : 'password'}
-                          required
-                          value={signupPass}
-                          onChange={(e) => setSignupPass(e.target.value)}
-                          placeholder="6 أحرف أو أرقام على الأقل"
-                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl pr-8 pl-8 py-2.5 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none dir-ltr"
-                        />
-                        <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 absolute right-2.5 top-3" />
-                        <button
-                          type="button"
-                          onClick={() => setShowPass(!showPass)}
-                          className="absolute left-2.5 top-3 text-slate-400 hover:text-slate-700 dark:hover:text-white"
-                        >
-                          {showPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">تأكيد كلمة المرور:</label>
-                      <div className="relative">
-                        <input
-                          type={showConfirmPass ? 'text' : 'password'}
-                          required
-                          value={signupConfirmPass}
-                          onChange={(e) => setSignupConfirmPass(e.target.value)}
-                          placeholder="أعد كتابة كلمة المرور"
-                          className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl pr-8 pl-8 py-2.5 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none dir-ltr"
-                        />
-                        <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 absolute right-2.5 top-3" />
-                        <button
-                          type="button"
-                          onClick={() => setShowConfirmPass(!showConfirmPass)}
-                          className="absolute left-2.5 top-3 text-slate-400 hover:text-slate-700 dark:hover:text-white"
-                        >
-                          {showConfirmPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {errorMessage && (
-                    <div className="bg-rose-500/10 text-rose-600 dark:text-rose-300 border border-rose-500/30 p-3 rounded-xl text-xs font-bold flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-rose-500 flex-shrink-0" />
-                      <span>{errorMessage}</span>
-                    </div>
-                  )}
-
-                  {successMessage && (
-                    <div className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30 p-3 rounded-xl text-xs font-bold flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                      <span>{successMessage}</span>
-                    </div>
-                  )}
-
-                  <button
-                    type="submit"
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-black py-3.5 rounded-xl justify-center shadow-lg shadow-blue-600/30 transition-all"
-                  >
-                    إنشاء الحساب والدخول التلقائي 🚀
-                  </button>
-                </form>
-              )}
-
-              {/* Tab 3: Parent Login */}
-              {activeTab === 'parent-login' && (
-                <form onSubmit={handleParentLogin} className="space-y-4 animate-in fade-in">
-                  <div className="text-right border-b border-slate-200 dark:border-slate-800 pb-3">
-                    <h3 className="font-black text-slate-900 dark:text-white text-base">دخول أولياء الأمور 👨‍👦</h3>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">متابعة دقيقة لدرجات الطالب ونسب المشاهدة وتقارير الحصص</p>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">رقم هاتف ولي الأمر:</label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        required
-                        value={parentPhoneInput}
-                        onChange={(e) => setParentPhoneInput(e.target.value)}
-                        placeholder="أدخل رقم هاتفك كولي أمر..."
-                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl pr-10 pl-4 py-3 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                      />
-                      <Smartphone className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute right-3.5 top-3.5" />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">كود الطالب أو اسمه (مثل 3003 أو أحمد محمود):</label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        required
-                        value={parentStudentCode}
-                        onChange={(e) => setParentStudentCode(e.target.value)}
-                        placeholder="ادخل اسم الطالب أو كوده..."
-                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl pr-10 pl-4 py-3 text-xs font-bold text-amber-600 dark:text-amber-400 focus:ring-2 focus:ring-blue-500 outline-none"
-                      />
-                      <Users className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute right-3.5 top-3.5" />
-                    </div>
-                  </div>
-
-                  {errorMessage && (
-                    <div className="bg-rose-500/10 text-rose-600 dark:text-rose-300 border border-rose-500/30 p-3 rounded-xl text-xs font-bold flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-rose-500 flex-shrink-0" />
-                      <span>{errorMessage}</span>
-                    </div>
-                  )}
-
-                  <button
-                    type="submit"
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-black py-3.5 rounded-xl justify-center shadow-lg shadow-blue-600/30 transition-all"
-                  >
-                    عرض تقرير الطالب 📊
-                  </button>
-                </form>
-              )}
-
-              {/* Tab 4: Admin Login */}
-              {activeTab === 'admin-login' && (
-                <form onSubmit={handleAdminLogin} className="space-y-4 animate-in fade-in">
-                  <div className="text-right border-b border-slate-200 dark:border-slate-800 pb-3">
-                    <h3 className="font-black text-amber-600 dark:text-amber-400 text-base">لوحة التحكم الإدارية (الأدمن) 🔐</h3>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">اختر حساب المحاضر/المعلم وأدخل كلمة السر</p>
-                  </div>
-
-                  {/* Admin Identity Selection Cards */}
-                  <div className="space-y-2">
-                    <label className="block text-xs font-black text-slate-700 dark:text-slate-300">حدد حساب المحاضر 👤:</label>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div
-                        onClick={() => setSelectedAdminIdentity('eng_nour')}
-                        className={`p-3.5 rounded-2xl border cursor-pointer transition-all text-right space-y-1 ${
-                          selectedAdminIdentity === 'eng_nour' 
-                            ? 'bg-blue-50 dark:bg-blue-600/20 border-blue-500 ring-2 ring-blue-500/30' 
-                            : 'bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-700'
-                        }`}
-                      >
-                        <div className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-1.5">
-                          <span>💻</span>
-                          <span>مهندس نور</span>
-                        </div>
-                        <div className="text-[10px] text-blue-600 dark:text-blue-300 font-bold">محاضر البرمجة وعلوم الحاسب</div>
-                      </div>
-
-                      <div
-                        onClick={() => setSelectedAdminIdentity('mr_sayed')}
-                        className={`p-3.5 rounded-2xl border cursor-pointer transition-all text-right space-y-1 ${
-                          selectedAdminIdentity === 'mr_sayed' 
-                            ? 'bg-amber-50 dark:bg-amber-600/20 border-amber-500 ring-2 ring-amber-500/30' 
-                            : 'bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-700'
-                        }`}
-                      >
-                        <div className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-1.5">
-                          <span>📖</span>
-                          <span>مستر سيد عبد العاطي</span>
-                        </div>
-                        <div className="text-[10px] text-amber-600 dark:text-amber-300 font-bold">معلم اللغة العربية</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">كلمة المرور الرسمية:</label>
-                    <div className="relative">
-                      <input
-                        type={showPass ? 'text' : 'password'}
-                        required
-                        value={adminCode}
-                        onChange={(e) => setAdminCode(e.target.value)}
-                        placeholder="أدخل كلمة السر"
-                        className="w-full bg-slate-50 dark:bg-slate-950 border border-amber-500/50 rounded-xl pr-10 pl-10 py-3 text-xs font-mono font-black text-amber-600 dark:text-amber-400 focus:ring-2 focus:ring-amber-500 outline-none dir-ltr"
-                      />
-                      <ShieldCheck className="w-4 h-4 text-amber-500 absolute right-3.5 top-3.5" />
-
-                      <button
-                        type="button"
-                        onClick={() => setShowPass(!showPass)}
-                        className="absolute left-3 top-3 text-slate-400 hover:text-slate-700 dark:hover:text-amber-400"
-                      >
-                        {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  {errorMessage && (
-                    <div className="bg-rose-500/10 text-rose-600 dark:text-rose-300 border border-rose-500/30 p-3 rounded-xl text-xs font-bold flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-rose-500 flex-shrink-0" />
-                      <span>{errorMessage}</span>
-                    </div>
-                  )}
-
-                  <button
-                    type="submit"
-                    className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black py-3.5 rounded-xl justify-center shadow-lg transition-all"
-                  >
-                    دخول بحساب {selectedAdminIdentity === 'mr_sayed' ? 'مستر سيد عبد العاطي' : 'مهندس نور'} 🚀
-                  </button>
-                </form>
-              )}
-
-            </div>
-
-          </div>
-
-          {/* Left Side (5 Cols on Desktop): 3D Scene Mockup & Highlights */}
-          <div className="lg:col-span-5 relative flex flex-col items-center justify-center space-y-6 order-1 lg:order-2">
-            
-            {/* 3D Floating Scene Component */}
-            <div className="w-full flex justify-center scale-95 md:scale-105">
-              <HeroFloatingScene setCurrentTab={() => {}} />
-            </div>
-
-            {/* Quick Live Trust Stats Pill Row */}
-            <div className="w-full grid grid-cols-3 gap-3 text-center">
-              <div className="bg-white dark:bg-[#162534]/80 border border-slate-200 dark:border-slate-700/80 p-3 rounded-2xl space-y-0.5 shadow-sm">
-                <div className="text-base font-black text-amber-500 dark:text-amber-400 font-mono">+5,000</div>
-                <div className="text-[10px] text-slate-600 dark:text-slate-300 font-bold">طالب مسجل</div>
-              </div>
-              <div className="bg-white dark:bg-[#162534]/80 border border-slate-200 dark:border-slate-700/80 p-3 rounded-2xl space-y-0.5 shadow-sm">
-                <div className="text-base font-black text-blue-600 dark:text-blue-400 font-mono">100%</div>
-                <div className="text-[10px] text-slate-600 dark:text-slate-300 font-bold">شرح تفاعلي</div>
-              </div>
-              <div className="bg-white dark:bg-[#162534]/80 border border-slate-200 dark:border-slate-700/80 p-3 rounded-2xl space-y-0.5 shadow-sm">
-                <div className="text-base font-black text-emerald-600 dark:text-emerald-400 font-mono">24/7</div>
-                <div className="text-[10px] text-slate-600 dark:text-slate-300 font-bold">دعم ومتابعة</div>
-              </div>
-            </div>
-
-          </div>
-
-        </div>
-
-        {/* ═══ Section: إزاي المنصة بتشتغل؟ (The 4-Step Roadmap) ═══ */}
-        <section className="bg-slate-100/90 dark:bg-[#111e2d] border border-slate-200 dark:border-slate-800 p-8 md:p-12 rounded-[2.5rem] shadow-xl dark:shadow-2xl space-y-10 relative overflow-hidden transition-colors">
-          
-          {/* Section Header */}
-          <div className="text-center space-y-3 max-w-2xl mx-auto">
-            <div className="inline-flex items-center gap-2 bg-blue-500/10 text-blue-600 dark:text-blue-400 px-4 py-1.5 rounded-full text-xs font-black">
-              <Zap className="w-4 h-4 text-blue-500 dark:text-blue-400" />
-              <span>خطواتك البسيطة نحو الدرجة النهائية 🚀</span>
-            </div>
-            <h2 className="text-2xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
-              إزاي منصة <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-amber-600 dark:from-amber-400 dark:to-amber-500">عِلم</span> بتشتغل؟
-            </h2>
-            <p className="text-xs md:text-sm text-slate-600 dark:text-slate-300 font-bold leading-relaxed">
-              صممنا لك تجربة تعليمية ممتعة وسلسة تاخد بإيدك خطوة بخطوة من أول اختيار الحصة لحد التقفيل والدرجات النهائية.
-            </p>
-          </div>
-
-          {/* 4 Interactive Journey Step Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
-            
-            {/* Step 1 */}
-            <div className="bg-white dark:bg-[#162534] border-2 border-slate-200 dark:border-slate-700/80 hover:border-blue-500 p-6 rounded-3xl shadow-md dark:shadow-xl space-y-4 text-right transition-all duration-300 hover:-translate-y-2 group relative">
-              <div className="w-12 h-12 rounded-2xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center text-xl font-black shadow-sm group-hover:scale-110 transition-transform">
-                🎯
-              </div>
-              <div className="space-y-1.5">
-                <span className="text-[11px] font-black text-blue-600 dark:text-blue-400">الخطوة الأولى</span>
-                <h3 className="text-base font-black text-slate-900 dark:text-white">اختر صفك ومادتك</h3>
-                <p className="text-xs text-slate-600 dark:text-slate-300 font-bold leading-relaxed">
-                  حدد مرحلتك الدراسية (أولى، ثانية، أو ثالثة ثانوي) واختر بين كورسات البرمجة أو دروس اللغة العربية بضغطة واحدة.
-                </p>
-              </div>
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center gap-1.5 text-[11px] font-black text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                <span>سهولة وسرعة فائقة</span>
-                <CheckCircle2 className="w-3.5 h-3.5 text-blue-500" />
-              </div>
-            </div>
-
-            {/* Step 2 */}
-            <div className="bg-white dark:bg-[#162534] border-2 border-slate-200 dark:border-slate-700/80 hover:border-amber-500 p-6 rounded-3xl shadow-md dark:shadow-xl space-y-4 text-right transition-all duration-300 hover:-translate-y-2 group relative">
-              <div className="w-12 h-12 rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xl font-black shadow-sm group-hover:scale-110 transition-transform">
-                🎬
-              </div>
-              <div className="space-y-1.5">
-                <span className="text-[11px] font-black text-amber-600 dark:text-amber-400">الخطوة الثانية</span>
-                <h3 className="text-base font-black text-slate-900 dark:text-white">شاهد الحصة بتركيز</h3>
-                <p className="text-xs text-slate-600 dark:text-slate-300 font-bold leading-relaxed">
-                  استمتع بشرح تفاعلي مبسط على مشغل فيديو محمي عالي الجودة، مع إمكانية تحميل وطباعة مذكرة الدرس PDF مباشرة.
-                </p>
-              </div>
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center gap-1.5 text-[11px] font-black text-slate-500 dark:text-slate-400 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-                <span>مذكرات PDF مدمجة</span>
-                <FileText className="w-3.5 h-3.5 text-amber-500" />
-              </div>
-            </div>
-
-            {/* Step 3 */}
-            <div className="bg-white dark:bg-[#162534] border-2 border-slate-200 dark:border-slate-700/80 hover:border-emerald-500 p-6 rounded-3xl shadow-md dark:shadow-xl space-y-4 text-right transition-all duration-300 hover:-translate-y-2 group relative">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl font-black shadow-sm group-hover:scale-110 transition-transform">
-                📝
-              </div>
-              <div className="space-y-1.5">
-                <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400">الخطوة الثالثة</span>
-                <h3 className="text-base font-black text-slate-900 dark:text-white">حل الامتحان الإلكتروني</h3>
-                <p className="text-xs text-slate-600 dark:text-slate-300 font-bold leading-relaxed">
-                  اختبر فهمك بامتحان إلكتروني بوقت محدد، واستلم تصحيحك الفوري مع مراجعة نموذج الإجابات وتفسير كل سؤال.
-                </p>
-              </div>
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center gap-1.5 text-[11px] font-black text-slate-500 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                <span>تصحيح فوري + نقاط XP</span>
-                <Award className="w-3.5 h-3.5 text-emerald-500" />
-              </div>
-            </div>
-
-            {/* Step 4 */}
-            <div className="bg-white dark:bg-[#162534] border-2 border-slate-200 dark:border-slate-700/80 hover:border-purple-500 p-6 rounded-3xl shadow-md dark:shadow-xl space-y-4 text-right transition-all duration-300 hover:-translate-y-2 group relative">
-              <div className="w-12 h-12 rounded-2xl bg-purple-500/15 text-purple-600 dark:text-purple-400 flex items-center justify-center text-xl font-black shadow-sm group-hover:scale-110 transition-transform">
-                📲
-              </div>
-              <div className="space-y-1.5">
-                <span className="text-[11px] font-black text-purple-600 dark:text-purple-400">الخطوة الرابعة</span>
-                <h3 className="text-base font-black text-slate-900 dark:text-white">اسأل واستلم تقريرك</h3>
-                <p className="text-xs text-slate-600 dark:text-slate-300 font-bold leading-relaxed">
-                  اطرح أي استفسار تحت الفيديو ليجيبك المعلم، ويتم إرسال تقرير أدائك الموثق مباشرة إلى ولي أمرك على الواتساب.
-                </p>
-              </div>
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center gap-1.5 text-[11px] font-black text-slate-500 dark:text-slate-400 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
-                <span>متابعة واتساب للأهل</span>
-                <Smartphone className="w-3.5 h-3.5 text-purple-500" />
-              </div>
-            </div>
-
-          </div>
-
-        </section>
-
-        {/* ═══ Section: المميزات والضمانات ═══ */}
-        <section className="pt-6 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-          {[
-            { icon: '🔒', title: 'حماية وأمان كامل', desc: 'مشغل فيديو ضد التحميل والتسريب' },
-            { icon: '🤖', title: 'مساعد ذكي 24/7', desc: 'شرح فوري لأي قاعدة أو كود' },
-            { icon: '💳', title: 'شحن فوري بالـ InstaPay', desc: 'تفعيل سريع واشتراكات مريحة' },
-            { icon: '🏆', title: 'أوائل الدفعة وجوائز', desc: 'لوحة شرف وتكريم للمتميزين' }
-          ].map((item, idx) => (
-            <div key={idx} className="bg-white dark:bg-[#162534] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-1 shadow-sm">
-              <div className="text-2xl">{item.icon}</div>
-              <div className="text-xs font-black text-slate-900 dark:text-white">{item.title}</div>
-              <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">{item.desc}</div>
-            </div>
-          ))}
-        </section>
-
-        {/* ═══ Section: FAQ / الأسئلة الشائعة ═══ */}
-        <section className="space-y-6 max-w-3xl mx-auto pt-4">
-          
-          <div className="text-center space-y-2">
-            <h3 className="text-xl md:text-3xl font-black text-slate-900 dark:text-white">الأسئلة الشائعة 💡</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">كل ما يدور في ذهنك عن الدراسة والتسجيل في منصة عِلم</p>
-          </div>
-
-          <div className="space-y-3">
-            {[
-              {
-                q: 'إزاي أبدأ وأشترك في الحصص بعد إنشاء الحساب؟',
-                a: 'بمجرد تسجيل حسابك، بتدخل على قسم المحفظة وتشحن رصيدك عبر InstaPay أو فودافون كاش، وبيتفعل حسابك فوراً وتقدر تفتح الحصة وتتفرج عليها في أي وقت ومن أي مكان.'
-              },
-              {
-                q: 'هل مشغل الفيديو بيشتغل بدون تقطيع وعلى باقة الموبايل؟',
-                a: 'نعم، مشغل الفيديو مبرمج بتقنية التكيف التلقائي مع سرعة الإنترنت، وبيقدم جودات متعددة تضمن لك المشاهدة السلسة حتى على أضعف سرعات الإنترنت وبأقل استهلاك للباقة.'
-              },
-              {
-                q: 'إزاي ولي الأمر بيتابع درجات الطالب ومستواه؟',
-                a: 'ولي الأمر يقدر يسجل دخوله برقم تليفونه أو كود الطالب من تبويب «ولي الأمر»، ويشوف تقرير شامل بنسب حضور الحصص، درجات الامتحانات والواجبات، والتقييم الدوري.'
-              },
-              {
-                q: 'هل بقدر أسأل المعلم لو في نقطة مش فاهمها؟',
-                a: 'بالتأكيد! يوجد صندوق أسئلة واستفسارات مخصص تحت كل فيديو، بجانب مساعد المعلم الذكي المتاح 24 ساعة للرد الفوري على استفسارات الكود والنحو.'
-              }
-            ].map((faq, idx) => (
-              <div 
-                key={idx} 
-                className="bg-white dark:bg-[#162534] rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden transition-all shadow-sm"
-              >
-                <button
-                  onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
-                  className="w-full p-4 text-right flex items-center justify-between font-black text-xs md:text-sm text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-amber-400 transition-colors"
-                >
-                  <span className="flex items-center gap-2">
-                    <HelpCircle className="w-4 h-4 text-amber-500 flex-shrink-0" />
-                    <span>{faq.q}</span>
-                  </span>
-                  <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${openFaq === idx ? 'rotate-180 text-amber-500' : ''}`} />
-                </button>
-                {openFaq === idx && (
-                  <div className="px-4 pb-4 pt-1 text-xs text-slate-600 dark:text-slate-300 font-bold leading-relaxed border-t border-slate-100 dark:border-slate-800/60 bg-slate-50 dark:bg-slate-950/40">
-                    {faq.a}
-                  </div>
+                    <button type="submit" className="w-full bg-amber-500 text-slate-950 font-black py-3 rounded-xl">
+                      تأكيد الجهاز والدخول
+                    </button>
+                  </form>
                 )}
               </div>
-            ))}
+            )}
+
+            {/* 2. Student Signup Form */}
+            {activeTab === 'student-signup' && (
+              <div className="bg-white dark:bg-[#162534] p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl space-y-5">
+                <div className="space-y-1">
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white">إنشاء حساب طالب جديد ✨</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">سجل بياناتك للانضمام فوراً ومتابعة الحصص والامتحانات.</p>
+                </div>
+
+                <form onSubmit={handleStudentSignup} className="space-y-3.5">
+                  <div>
+                    <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">اسم الطالب الثلاثي 👤:</label>
+                    <input
+                      type="text"
+                      required
+                      value={signupName}
+                      onChange={(e) => setSignupName(e.target.value)}
+                      placeholder="مثال: محمد أحمد علي"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">رقم هاتف الطالب 📱:</label>
+                      <input
+                        type="tel"
+                        required
+                        value={signupPhone}
+                        onChange={(e) => setSignupPhone(e.target.value)}
+                        placeholder="01012345678"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none dir-ltr text-right"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">رقم هاتف ولي الأمر 👨‍👦:</label>
+                      <input
+                        type="tel"
+                        required
+                        value={signupParentPhone}
+                        onChange={(e) => setSignupParentPhone(e.target.value)}
+                        placeholder="01112345678"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none dir-ltr text-right"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">البريد الإلكتروني ✉️:</label>
+                      <input
+                        type="email"
+                        required
+                        value={signupEmail}
+                        onChange={(e) => setSignupEmail(e.target.value)}
+                        placeholder="student@example.com"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none dir-ltr text-right"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">الصف الدراسي 🎓:</label>
+                      <select
+                        value={signupGrade}
+                        onChange={(e) => setSignupGrade(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                      >
+                        <option value="3sec">الصف الثالث الثانوي (تانوية عامة)</option>
+                        <option value="2sec">الصف الثاني الثانوي</option>
+                        <option value="1sec">الصف الأول الثانوي</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">كلمة المرور 🔒:</label>
+                      <input
+                        type="password"
+                        required
+                        value={signupPass}
+                        onChange={(e) => setSignupPass(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none dir-ltr text-right"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">تأكيد كلمة المرور 🔒:</label>
+                      <input
+                        type="password"
+                        required
+                        value={signupConfirmPass}
+                        onChange={(e) => setSignupConfirmPass(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none dir-ltr text-right"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs py-3.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 hover:scale-[1.01]"
+                  >
+                    <span>إنشاء الحساب وبدء التعلم 🚀</span>
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* 3. Parent Login Form */}
+            {activeTab === 'parent-login' && (
+              <div className="bg-white dark:bg-[#162534] p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl space-y-5">
+                <div className="space-y-1">
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white">بوابة متابعة ولي الأمر 👨‍👦</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">متابعة درجات الامتحانات والواجبات ونسب الحضور للطالب.</p>
+                </div>
+
+                <form onSubmit={handleParentLogin} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1.5">
+                      رقم هاتف ولي الأمر المسجل 📱:
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      value={parentPhoneInput}
+                      onChange={(e) => setParentPhoneInput(e.target.value)}
+                      placeholder="01112345678"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none dir-ltr text-right"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1.5">
+                      كود الطالب أو اسمه 👤:
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={parentStudentCode}
+                      onChange={(e) => setParentStudentCode(e.target.value)}
+                      placeholder="مثال: 3001 أو محمد أحمد"
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none text-right"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black text-xs py-3.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 hover:scale-[1.01]"
+                  >
+                    <span>دخول لوحة ولي الأمر 📊</span>
+                    <ArrowLeft className="w-4 h-4" />
+                  </button>
+                </form>
+              </div>
+            )}
+
           </div>
 
-        </section>
-
-      </main>
-
-      {/* ═══ Footer ═══ */}
-      <footer className="border-t border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 py-6 mt-12">
-        <div className="container mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 font-bold">
-          
-          <div className="flex items-center gap-2">
-            <ElmLogo variant="horizontal" className="scale-90" />
-            <span>— عِلمٌ يُنتَفَعُ بِهِ</span>
-          </div>
-
-          <div>
-            جميع الحقوق محفوظة © {new Date().getFullYear()} لمنصة عِلم التعليمية.
-          </div>
-
-          <div className="flex items-center gap-4 text-slate-500 dark:text-slate-400">
-            <a href="https://wa.me/201002169889" target="_blank" rel="noreferrer" className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
-              واتساب الدعم 💬
-            </a>
-            <span>•</span>
-            <button onClick={() => { setActiveTab('student-signup'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="hover:text-blue-600 dark:hover:text-amber-400 transition-colors">
-              تسجيل حساب جديد
-            </button>
+          {/* Left Side: 3D Interactive Floating Graphic Scene */}
+          <div className="lg:col-span-5 hidden lg:block order-1 lg:order-2">
+            <HeroFloatingScene />
           </div>
 
         </div>
-      </footer>
+
+      </main>
 
     </div>
   );
