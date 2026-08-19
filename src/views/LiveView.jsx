@@ -32,7 +32,9 @@ import {
   Mic,
   MicOff,
   VideoOff,
-  Monitor
+  Monitor,
+  PhoneOff,
+  Settings
 } from 'lucide-react';
 
 export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
@@ -840,10 +842,10 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                 />
               ) : isTeacher ? (
                 /* ====================================================
-                   استوديو المعلم المباشر المدمج داخل المنصة 100%
+                   استوديو المعلم المباشر بنظام Google Meet المدمج 100%
                    ==================================================== */
                 localStream ? (
-                  <div className="relative w-full h-full min-h-[500px] flex items-center justify-center bg-black overflow-hidden">
+                  <div className="relative w-full h-full min-h-[520px] flex items-center justify-center bg-[#202124] overflow-hidden rounded-3xl">
                     <video
                       ref={teacherVideoRef}
                       autoPlay
@@ -852,59 +854,87 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                       className="w-full h-full object-contain"
                     />
 
-                    {/* Floating In-Player Studio Toolbar */}
-                    <div className="absolute bottom-4 inset-x-4 z-40 flex flex-wrap items-center justify-center gap-2.5">
-                      <button
-                        onClick={toggleMic}
-                        className={`px-4 py-2.5 rounded-2xl text-xs font-black flex items-center gap-2 shadow-2xl transition-all ${
-                          isMicMuted ? 'bg-rose-600 text-white' : 'bg-slate-900/90 text-white border border-slate-700 hover:bg-slate-800'
-                        }`}
-                      >
-                        {isMicMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4 text-emerald-400" />}
-                        <span>{isMicMuted ? 'المايك مكتوم 🔇' : 'المايك يعمل 🎙️'}</span>
-                      </button>
+                    {/* Teacher Name Tag (Google Meet Style) */}
+                    <div className="absolute bottom-20 right-4 z-40 bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/10 flex items-center gap-2 text-white text-xs font-bold">
+                      <span>👨‍🏫 {studentDisplayName}</span>
+                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                    </div>
 
-                      <button
-                        onClick={toggleCamera}
-                        className={`px-4 py-2.5 rounded-2xl text-xs font-black flex items-center gap-2 shadow-2xl transition-all ${
-                          isCameraOff ? 'bg-rose-600 text-white' : 'bg-slate-900/90 text-white border border-slate-700 hover:bg-slate-800'
-                        }`}
-                      >
-                        {isCameraOff ? <VideoOff className="w-4 h-4" /> : <Video className="w-4 h-4 text-blue-400" />}
-                        <span>{isCameraOff ? 'الكاميرا مغلقة 📷' : 'الكاميرا تعمل 📹'}</span>
-                      </button>
+                    {/* Google Meet Bottom Floating Action Bar */}
+                    <div className="absolute bottom-4 inset-x-4 z-40 flex items-center justify-center">
+                      <div className="bg-[#202124]/90 backdrop-blur-md border border-white/10 px-4 py-2 rounded-full flex items-center gap-2.5 shadow-2xl">
+                        {/* Mic Button */}
+                        <button
+                          onClick={toggleMic}
+                          title={isMicMuted ? 'تشغيل المايك' : 'كتم المايك'}
+                          className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                            isMicMuted ? 'bg-rose-600 text-white' : 'bg-[#3c4043] hover:bg-[#4a4e51] text-white'
+                          }`}
+                        >
+                          {isMicMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                        </button>
 
-                      <button
-                        onClick={isSharingScreen ? stopLocalStream : startTeacherScreen}
-                        className={`px-4 py-2.5 rounded-2xl text-xs font-black flex items-center gap-2 shadow-2xl transition-all ${
-                          isSharingScreen ? 'bg-indigo-600 text-white animate-pulse' : 'bg-slate-900/90 text-white border border-slate-700 hover:bg-slate-800'
-                        }`}
-                      >
-                        <Monitor className="w-4 h-4 text-indigo-400" />
-                        <span>{isSharingScreen ? 'مشاركة الشاشة تعمل 🖥️' : 'مشاركة الشاشة 🖥️'}</span>
-                      </button>
+                        {/* Camera Button */}
+                        <button
+                          onClick={toggleCamera}
+                          title={isCameraOff ? 'تشغيل الكاميرا' : 'إيقاف الكاميرا'}
+                          className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                            isCameraOff ? 'bg-rose-600 text-white' : 'bg-[#3c4043] hover:bg-[#4a4e51] text-white'
+                          }`}
+                        >
+                          {isCameraOff ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
+                        </button>
 
-                      <button
-                        onClick={isRecording ? handleStopRecording : handleStartRecording}
-                        className={`px-4 py-2.5 rounded-2xl text-xs font-black flex items-center gap-2 shadow-2xl transition-all ${
-                          isRecording ? 'bg-rose-600 text-white animate-pulse' : 'bg-slate-900/90 text-white border border-slate-700 hover:bg-slate-800'
-                        }`}
-                      >
-                        <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
-                        <span>{isRecording ? `تسجيل الحصة (${formatRecordingDuration(recordingSeconds)})` : 'تسجيل الحصة ⏺️'}</span>
-                      </button>
+                        {/* Screen Share Button */}
+                        <button
+                          onClick={isSharingScreen ? stopLocalStream : startTeacherScreen}
+                          title={isSharingScreen ? 'إيقاف مشاركة الشاشة' : 'مشاركة الشاشة'}
+                          className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                            isSharingScreen ? 'bg-blue-600 text-white' : 'bg-[#3c4043] hover:bg-[#4a4e51] text-white'
+                          }`}
+                        >
+                          <Monitor className="w-5 h-5" />
+                        </button>
+
+                        {/* Record Button */}
+                        <button
+                          onClick={isRecording ? handleStopRecording : handleStartRecording}
+                          title={isRecording ? 'إيقاف التسجيل' : 'تسجيل الحصة'}
+                          className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                            isRecording ? 'bg-rose-600 text-white animate-pulse' : 'bg-[#3c4043] hover:bg-[#4a4e51] text-white'
+                          }`}
+                        >
+                          <span className="w-3 h-3 rounded-full bg-rose-500" />
+                        </button>
+
+                        {/* End Call Button */}
+                        <button
+                          onClick={async () => {
+                            if (window.confirm('هل أنت متأكد من إنهاء المكالمة وإيقاف البث لجميع الطلاب؟')) {
+                              stopLocalStream();
+                              await adminUpdateLiveStatus(currentSession.id, 'ended');
+                              await refreshLiveSession(currentSession.id);
+                            }
+                          }}
+                          title="إنهاء المكالمة"
+                          className="px-5 h-11 rounded-full bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center gap-1.5 transition-all shadow-lg text-xs font-black"
+                        >
+                          <PhoneOff className="w-4 h-4" />
+                          <span className="hidden sm:inline">إنهاء الحصة</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="relative w-full h-full min-h-[520px] flex flex-col items-center justify-center p-6 md:p-10 text-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white space-y-6 animate-in fade-in">
-                    <div className="w-24 h-24 rounded-3xl bg-blue-600/20 border-2 border-blue-500/50 flex items-center justify-center text-5xl shadow-2xl animate-pulse">
-                      🎥
+                  <div className="relative w-full h-full min-h-[520px] flex flex-col items-center justify-center p-6 md:p-10 text-center bg-[#202124] text-white space-y-6 animate-in fade-in rounded-3xl">
+                    <div className="w-20 h-20 rounded-full bg-blue-600/20 border-2 border-blue-500/50 flex items-center justify-center text-4xl shadow-2xl">
+                      📹
                     </div>
 
                     <div className="space-y-2 max-w-lg">
                       <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-black px-4 py-1.5 rounded-full">
                         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                        <span>استوديو البث المباشر المدمج جاهز للانطلاق ✓</span>
+                        <span>جاهز لبدء قاعة الحصة المباشرة ✓</span>
                       </div>
 
                       <h2 className="text-xl md:text-2xl font-black text-white">
@@ -912,22 +942,22 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                       </h2>
 
                       <p className="text-xs text-slate-300 font-bold leading-relaxed">
-                        المحاضر: <span className="text-amber-400 font-black">{currentSession.instructor}</span> • اختر طريقة البث لبدء الحصة مباشرة من متصفحك داخل المنصة بدون الحاجة لأي مواقع خارجية:
+                        المحاضر: <span className="text-amber-400 font-black">{currentSession.instructor}</span> • اضغط على الزر أدناه لبدء تشغيل الكاميرا أو مشاركة الشاشة مباشرة داخل المنصة بنظام Google Meet.
                       </p>
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-md">
                       <button
                         onClick={startTeacherCamera}
-                        className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white font-black text-xs md:text-sm py-4 rounded-2xl shadow-xl shadow-blue-600/30 transition-all flex items-center justify-center gap-2 hover:scale-[1.03]"
+                        className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black text-xs md:text-sm py-4 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2 hover:scale-[1.02]"
                       >
                         <Video className="w-5 h-5" />
-                        <span>تشغيل الكاميرا والمايك 📹</span>
+                        <span>بدء بث الكاميرا والمايك 📹</span>
                       </button>
 
                       <button
                         onClick={startTeacherScreen}
-                        className="w-full bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-600 text-white font-black text-xs md:text-sm py-4 rounded-2xl shadow-xl shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 hover:scale-[1.03]"
+                        className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs md:text-sm py-4 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2 hover:scale-[1.02]"
                       >
                         <Monitor className="w-5 h-5" />
                         <span>مشاركة الشاشة والشرح 🖥️</span>
@@ -937,53 +967,92 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                 )
               ) : (
                 /* ====================================================
-                   قاعة البث التفاعلية المباشرة المدمجة (فيديو وصوت ثنائي الاتجاه)
+                   واجهة الطالب بنظام Google Meet المدمج 100%
                    ==================================================== */
-                (() => {
-                  const teacherStreamId = `elm_teacher_${currentSession.id}`;
-                  const roomName = `elm_room_${currentSession.id}`;
-                  const userLabel = encodeURIComponent((isTeacher ? '👨‍🏫 ' : '🎓 ') + studentDisplayName);
-                  
-                  // Teacher pushes with unique ID, Student views teacher in full screen with 2-way audio
-                  const streamSrc = isTeacher
-                    ? `https://vdo.ninja/?room=${roomName}&push=${teacherStreamId}&label=${userLabel}&webcam=1&mic=1&screenshare=1&autostart=1`
-                    : `https://vdo.ninja/?room=${roomName}&push=std_${studentCode || 'guest'}&view=${teacherStreamId}&label=${userLabel}&mic=1&autostart=1&autoplay=1&cleanoutput=1`;
+                <div className="relative w-full h-full min-h-[520px] flex items-center justify-center bg-[#202124] overflow-hidden rounded-3xl">
+                  {/* Teacher Main Stream / Video */}
+                  <video
+                    ref={remoteVideoRef}
+                    autoPlay
+                    playsInline
+                    className={`w-full h-full object-contain ${hasRemoteVideo ? 'block' : 'hidden'}`}
+                  />
 
-                  return (
-                    <div className="relative w-full h-full min-h-[520px] flex flex-col bg-slate-950">
-                      <iframe
-                        src={streamSrc}
-                        title="استوديو البث المباشر المدمج"
-                        className="w-full h-full border-0 min-h-[520px]"
-                        allow="camera; microphone; display-capture; autoplay; clipboard-write; fullscreen; speaker; self *"
-                        allowFullScreen
-                      />
-
-                      {/* Floating In-Room Student Controls */}
-                      {!isTeacher && isAdmitted && (
-                        <div className="absolute top-4 right-4 left-4 z-40 flex items-center justify-between pointer-events-auto">
-                          <button
-                            onClick={onBack}
-                            className="bg-slate-900/90 hover:bg-slate-800 text-white text-xs font-black px-3.5 py-2 rounded-xl border border-slate-700 shadow-xl backdrop-blur-md flex items-center gap-1.5"
-                          >
-                            <ChevronRight className="w-4 h-4 rotate-180" />
-                            <span>مغادرة 🚪</span>
-                          </button>
-
-                          <button
-                            onClick={handleHandRaise}
-                            className={`text-xs font-black px-4 py-2 rounded-xl border shadow-xl backdrop-blur-md flex items-center gap-1.5 transition-all ${
-                              handRaised ? 'bg-amber-500 text-slate-950 border-amber-400 animate-pulse' : 'bg-slate-900/90 text-amber-400 border-amber-500/40 hover:bg-slate-800'
-                            }`}
-                          >
-                            <Hand className="w-4 h-4" />
-                            <span>{handRaised ? 'تم إرسال طلب المداخلة ✋' : 'رفع اليد ✋'}</span>
-                          </button>
-                        </div>
-                      )}
+                  {/* If waiting for teacher to turn on camera */}
+                  {!hasRemoteVideo && (
+                    <div className="flex flex-col items-center justify-center p-8 text-center text-white space-y-4 max-w-md animate-in fade-in">
+                      <div className="w-20 h-20 rounded-full bg-emerald-500/20 border-2 border-emerald-500/50 flex items-center justify-center text-4xl shadow-2xl animate-pulse">
+                        👨‍🏫
+                      </div>
+                      <div className="space-y-1.5">
+                        <h3 className="text-lg md:text-xl font-black text-white">أنت متصل الآن بالحصة المباشرة</h3>
+                        <p className="text-xs text-slate-300 font-bold leading-relaxed">
+                          المحاضر: <span className="text-amber-400 font-black">{currentSession.instructor}</span> • شاشة وكاميرا المدرس ستظهر أمامك مباشرة فور بدء الشرح.
+                        </p>
+                      </div>
                     </div>
-                  );
-                })()
+                  )}
+
+                  {/* Student Audio Unmute Button for Mobile */}
+                  {isAudioMutedByBrowser && (
+                    <div className="absolute top-4 left-4 z-40">
+                      <button
+                        onClick={() => {
+                          if (remoteVideoRef.current) {
+                            remoteVideoRef.current.muted = false;
+                            remoteVideoRef.current.play().catch(e => {});
+                            setIsAudioMutedByBrowser(false);
+                          }
+                        }}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black px-4 py-2.5 rounded-full shadow-2xl flex items-center gap-2 animate-pulse border border-emerald-400"
+                      >
+                        <Volume2 className="w-4 h-4" />
+                        <span>تشغيل صوت المستر 🔊</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Teacher Name Tag (Google Meet Style) */}
+                  <div className="absolute bottom-20 right-4 z-40 bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/10 flex items-center gap-2 text-white text-xs font-bold">
+                    <span>👨‍🏫 {currentSession.instructor}</span>
+                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                  </div>
+
+                  {/* Google Meet Bottom Floating Control Bar for Student */}
+                  <div className="absolute bottom-4 inset-x-4 z-40 flex items-center justify-center">
+                    <div className="bg-[#202124]/90 backdrop-blur-md border border-white/10 px-4 py-2 rounded-full flex items-center gap-3 shadow-2xl">
+                      {/* Raise Hand Button */}
+                      <button
+                        onClick={handleHandRaise}
+                        title={handRaised ? 'تم إرسال طلبك' : 'رفع اليد'}
+                        className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                          handRaised ? 'bg-amber-500 text-slate-950 animate-pulse' : 'bg-[#3c4043] hover:bg-[#4a4e51] text-white'
+                        }`}
+                      >
+                        <Hand className="w-5 h-5" />
+                      </button>
+
+                      {/* Mic Button for Student */}
+                      <button
+                        onClick={() => alert('يمكنك التحدث بالمايك فور إتاحة المعلم للكلمة! ✋')}
+                        title="طلب التحدث"
+                        className="w-11 h-11 rounded-full flex items-center justify-center bg-[#3c4043] hover:bg-[#4a4e51] text-white transition-all"
+                      >
+                        <Mic className="w-5 h-5" />
+                      </button>
+
+                      {/* Leave Meeting Button */}
+                      <button
+                        onClick={onBack}
+                        title="مغادرة الاجتماع"
+                        className="px-5 h-11 rounded-full bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center gap-1.5 transition-all shadow-lg text-xs font-black"
+                      >
+                        <PhoneOff className="w-4 h-4" />
+                        <span>مغادرة</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
 
               {/* Floating Reaction Animation Emojis */}
