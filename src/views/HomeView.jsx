@@ -1,65 +1,33 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useApp } from '../context/AppContext';
-import { ElmLogo } from '../components/ElmLogo';
 import { 
   Cube3D, 
   Cylinder3D, 
   Cone3D, 
-  GraduationCap3D, 
   WavyRibbon, 
   HeroFloatingScene 
 } from '../components/FloatingShapes';
 import { 
   Play, 
   Sparkles, 
-  Flame, 
   Award, 
-  Users, 
-  Zap, 
-  MessageSquare, 
   ArrowLeft,
-  BookOpen,
-  Lock,
-  Wallet,
-  PlusCircle,
-  Code2,
-  Languages,
-  CheckCircle2,
-  FileText,
   Clock,
-  Send,
-  HelpCircle,
   GraduationCap,
-  ArrowRight,
   ShieldCheck,
-  Smartphone,
   Radio
 } from 'lucide-react';
 
 export const HomeView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveId }) => {
-  const { currentGrade, switchGrade, lessons, student, leaderboard, userRole, adminIdentity, liveSessionsDB = [] } = useApp();
-  const [subjectFilter, setSubjectFilter] = useState('all');
+  const { currentGrade, switchGrade, lessons, student, userRole, liveSessionsDB = [] } = useApp();
+  
+  // Lock grade to student's registered grade if student, or currentGrade for admin
+  const activeGrade = (userRole === 'student' && student?.grade) ? student.grade : currentGrade;
 
-  // Find active or upcoming live session for this grade
+  // Find active or upcoming live session for this student's grade
   const targetLiveSession = liveSessionsDB.find(s => 
-    (s.grade === currentGrade || s.grade === 'all') && (s.status === 'live' || s.status === 'scheduled')
+    (s.grade === activeGrade || s.grade === 'all') && (s.status === 'live' || s.status === 'scheduled')
   ) || liveSessionsDB[0];
-
-  const isSayedAdmin = userRole === 'admin' && adminIdentity === 'mr_sayed';
-  const isNourAdmin = userRole === 'admin' && adminIdentity === 'eng_nour';
-
-  const effectiveSubjectFilter = userRole === 'admin'
-    ? (isSayedAdmin ? 'arabic' : 'programming')
-    : subjectFilter;
-
-  const filteredLessons = lessons.filter(les => {
-    const gradeMatch = les.grade === currentGrade;
-    if (effectiveSubjectFilter === 'all') return gradeMatch;
-    if (effectiveSubjectFilter === 'arabic') {
-      return gradeMatch && (les.subject?.includes('عرب') || les.subject?.includes('Arabic') || les.subject?.includes('لغة'));
-    }
-    return gradeMatch && !les.subject?.includes('عرب') && !les.subject?.includes('لغة');
-  });
 
   const gradeTitles = {
     '3sec': 'الصف الثالث الثانوي (دفعة 2026)',
@@ -67,8 +35,19 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveId
     '1sec': 'الصف الأول الثانوي'
   };
 
+  // Separate lessons strictly into Arabic and Programming for this grade
+  const arabicLessons = lessons.filter(les => 
+    (les.grade === activeGrade || les.grade === 'all') && 
+    (les.subject?.includes('عرب') || les.subject?.includes('Arabic') || les.subject?.includes('لغة'))
+  );
+
+  const programmingLessons = lessons.filter(les => 
+    (les.grade === activeGrade || les.grade === 'all') && 
+    !(les.subject?.includes('عرب') || les.subject?.includes('Arabic') || les.subject?.includes('لغة'))
+  );
+
   return (
-    <div className="space-y-14 pb-20 relative overflow-hidden">
+    <div className="space-y-12 pb-20 relative overflow-hidden" dir="rtl">
       
       {/* Global Floating Background Shapes */}
       <div className="absolute top-20 right-4 pointer-events-none opacity-60 hidden lg:block animate-float-slow">
@@ -80,104 +59,63 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveId
       <div className="absolute top-[800px] right-8 pointer-events-none opacity-50 hidden lg:block animate-float-fast">
         <Cone3D size={44} />
       </div>
-      <div className="absolute top-[1200px] left-8 pointer-events-none opacity-50 hidden lg:block animate-float-slow">
-        <Cube3D size={48} color="blue" />
-      </div>
 
-      {/* ═══ Bassthalk-Inspired Alive Hero Section ═══ */}
+      {/* ═══ Alive Hero Section ═══ */}
       <section className="relative overflow-hidden hero-card-container rounded-[2.5rem] shadow-xl dark:shadow-2xl p-6 md:p-12">
         
         {/* Background Ambient Glowing Orbs */}
         <div className="absolute -top-24 -right-24 w-96 h-96 bg-blue-500/15 dark:bg-blue-600/20 rounded-full blur-3xl pointer-events-none animate-blob" />
         <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-amber-500/15 dark:bg-amber-400/10 rounded-full blur-3xl pointer-events-none animate-blob" style={{ animationDelay: '4s' }} />
-        <div className="absolute top-1/3 left-1/3 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
         {/* Wavy Animated Ribbon Line */}
         <div className="absolute inset-0 pointer-events-none">
-          <WavyRibbon className="w-full h-full opacity-40 dark:opacity-30" />
+          <WavyRibbon />
         </div>
 
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12 items-center">
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
           
-          {/* Left / Text Content (7 Cols) */}
-          <div className="lg:col-span-7 space-y-6 text-right">
-            
-            {/* Top Glowing Badges Row */}
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-black bg-blue-600 text-white shadow-md animate-pulse">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>المنصة التعليمية الأولى لدفعة 2026</span>
-              </span>
+          {/* Left / Main Text Content (7 Cols) */}
+          <div className="lg:col-span-7 space-y-6 text-right flex flex-col justify-center">
 
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-black bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
-                <GraduationCap className="w-3.5 h-3.5" />
-                <span>ثانوية عامة وبرمجة حديثة</span>
-              </span>
+            {/* Pill Badge */}
+            <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-800 dark:text-emerald-400 px-4 py-2 rounded-full text-xs font-black shadow-sm self-start">
+              <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span>منصة تعليمية ذكية ومتكاملة • {gradeTitles[activeGrade] || 'الثانوية العامة'} 🚀</span>
             </div>
 
             {/* Main Headline */}
-            <div className="space-y-2">
-              <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-slate-900 dark:text-white leading-[1.25] tracking-tight">
-                طريقك للتفوق في <span className="gradient-text-gold">اللغة العربية</span> و <span className="gradient-text-blue">البرمجة</span>
+            <div className="space-y-3">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-[1.3] text-slate-900 dark:text-white">
+                طريقك للتفوق في <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-l from-amber-500 via-amber-600 to-amber-700 dark:from-amber-400 dark:to-yellow-300">
+                  اللغة العربية
+                </span> و <span className="text-transparent bg-clip-text bg-gradient-to-l from-blue-600 via-indigo-600 to-blue-800 dark:from-blue-400 dark:to-cyan-300">
+                  البرمجة
+                </span> 🎓
               </h1>
-              <p className="text-xs sm:text-sm md:text-base text-slate-600 dark:text-slate-300 font-bold leading-relaxed max-w-xl">
-                شرح مبسط، حل تدريبات تفاعلية، امتحانات دورية، وتصحيح لحظي مع نخبة من أقوى المعلمين لمساعدتك في حصد الدرجات النهائية.
-              </p>
-            </div>
 
-            {/* Dual Subject Badges */}
-            <div className="flex flex-wrap gap-2.5 justify-end">
-              <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/25 text-blue-800 dark:text-blue-300 px-3.5 py-2 rounded-2xl text-xs font-black shadow-xs hover:scale-105 transition-transform">
-                <Code2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                <span>البرمجة وعلوم الحاسب</span>
-              </div>
-              <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/25 text-amber-800 dark:text-amber-300 px-3.5 py-2 rounded-2xl text-xs font-black shadow-xs hover:scale-105 transition-transform">
-                <Languages className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                <span>اللغة العربية والبلاغة</span>
-              </div>
+              <p className="text-sm md:text-base text-slate-700 dark:text-slate-300 font-bold leading-relaxed max-w-xl">
+                شرح مبسط، حل تدريبات تفاعلية مكثفة، وتصحيح فوري لجميع امتحاناتك مع نخبة من أفضل المعلمين.
+              </p>
             </div>
 
             {/* Action Buttons */}
             <div className="flex flex-wrap items-center gap-3.5 pt-2">
               <button 
                 onClick={() => setCurrentTab('lessons')}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm md:text-base font-black px-8 py-4 rounded-2xl shadow-xl shadow-emerald-600/30 hover:scale-105 transition-all flex items-center gap-2.5 animate-pulse-glow"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-black px-7 py-3.5 rounded-2xl shadow-xl shadow-emerald-600/30 hover:scale-105 transition-all flex items-center gap-2"
               >
-                <span>ابدأ رحلتك الآن</span>
-                <ArrowLeft className="w-5 h-5" />
+                <span>تصفح كل الحصص والدروس</span>
+                <ArrowLeft className="w-4 h-4" />
               </button>
 
               <button 
                 onClick={() => setCurrentTab('exams')}
-                className="hero-secondary-btn text-xs md:text-sm font-black px-6 py-4 rounded-2xl shadow-md hover:scale-105 transition-all flex items-center gap-2"
+                className="hero-secondary-btn text-xs sm:text-sm font-black px-6 py-3.5 rounded-2xl shadow-md hover:scale-105 transition-all flex items-center gap-2"
               >
                 <Award className="w-4 h-4 text-amber-500" />
-                <span>الامتحانات والتحديات</span>
+                <span>الامتحانات والاختبارات</span>
               </button>
-
-              {userRole === 'admin' && (
-                <button 
-                  onClick={() => setCurrentTab('admin')}
-                  className="btn-primary text-xs md:text-sm px-6 py-3.5 rounded-2xl shadow-xl shadow-blue-500/20"
-                >
-                  <PlusCircle className="w-4 h-4" />
-                  رفع حصة جديدة 💻
-                </button>
-              )}
-            </div>
-
-            {/* Quick Stats Strip */}
-            <div className="grid grid-cols-3 gap-3 pt-3">
-              {[
-                { val: '500+', label: 'طالب متفوق', icon: '🎓' },
-                { val: '100%', label: 'تصحيح ومتابعة', icon: '✅' },
-                { val: '24/7', label: 'متاح دائماً', icon: '⚡' }
-              ].map((s, i) => (
-                <div key={i} className="hero-stat-pill rounded-2xl p-3 text-center shadow-xs">
-                  <div className="text-base font-black text-slate-900 dark:text-white">{s.icon} {s.val}</div>
-                  <div className="text-[11px] text-slate-600 dark:text-slate-300 font-bold mt-0.5">{s.label}</div>
-                </div>
-              ))}
             </div>
 
           </div>
@@ -242,7 +180,7 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveId
             }}
             className={`px-6 py-3.5 rounded-2xl text-xs md:text-sm font-black transition-all flex items-center gap-2 shadow-xl hover:scale-105 flex-shrink-0 ${
               targetLiveSession.status === 'live'
-                ? 'bg-rose-600 hover:bg-rose-500 text-white animate-bounce-subtle'
+                ? 'bg-rose-600 hover:bg-rose-500 text-white'
                 : 'bg-blue-600 hover:bg-blue-500 text-white'
             }`}
           >
@@ -253,223 +191,254 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveId
         </section>
       )}
 
-      {/* ═══ Grade + Subject Selector ═══ */}
-      <section className="bg-white dark:bg-[#162534] p-4 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-md space-y-3">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Grade Selector Strip (Only visible for Admins, locked for students) */}
+      {userRole === 'admin' ? (
+        <section className="bg-white dark:bg-[#162534] p-4 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            <h2 className="text-sm font-black text-slate-900 dark:text-white">اختر الصف والمادة:</h2>
+            <ShieldCheck className="w-5 h-5 text-amber-500" />
+            <h3 className="text-xs font-black text-slate-800 dark:text-slate-200">معاينة الصفوف الدراسية (لوحة الإدارة):</h3>
           </div>
-
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
-            <button 
-              onClick={() => switchGrade('3sec')} 
-              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap ${currentGrade === '3sec' ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
-            >
-              🎓 ثالثة ثانوي
-            </button>
-            <button 
-              onClick={() => switchGrade('2sec')} 
-              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap ${currentGrade === '2sec' ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
-            >
-              📘 ثاني ثانوي
-            </button>
-            <button 
-              onClick={() => switchGrade('1sec')} 
-              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap ${currentGrade === '1sec' ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
-            >
-              📗 أول ثانوي
-            </button>
-          </div>
-        </div>
-
-        {/* Subject Filter */}
-        {userRole !== 'admin' && (
-          <div className="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
-            <span className="text-[11px] font-black text-slate-500 dark:text-slate-400">فلتر المادة:</span>
-            {[
-              { id: 'all', label: '📚 الكل', color: 'slate' },
-              { id: 'programming', label: '💻 البرمجة', color: 'blue' },
-              { id: 'arabic', label: '📖 العربي', color: 'amber' }
-            ].map(s => (
+          <div className="flex items-center gap-2 overflow-x-auto">
+            {['3sec', '2sec', '1sec'].map(g => (
               <button
-                key={s.id}
-                onClick={() => setSubjectFilter(s.id)}
-                className={`px-3.5 py-1.5 rounded-xl text-[11px] font-black transition-all border ${
-                  subjectFilter === s.id
-                    ? s.color === 'blue' 
-                        ? 'bg-blue-600 text-white border-blue-600' 
-                        : s.color === 'amber' 
-                        ? 'bg-amber-500 text-slate-950 border-amber-500' 
-                        : 'bg-slate-800 dark:bg-blue-600 text-white border-slate-800 dark:border-blue-600'
-                    : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                key={g}
+                onClick={() => switchGrade(g)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${
+                  activeGrade === g
+                    ? 'bg-slate-900 dark:bg-amber-500 text-amber-400 dark:text-slate-950 shadow-sm'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
                 }`}
               >
-                {s.label}
+                {g === '3sec' ? '🎓 ثالثة ثانوي' : g === '2sec' ? '📘 ثانية ثانوي' : '📗 أولى ثانوي'}
               </button>
             ))}
           </div>
-        )}
-      </section>
+        </section>
+      ) : (
+        <div className="flex items-center justify-between bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/60 px-5 py-3 rounded-2xl">
+          <div className="flex items-center gap-2 text-blue-900 dark:text-blue-200 text-xs font-black">
+            <GraduationCap className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <span>المحتوى المعروض مخصص لـ: <strong>{gradeTitles[activeGrade] || 'الصف الدراسي المسجل'}</strong></span>
+          </div>
+          <span className="text-[10px] bg-blue-600 text-white px-2.5 py-0.5 rounded-full font-bold">حسابك مفعل ✓</span>
+        </div>
+      )}
 
-      {/* ═══ Lessons Grid ═══ */}
-      <section className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h2 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-              <span>الحصص والمحاضرات المتاحة</span>
-              <span className="text-xs px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 font-mono">
-                {filteredLessons.length} حصة
-              </span>
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">
-              {gradeTitles[currentGrade]} • محتوى متجدد دورياً بأعلى جودة
-            </p>
+      {/* ══════════════════════════════════════════════════════════════
+          1️⃣ CARD 1: قسم اللغة العربية والبلاغة (مستر سيد عبد العاطي)
+         ══════════════════════════════════════════════════════════════ */}
+      <section className="bg-white dark:bg-[#162534] rounded-3xl border-2 border-amber-500/30 shadow-xl overflow-hidden">
+        
+        {/* Card Header Banner */}
+        <div className="bg-gradient-to-l from-amber-600 via-amber-500 to-orange-600 p-6 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-3xl shadow-md flex-shrink-0">
+              📖
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-black bg-slate-950/30 px-2.5 py-0.5 rounded-full">
+                  فرع النحو والبلاغة والأدب والنصوص
+                </span>
+                <span className="text-[11px] font-black bg-white/20 px-2.5 py-0.5 rounded-full">
+                  {arabicLessons.length} حصة متاحة
+                </span>
+              </div>
+              <h2 className="text-xl md:text-2xl font-black mt-1">
+                قسم مادة اللغة العربية • أ / سيد عبد العاطي
+              </h2>
+            </div>
           </div>
 
-          <button 
+          <button
             onClick={() => setCurrentTab('lessons')}
-            className="text-xs font-black text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+            className="self-start sm:self-auto bg-slate-950/40 hover:bg-slate-950/60 text-white text-xs font-black px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 backdrop-blur-md"
           >
-            <span>عرض كل الحصص</span>
+            <span>عرض كل حصص العربي</span>
             <ArrowLeft className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        {filteredLessons.length === 0 ? (
-          <div className="text-center py-16 bg-white dark:bg-[#162534] rounded-3xl border border-slate-200 dark:border-slate-800 space-y-3">
-            <div className="text-4xl">📚</div>
-            <h3 className="text-base font-black text-slate-800 dark:text-slate-200">لا توجد حصص مضافة لهذا الصف حالياً</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">سيتم إضافة المحاضرات والواجبات قريباً جداً بإذن الله.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredLessons.map(les => {
-              const isFree = les.price === 0;
-              const isLocked = !isFree && !student?.unlockedLessons?.includes(les.id);
-              const isArabic = les.subject?.includes('عرب') || les.subject?.includes('Arabic');
+        {/* Card Body / Lessons Grid */}
+        <div className="p-6">
+          {arabicLessons.length === 0 ? (
+            <div className="text-center py-10 text-slate-400 space-y-2">
+              <div className="text-3xl">📖</div>
+              <p className="text-xs font-bold">لا توجد حصص لغة عربية مضافة لهذا الصف حالياً، سيتم رفعها قريباً.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {arabicLessons.map(les => {
+                const isFree = les.price === 0;
+                const isUnlocked = isFree || student?.unlockedLessons?.includes(les.id);
+                return (
+                  <div
+                    key={les.id}
+                    onClick={() => { setSelectedLessonId(les.id); setCurrentTab('lesson-detail'); }}
+                    className="bg-slate-50 dark:bg-slate-900/70 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-lg hover:border-amber-400 transition-all cursor-pointer group flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="relative aspect-video bg-slate-900 overflow-hidden">
+                        <img
+                          src={les.thumbnail || "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&q=80&w=800"}
+                          alt={les.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex items-end justify-between p-3">
+                          <span className="text-[10px] font-black bg-amber-500 text-slate-950 px-2 py-0.5 rounded-md">
+                            اللغة العربية
+                          </span>
+                          <span className="text-[10px] text-white font-bold bg-black/60 px-2 py-0.5 rounded-md flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            <span>{les.duration || '45 دقيقة'}</span>
+                          </span>
+                        </div>
 
-              return (
-                <div 
-                  key={les.id}
-                  onClick={() => {
-                    setSelectedLessonId(les.id);
-                    setCurrentTab('lesson-detail');
-                  }}
-                  className="bg-white dark:bg-[#162534] rounded-3xl overflow-hidden border border-slate-200/80 dark:border-slate-800 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group flex flex-col justify-between"
-                >
-                  <div>
-                    {/* Thumbnail Image Container */}
-                    <div className="relative aspect-video overflow-hidden bg-slate-100 dark:bg-slate-800">
-                      <img 
-                        src={les.thumbnail || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=800"} 
-                        alt={les.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end justify-between p-4">
-                        <span className={`text-[11px] font-black px-2.5 py-1 rounded-xl shadow-md ${isArabic ? 'bg-amber-500 text-slate-950' : 'bg-blue-600 text-white'}`}>
-                          {les.subject}
-                        </span>
-
-                        <span className="text-[11px] font-black text-white/90 bg-black/60 backdrop-blur-sm px-2.5 py-1 rounded-xl flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          <span>{les.duration || '45 دقيقة'}</span>
-                        </span>
+                        <div className="absolute top-2 right-2">
+                          {isFree ? (
+                            <span className="bg-emerald-500 text-white text-[10px] font-black px-2.5 py-0.5 rounded-lg shadow">مجانية 🎁</span>
+                          ) : isUnlocked ? (
+                            <span className="bg-blue-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-lg shadow">مفعلة ✓</span>
+                          ) : (
+                            <span className="bg-slate-900/90 text-amber-400 border border-amber-500/40 text-[10px] font-black px-2.5 py-0.5 rounded-lg shadow">
+                              {les.price} ج.م
+                            </span>
+                          )}
+                        </div>
                       </div>
 
-                      {/* Lock / Free Badge */}
-                      <div className="absolute top-3 right-3">
-                        {isFree ? (
-                          <span className="bg-emerald-500 text-white text-[11px] font-black px-3 py-1 rounded-full shadow-lg flex items-center gap-1">
-                            <span>مجانية 🎁</span>
-                          </span>
-                        ) : isLocked ? (
-                          <span className="bg-slate-900/80 backdrop-blur-md text-amber-400 text-[11px] font-black px-2.5 py-1 rounded-full shadow-lg border border-amber-500/30 flex items-center gap-1">
-                            <Lock className="w-3 h-3" />
-                            <span>{les.price} ج.م</span>
-                          </span>
-                        ) : (
-                          <span className="bg-blue-600 text-white text-[11px] font-black px-2.5 py-1 rounded-full shadow-lg flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3" />
-                            <span>مفعلة بحسابك</span>
-                          </span>
-                        )}
+                      <div className="p-4 space-y-1.5">
+                        <h4 className="font-black text-slate-900 dark:text-white text-xs md:text-sm line-clamp-2 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                          {les.title}
+                        </h4>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 font-medium">
+                          {les.description || 'شرح تفصيلي مع تدريبات مكثفة وأسئلة وزارية.'}
+                        </p>
                       </div>
                     </div>
 
-                    {/* Content Info */}
-                    <div className="p-5 space-y-2.5">
-                      <h3 className="font-black text-slate-900 dark:text-white text-sm md:text-base line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                        {les.title}
-                      </h3>
-                      
-                      <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed font-medium">
-                        {les.description || 'شرح تفصيلي مع تدريبات مكثفة وأسئلة امتحانية متوقعة.'}
-                      </p>
+                    <div className="p-4 pt-0 border-t border-slate-200/60 dark:border-slate-800/60 mt-2 flex items-center justify-between">
+                      <span className="text-[11px] font-black text-amber-600 dark:text-amber-400">
+                        {isUnlocked ? 'مشاهدة الحصة الآن' : 'فتح الحصة'}
+                      </span>
+                      <div className="w-7 h-7 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center group-hover:scale-110 transition-all shadow-xs">
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                      </div>
                     </div>
                   </div>
-
-                  {/* Card Footer Button */}
-                  <div className="p-5 pt-0 border-t border-slate-100 dark:border-slate-800/60 mt-2 flex items-center justify-between">
-                    <span className="text-xs font-black text-slate-700 dark:text-slate-300">
-                      {isFree ? 'متاحة للمشاهدة فوراً' : isLocked ? 'فتح الحصة الآن' : 'متابعة المشاهدة'}
-                    </span>
-                    <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all shadow-2xs">
-                      <Play className="w-4 h-4 fill-current mr-0.5" />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          )}
+        </div>
       </section>
 
-      {/* ═══ Top Students Leaderboard Preview ═══ */}
-      <section className="bg-gradient-to-br from-slate-900 to-slate-950 text-white p-6 md:p-10 rounded-[2.5rem] border border-slate-800 shadow-2xl space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="inline-flex items-center gap-1.5 text-xs font-black text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
-              <Award className="w-3.5 h-3.5" />
-              <span>لوحة الشرف • أبطال منصة عِلم</span>
+      {/* ══════════════════════════════════════════════════════════════
+          2️⃣ CARD 2: قسم البرمجة وعلوم الحاسب (مهندس نور الدين)
+         ══════════════════════════════════════════════════════════════ */}
+      <section className="bg-white dark:bg-[#162534] rounded-3xl border-2 border-blue-500/30 shadow-xl overflow-hidden">
+        
+        {/* Card Header Banner */}
+        <div className="bg-gradient-to-l from-blue-700 via-indigo-600 to-blue-800 p-6 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-3xl shadow-md flex-shrink-0">
+              💻
             </div>
-            <h2 className="text-xl md:text-2xl font-black">أوائل المنصة الأكثر اجتهاداً وحلاً للاختبارات</h2>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-black bg-slate-950/30 px-2.5 py-0.5 rounded-full">
+                  Python, Web, Algorithms & AI
+                </span>
+                <span className="text-[11px] font-black bg-white/20 px-2.5 py-0.5 rounded-full">
+                  {programmingLessons.length} حصة متاحة
+                </span>
+              </div>
+              <h2 className="text-xl md:text-2xl font-black mt-1">
+                قسم البرمجة وعلوم الحاسب • م / نور الدين
+              </h2>
+            </div>
           </div>
 
-          <button 
-            onClick={() => setCurrentTab('leaderboard')}
-            className="self-start sm:self-auto text-xs font-black text-amber-400 hover:text-amber-300 border border-amber-500/30 bg-amber-500/10 px-4 py-2 rounded-xl transition-all flex items-center gap-1.5"
+          <button
+            onClick={() => setCurrentTab('lessons')}
+            className="self-start sm:self-auto bg-slate-950/40 hover:bg-slate-950/60 text-white text-xs font-black px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 backdrop-blur-md"
           >
-            <span>عرض الترتيب بالكامل</span>
+            <span>عرض كل حصص البرمجة</span>
             <ArrowLeft className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {(leaderboard || []).slice(0, 3).map((st, idx) => (
-            <div 
-              key={st.id || idx}
-              className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between hover:bg-white/10 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shadow-md ${
-                  idx === 0 ? 'bg-amber-400 text-slate-950' : idx === 1 ? 'bg-slate-300 text-slate-950' : 'bg-amber-700 text-white'
-                }`}>
-                  {idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'}
-                </div>
-                <div>
-                  <div className="font-black text-xs md:text-sm text-white">{st.name}</div>
-                  <div className="text-[10px] text-slate-400 font-mono">كود: {st.code}</div>
-                </div>
-              </div>
-
-              <div className="text-right">
-                <div className="text-xs font-black text-amber-400 font-mono">{st.points || 0} نقطة</div>
-                <div className="text-[10px] text-slate-400 font-bold">{st.gradeName ? 'ثانوية عامة' : 'طالب متميز'}</div>
-              </div>
+        {/* Card Body / Lessons Grid */}
+        <div className="p-6">
+          {programmingLessons.length === 0 ? (
+            <div className="text-center py-10 text-slate-400 space-y-2">
+              <div className="text-3xl">💻</div>
+              <p className="text-xs font-bold">لا توجد حصص برمجة مضافة لهذا الصف حالياً، سيتم رفعها قريباً.</p>
             </div>
-          ))}
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {programmingLessons.map(les => {
+                const isFree = les.price === 0;
+                const isUnlocked = isFree || student?.unlockedLessons?.includes(les.id);
+                return (
+                  <div
+                    key={les.id}
+                    onClick={() => { setSelectedLessonId(les.id); setCurrentTab('lesson-detail'); }}
+                    className="bg-slate-50 dark:bg-slate-900/70 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-lg hover:border-blue-400 transition-all cursor-pointer group flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="relative aspect-video bg-slate-900 overflow-hidden">
+                        <img
+                          src={les.thumbnail || "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=800"}
+                          alt={les.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex items-end justify-between p-3">
+                          <span className="text-[10px] font-black bg-blue-600 text-white px-2 py-0.5 rounded-md">
+                            البرمجة
+                          </span>
+                          <span className="text-[10px] text-white font-bold bg-black/60 px-2 py-0.5 rounded-md flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            <span>{les.duration || '45 دقيقة'}</span>
+                          </span>
+                        </div>
+
+                        <div className="absolute top-2 right-2">
+                          {isFree ? (
+                            <span className="bg-emerald-500 text-white text-[10px] font-black px-2.5 py-0.5 rounded-lg shadow">مجانية 🎁</span>
+                          ) : isUnlocked ? (
+                            <span className="bg-blue-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-lg shadow">مفعلة ✓</span>
+                          ) : (
+                            <span className="bg-slate-900/90 text-amber-400 border border-amber-500/40 text-[10px] font-black px-2.5 py-0.5 rounded-lg shadow">
+                              {les.price} ج.م
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="p-4 space-y-1.5">
+                        <h4 className="font-black text-slate-900 dark:text-white text-xs md:text-sm line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                          {les.title}
+                        </h4>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 font-medium">
+                          {les.description || 'شرح عملي تطبيقي مع تمارين برمجية ومشاريع حقيقية.'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="p-4 pt-0 border-t border-slate-200/60 dark:border-slate-800/60 mt-2 flex items-center justify-between">
+                      <span className="text-[11px] font-black text-blue-600 dark:text-blue-400">
+                        {isUnlocked ? 'مشاهدة الحصة الآن' : 'فتح الحصة'}
+                      </span>
+                      <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center group-hover:scale-110 transition-all shadow-xs">
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 
