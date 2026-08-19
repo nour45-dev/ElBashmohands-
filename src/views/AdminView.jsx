@@ -1270,14 +1270,27 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
               </div>
             </div>
 
-            {liveSessionsDB.filter(s => s.status === 'ended' || s.recordingUrl).length === 0 ? (
+            {liveSessionsDB.filter(s => {
+              const sessionEnded = s.status === 'ended' || s.recordingUrl;
+              if (!sessionEnded) return false;
+              // فصل المواد: م/ نور يشوف برمجة فقط، أ/ سيد يشوف عربي فقط
+              if (isNourAdmin) return s.subject !== 'اللغة العربية';
+              if (isSayedAdmin) return s.subject === 'اللغة العربية';
+              return true;
+            }).length === 0 ? (
               <div className="text-center py-10 text-slate-400 space-y-2">
                 <div className="text-3xl">📼</div>
                 <p className="text-xs font-bold">لا توجد حصص منتهية أو مسجلة في الأرشيف حتى الآن.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {liveSessionsDB.filter(s => s.status === 'ended' || s.recordingUrl).map(session => (
+                {liveSessionsDB.filter(s => {
+                  const sessionEnded = s.status === 'ended' || s.recordingUrl;
+                  if (!sessionEnded) return false;
+                  if (isNourAdmin) return s.subject !== 'اللغة العربية';
+                  if (isSayedAdmin) return s.subject === 'اللغة العربية';
+                  return true;
+                }).map(session => (
                   <div 
                     key={session.id} 
                     className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3"
@@ -1370,20 +1383,37 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                         }}
                         className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-black px-4 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1.5"
                       >
-                        <span>📤 نشر التسجيل فوراً في كروت الطلاب</span>
+                        <span>📤 نشر التسجيل في كروت الطلاب</span>
                       </button>
 
-                      {session.recordingUrl && (
-                        <a
-                          href={session.recordingUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 text-slate-800 dark:text-slate-200 text-xs font-black px-3 py-2 rounded-xl transition-all flex items-center gap-1"
+                      <div className="flex items-center gap-2">
+                        {session.recordingUrl && (
+                          <a
+                            href={session.recordingUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 text-slate-800 dark:text-slate-200 text-xs font-black px-3 py-2 rounded-xl transition-all flex items-center gap-1"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>معاينة</span>
+                          </a>
+                        )}
+
+                        {/* زرار مسح الجلسة من الأرشيف نهائياً */}
+                        <button
+                          onClick={async () => {
+                            if (window.confirm(`⚠️ هل أنت متأكد من مسح جلسة "${session.title}" من الأرشيف نهائياً؟\n\nسيتم حذف التسجيل والجلسة بالكامل ولا يمكن التراجع!`)) {
+                              await adminDeleteLiveSession(session.id);
+                              alert('تم مسح الجلسة من الأرشيف بنجاح! 🗑️');
+                            }
+                          }}
+                          className="bg-rose-600 hover:bg-rose-500 text-white text-xs font-black px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-xs hover:scale-105"
+                          title="مسح هذه الجلسة من الأرشيف نهائياً"
                         >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>معاينة</span>
-                        </a>
-                      )}
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>مسح من الأرشيف 🗑️</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
