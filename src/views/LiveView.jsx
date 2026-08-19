@@ -612,27 +612,52 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                   allowFullScreen
                 />
               ) : (
-                /* Native Embedded Multi-User Live Classroom (Direct Clean WebRTC Room) */
-                <div className="relative w-full h-full flex flex-col items-center justify-center bg-slate-950">
-                  {isTeacher ? (
-                    <iframe
-                      src={`https://vdo.ninja/?room=elm_live_${currentSession.id.replace(/[^a-zA-Z0-9]/g, '')}&push=host_${adminIdentity}&webcam&mic&screenshare&label=${encodeURIComponent(studentDisplayName)}&chat=0`}
-                      title="Teacher Live Room"
-                      className="w-full h-full border-0 min-h-[500px]"
-                      allow="camera; microphone; display-capture; autoplay; clipboard-write; fullscreen; speaker; self *"
-                      allowFullScreen
-                    />
-                  ) : (
-                    /* Admitted Student Room */
-                    isAdmitted ? (
-                      <iframe
-                        src={`https://vdo.ninja/?room=elm_live_${currentSession.id.replace(/[^a-zA-Z0-9]/g, '')}&push=std_${studentCode}&webcam&mic&label=${encodeURIComponent(studentDisplayName)}&chat=0`}
-                        title="Student Live Room"
-                        className="w-full h-full border-0 min-h-[500px]"
-                        allow="camera; microphone; display-capture; autoplay; clipboard-write; fullscreen; speaker; self *"
-                        allowFullScreen
-                      />
-                    ) : null
+                /* ═══ Jitsi Meet Embedded Classroom (Works like Google Meet) ═══ */
+                <div className="relative w-full h-full flex flex-col bg-slate-950">
+                  {/* Jitsi Meet iframe - same room for both teacher and student, Jitsi handles layout internally */}
+                  <iframe
+                    key={`jitsi-${currentSession.id}-${isTeacher ? 'teacher' : studentCode}`}
+                    src={`https://meet.jit.si/ElmPlatform_${currentSession.id}#userInfo.displayName="${encodeURIComponent(studentDisplayName)}"&config.startWithAudioMuted=false&config.startWithVideoMuted=false&config.prejoinPageEnabled=false&config.disableDeepLinking=true&config.toolbarButtons=["microphone","camera","desktop","fullscreen","hangup","tileview","settings"]&config.hideConferenceSubject=true&config.disableProfile=true&interfaceConfig.SHOW_JITSI_WATERMARK=false&interfaceConfig.SHOW_WATERMARK_FOR_GUESTS=false&interfaceConfig.SHOW_BRAND_WATERMARK=false&interfaceConfig.SHOW_POWERED_BY=false&interfaceConfig.TOOLBAR_ALWAYS_VISIBLE=true`}
+                    title="قاعة الحصة المباشرة"
+                    className="w-full border-0"
+                    style={{ height: 'calc(100% - 0px)', minHeight: '520px', flexGrow: 1 }}
+                    allow="camera; microphone; display-capture; autoplay; clipboard-write; fullscreen; speaker; self *; encrypted-media"
+                    allowFullScreen
+                  />
+
+                  {/* Student-only: Floating overlay bar at top with back + hand raise */}
+                  {!isTeacher && (
+                    <div className="absolute top-4 right-4 left-4 z-50 flex items-center justify-between pointer-events-auto">
+                      <button
+                        onClick={onBack}
+                        className="bg-slate-900/90 hover:bg-rose-700 text-white text-xs font-black px-3.5 py-2 rounded-xl border border-slate-700 shadow-xl backdrop-blur-md flex items-center gap-1.5 transition-all hover:scale-105"
+                      >
+                        <ChevronRight className="w-4 h-4 rotate-180" />
+                        <span>مغادرة القاعة 🚪</span>
+                      </button>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={handleHandRaise}
+                          className={`text-xs font-black px-3.5 py-2 rounded-xl border shadow-xl backdrop-blur-md flex items-center gap-1.5 transition-all hover:scale-105 ${
+                            handRaised 
+                              ? 'bg-amber-500 text-slate-950 border-amber-400 animate-pulse' 
+                              : 'bg-slate-900/90 text-amber-400 border-amber-500/40 hover:bg-slate-800'
+                          }`}
+                        >
+                          <Hand className="w-4 h-4" />
+                          <span>{handRaised ? 'رُفعت يدك ✋' : 'رفع اليد ✋'}</span>
+                        </button>
+
+                        <button
+                          onClick={toggleFullscreen}
+                          className="bg-slate-900/90 hover:bg-slate-800 text-white text-xs font-black p-2.5 rounded-xl border border-slate-700 shadow-xl backdrop-blur-md transition-all hover:scale-105"
+                          title="ملء الشاشة"
+                        >
+                          <Maximize2 className="w-4 h-4 text-amber-400" />
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
