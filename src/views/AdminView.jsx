@@ -1275,9 +1275,10 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                   );
                 })}
               </div>
-            )}
+            );
+          })()}
 
-          </div>
+        </div>
 
           {/* ═══ Recorded Live Sessions Archive & Publishing to Student Cards ═══ */}
           <div className="bg-white dark:bg-[#162534] p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-md space-y-6">
