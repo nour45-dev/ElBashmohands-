@@ -2256,6 +2256,74 @@ app.post('/api/live/:id/heartbeat', async (req, res) => {
   }
 });
 
+// ==========================================
+// 📡 WEBRTC P2P SIGNALING FOR LIVE VIDEO
+// ==========================================
+const liveSignalingStore = new Map();
+
+app.post('/api/live/:id/signal/offer', requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { sdp, type, isStreaming } = req.body;
+  if (!liveSignalingStore.has(id)) {
+    liveSignalingStore.set(id, { offer: null, candidates: [], answers: new Map() });
+  }
+  const store = liveSignalingStore.get(id);
+  store.offer = isStreaming ? { sdp, type, timestamp: Date.now() } : null;
+  return res.json({ success: true });
+});
+
+app.get('/api/live/:id/signal/offer', async (req, res) => {
+  const { id } = req.params;
+  const store = liveSignalingStore.get(id);
+  return res.json({ success: true, offer: store?.offer || null });
+});
+
+app.post('/api/live/:id/signal/answer', async (req, res) => {
+  const { id } = req.params;
+  const { studentCode, sdp, type } = req.body;
+  if (!liveSignalingStore.has(id)) {
+    liveSignalingStore.set(id, { offer: null, candidates: [], answers: new Map() });
+  }
+  const store = liveSignalingStore.get(id);
+  store.answers.set(studentCode, { sdp, type, timestamp: Date.now() });
+  return res.json({ success: true });
+});
+
+app.get('/api/live/:id/signal/answers', requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const store = liveSignalingStore.get(id);
+  const answersList = [];
+  if (store?.answers) {
+    for (const [code, ans] of store.answers.entries()) {
+      answersList.push({ studentCode: code, ...ans });
+    }
+  }
+  return res.json({ success: true, answers: answersList });
+});
+
+app.post('/api/live/:id/signal/ice', async (req, res) => {
+  const { id } = req.params;
+  const { candidate, senderRole } = req.body;
+  if (!liveSignalingStore.has(id)) {
+    liveSignalingStore.set(id, { offer: null, candidates: [], answers: new Map() });
+  }
+  const store = liveSignalingStore.get(id);
+  if (candidate) {
+    store.candidates.push({ candidate, senderRole, timestamp: Date.now() });
+    // Keep max 50 candidates
+    if (store.candidates.length > 50) store.candidates.shift();
+  }
+  return res.json({ success: true });
+});
+
+app.get('/api/live/:id/signal/ice', async (req, res) => {
+  const { id } = req.params;
+  const { role } = req.query;
+  const store = liveSignalingStore.get(id);
+  const relevant = (store?.candidates || []).filter(c => c.senderRole !== role);
+  return res.json({ success: true, candidates: relevant });
+});
+
 // Serve static files from dist folder
 app.use(express.static(path.join(__dirname, 'dist')));
 
