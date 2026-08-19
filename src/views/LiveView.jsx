@@ -168,52 +168,6 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
   const [activeMediaStream, setActiveMediaStream] = useState(null);
   const teacherVideoRef = useRef(null);
 
-  const startTeacherCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { width: { ideal: 1280 }, height: { ideal: 720 } }, 
-        audio: true 
-      });
-      setActiveMediaStream(stream);
-      setLocalStream(true);
-      setIsSharingScreen(false);
-      setIsCameraOff(false);
-      setIsMicMuted(false);
-      setTimeout(() => {
-        if (teacherVideoRef.current) {
-          teacherVideoRef.current.srcObject = stream;
-        }
-      }, 100);
-      broadcastTeacherOffer(stream);
-    } catch (e) {
-      alert('يرجى السماح بصلاحيات الكاميرا والمايك في المتصفح لبدء البث المباشر!');
-    }
-  };
-
-  const startTeacherScreen = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({ 
-        video: { cursor: "always" }, 
-        audio: true 
-      });
-      setActiveMediaStream(stream);
-      setLocalStream(true);
-      setIsSharingScreen(true);
-      setIsCameraOff(false);
-      setTimeout(() => {
-        if (teacherVideoRef.current) {
-          teacherVideoRef.current.srcObject = stream;
-        }
-      }, 100);
-      broadcastTeacherOffer(stream);
-      stream.getVideoTracks()[0].onended = () => {
-        setIsSharingScreen(false);
-        setLocalStream(false);
-      };
-    } catch (e) {
-      console.log('Screen share cancelled');
-    }
-  };
 
   // Load PeerJS once for rock-solid cross-device live streaming
   useEffect(() => {
