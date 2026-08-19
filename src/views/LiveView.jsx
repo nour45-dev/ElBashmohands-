@@ -351,11 +351,6 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
   // Active Poll
   const activePoll = currentSession?.polls?.find(p => p.isActive);
 
-  // Student details for dynamic watermark
-  const studentDisplayName = student?.name || 'طالب منصة عِلم';
-  const studentCode = student?.code || '3003';
-  const studentPhone = student?.phone || '01002169889';
-
   return (
     <div className="space-y-6 animate-in fade-in pb-12">
       
@@ -997,12 +992,12 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                     </div>
                   ) : (
                     currentSession.chatMessages.map(msg => {
-                      const isTeacher = msg.senderRole === 'teacher';
+                      const isMsgTeacher = msg.senderRole === 'teacher';
                       return (
                         <div
                           key={msg.id}
                           className={`p-2.5 rounded-2xl text-xs space-y-1 transition-all ${
-                            isTeacher 
+                            isMsgTeacher 
                               ? 'bg-amber-500/15 border border-amber-500/30 text-slate-900 dark:text-white' 
                               : 'bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-slate-800 dark:text-slate-200'
                           }`}
