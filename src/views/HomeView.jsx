@@ -1,33 +1,55 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { ElmLogo } from '../components/ElmLogo';
 import { 
   Cube3D, 
   Cylinder3D, 
   Cone3D, 
+  GraduationCap3D, 
   WavyRibbon, 
   HeroFloatingScene 
 } from '../components/FloatingShapes';
 import { 
   Play, 
   Sparkles, 
+  Flame, 
   Award, 
+  Users, 
+  Zap, 
+  MessageSquare, 
   ArrowLeft,
+  BookOpen,
+  Lock,
+  Wallet,
+  PlusCircle,
+  Code2,
+  Languages,
+  CheckCircle2,
+  FileText,
   Clock,
+  Send,
+  HelpCircle,
   GraduationCap,
+  ArrowRight,
   ShieldCheck,
+  Smartphone,
   Radio
 } from 'lucide-react';
 
 export const HomeView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveId }) => {
-  const { currentGrade, switchGrade, lessons, student, userRole, liveSessionsDB = [] } = useApp();
+  const { currentGrade, switchGrade, lessons, student, userRole, adminIdentity, liveSessionsDB = [] } = useApp();
   
   // Lock grade to student's registered grade if student, or currentGrade for admin
   const activeGrade = (userRole === 'student' && student?.grade) ? student.grade : currentGrade;
 
-  // Find active or upcoming live session for this student's grade
-  const targetLiveSession = liveSessionsDB.find(s => 
-    (s.grade === activeGrade || s.grade === 'all') && (s.status === 'live' || s.status === 'scheduled')
-  ) || liveSessionsDB[0];
+  // Find active or upcoming live session for this user/admin
+  const targetLiveSession = liveSessionsDB.find(s => {
+    if (userRole === 'admin') {
+      if (adminIdentity === 'eng_nour') return s.subject !== 'اللغة العربية' && (s.status === 'live' || s.status === 'scheduled');
+      if (adminIdentity === 'mr_sayed') return s.subject === 'اللغة العربية' && (s.status === 'live' || s.status === 'scheduled');
+    }
+    return (s.grade === activeGrade || s.grade === 'all') && (s.status === 'live' || s.status === 'scheduled');
+  });
 
   const gradeTitles = {
     '3sec': 'الصف الثالث الثانوي (دفعة 2026)',
@@ -189,31 +211,6 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveId
           </button>
 
         </section>
-      )}
-
-      {/* Grade Selector Strip (Only visible for Admins, locked for students) */}
-      {userRole === 'admin' ? (
-        <section className="bg-white dark:bg-[#162534] p-4 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-amber-500" />
-            <h3 className="text-xs font-black text-slate-800 dark:text-slate-200">معاينة الصفوف الدراسية (لوحة الإدارة):</h3>
-          </div>
-          <div className="flex items-center gap-2 overflow-x-auto">
-            {['3sec', '2sec', '1sec'].map(g => (
-              <button
-                key={g}
-                onClick={() => switchGrade(g)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${
-                  activeGrade === g
-                    ? 'bg-slate-900 dark:bg-amber-500 text-amber-400 dark:text-slate-950 shadow-sm'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
-                }`}
-              >
-                {g === '3sec' ? '🎓 ثالثة ثانوي' : g === '2sec' ? '📘 ثانية ثانوي' : '📗 أولى ثانوي'}
-              </button>
-            ))}
-          </div>
-        </section>
       ) : (
         <div className="flex items-center justify-between bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/60 px-5 py-3 rounded-2xl">
           <div className="flex items-center gap-2 text-blue-900 dark:text-blue-200 text-xs font-black">
@@ -226,7 +223,9 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveId
 
       {/* ══════════════════════════════════════════════════════════════
           1️⃣ CARD 1: قسم اللغة العربية والبلاغة (مستر سيد عبد العاطي)
+          (مخفي تماماً عن المهندس نور الدين)
          ══════════════════════════════════════════════════════════════ */}
+      {!(userRole === 'admin' && adminIdentity === 'eng_nour') && (
       <section className="bg-white dark:bg-[#162534] rounded-3xl border-2 border-amber-500/30 shadow-xl overflow-hidden">
         
         {/* Card Header Banner */}
@@ -332,10 +331,13 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveId
           )}
         </div>
       </section>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════
           2️⃣ CARD 2: قسم البرمجة وعلوم الحاسب (مهندس نور الدين)
+          (مخفي تماماً عن الأستاذ سيد عبد العاطي)
          ══════════════════════════════════════════════════════════════ */}
+      {!(userRole === 'admin' && adminIdentity === 'mr_sayed') && (
       <section className="bg-white dark:bg-[#162534] rounded-3xl border-2 border-blue-500/30 shadow-xl overflow-hidden">
         
         {/* Card Header Banner */}
@@ -441,7 +443,7 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveId
           )}
         </div>
       </section>
-
+      )}
     </div>
   );
 };
