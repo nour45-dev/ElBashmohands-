@@ -125,6 +125,9 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
   const [editLessonGrade, setEditLessonGrade] = useState('3sec');
   const [editLessonDesc, setEditLessonDesc] = useState('');
 
+  // Live Stream Source Type: 'native' (Platform In-Browser Camera & Screen) | 'youtube_live' (External link)
+  const [newLiveStreamType, setNewLiveStreamType] = useState('native');
+
   // Live Management Handlers
   const handleCreateLive = async (e) => {
     e.preventDefault();
@@ -134,23 +137,39 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
       ? new Date(`${newLiveDate}T${newLiveTime}`).toISOString()
       : new Date().toISOString();
 
+    const isStartingNow = !newLiveDate || new Date(scheduledIso) <= new Date(Date.now() + 10 * 60 * 1000);
+
     const res = await adminCreateLiveSession({
       title: newLiveTitle.trim(),
       instructor: isSayedAdmin ? 'أ / سيد عبد العاطي' : 'م / نور الدين',
       instructorId: adminIdentity,
       subject: newLiveSubject,
       grade: newLiveGrade,
+      status: isStartingNow ? 'live' : 'scheduled',
       scheduledAt: scheduledIso,
-      streamUrl: newLiveStreamUrl.trim() || 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
-      description: newLiveDesc.trim() || `بث مباشر تفاعلي لمادة ${newLiveSubject}`
+      streamType: newLiveStreamType,
+      streamUrl: newLiveStreamType === 'native' 
+        ? `platform_native_${Date.now()}` 
+        : (newLiveStreamUrl.trim() || 'https://www.youtube.com/watch?v=jfKfPfyJRdk'),
+      description: newLiveDesc.trim() || `حصة بث مباشر تفاعلية لمادة ${newLiveSubject}`
     });
 
     if (res.success) {
-      setLiveSuccessMsg('تمت جدولة البث المباشر بنجاح! 🔴');
+      setLiveSuccessMsg('تم إنشاء وبدء البث المباشر بنجاح! 🔴 جاري إرسال الإشعارات للطلاب وتجهيز روابط الواتساب...');
+      
+      // Automatic Instant In-App Notification & WhatsApp Dispatcher
+      const notifyRes = await adminBroadcastLiveAlert(res.session.id);
+      if (notifyRes.success && notifyRes.whatsappLinks?.length > 0) {
+        setBroadcastModal({
+          lessonTitle: `🔴 بث مباشر: ${res.session.title}`,
+          links: notifyRes.whatsappLinks
+        });
+      }
+
       setNewLiveTitle('');
       setNewLiveDesc('');
       setNewLiveStreamUrl('');
-      setTimeout(() => setLiveSuccessMsg(null), 4000);
+      setTimeout(() => setLiveSuccessMsg(null), 5000);
     } else {
       alert(res.message);
     }
@@ -160,7 +179,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
     const res = await adminBroadcastLiveAlert(session.id);
     if (res.success) {
       setBroadcastModal({
-        lessonTitle: `🔴 ${session.title}`,
+        lessonTitle: `🔴 بث مباشر: ${session.title}`,
         links: res.whatsappLinks || []
       });
     } else {
@@ -823,16 +842,59 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
                 />
               </div>
 
-              <div className="md:col-span-2">
-                <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1.5">رابط مصدر البث المباشر (YouTube Live / Vimeo / RTMP / Stream URL):</label>
-                <input
-                  type="url"
-                  value={newLiveStreamUrl}
-                  onChange={(e) => setNewLiveStreamUrl(e.target.value)}
-                  placeholder="https://www.youtube.com/watch?v=..."
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-4 py-3 text-xs font-mono font-black text-slate-900 dark:text-white focus:ring-2 focus:ring-rose-500 outline-none dir-ltr"
-                />
+              {/* Stream Source Option */}
+              <div className="md:col-span-2 space-y-2">
+                <label className="block text-xs font-black text-slate-700 dark:text-slate-300">نوع ومصدر البث المباشر 📡:</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div
+                    onClick={() => setNewLiveStreamType('native')}
+                    className={`p-4 rounded-2xl border cursor-pointer transition-all space-y-1 ${
+                      newLiveStreamType === 'native'
+                        ? 'bg-rose-500/10 border-rose-500 ring-2 ring-rose-500/20 text-rose-700 dark:text-rose-300'
+                        : 'bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-800 hover:border-slate-400'
+                    }`}
+                  >
+                    <div className="font-black text-xs sm:text-sm flex items-center gap-2">
+                      <Radio className="w-4 h-4 text-rose-500" />
+                      <span>استوديو المنصة المباشر 🎥 (موصى به)</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed">
+                      بث مباشر من كاميرا ومايك أو شاشة كمبيوترك بنقرة واحدة داخل المنصة بدون برامج خارجية.
+                    </p>
+                  </div>
+
+                  <div
+                    onClick={() => setNewLiveStreamType('youtube_live')}
+                    className={`p-4 rounded-2xl border cursor-pointer transition-all space-y-1 ${
+                      newLiveStreamType === 'youtube_live'
+                        ? 'bg-blue-500/10 border-blue-500 ring-2 ring-blue-500/20 text-blue-700 dark:text-blue-300'
+                        : 'bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-800 hover:border-slate-400'
+                    }`}
+                  >
+                    <div className="font-black text-xs sm:text-sm flex items-center gap-2">
+                      <LinkIcon className="w-4 h-4 text-blue-500" />
+                      <span>رابط بث خارجي 🔗 (YouTube Live / Vimeo / Zoom)</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed">
+                      وضع رابط بث يوتيوب لايف أو برنامج OBS / RTMP جاهز مسبقاً.
+                    </p>
+                  </div>
+                </div>
               </div>
+
+              {newLiveStreamType === 'youtube_live' && (
+                <div className="md:col-span-2 animate-in fade-in">
+                  <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1.5">رابط مصدر البث المباشر (YouTube Live / Vimeo / Stream URL):</label>
+                  <input
+                    type="url"
+                    required
+                    value={newLiveStreamUrl}
+                    onChange={(e) => setNewLiveStreamUrl(e.target.value)}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-4 py-3 text-xs font-mono font-black text-slate-900 dark:text-white focus:ring-2 focus:ring-rose-500 outline-none dir-ltr"
+                  />
+                </div>
+              )}
 
               <div className="md:col-span-2">
                 <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1.5">وصف ومحاور الحصة المباشرة:</label>
@@ -847,13 +909,21 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
 
             </div>
 
+            {/* Auto Dispatch Guarantee Strip */}
+            <div className="bg-emerald-500/10 border border-emerald-500/25 p-3.5 rounded-2xl flex items-center gap-3 text-xs font-bold text-emerald-700 dark:text-emerald-300">
+              <Sparkles className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+              <div>
+                <span className="font-black">الإرسال التلقائي الفوري ⚡:</span> عند بدء البث، سيتم إرسال إشعار فوري داخل المنصة لجميع الطلاب وتجهيز رسائل الواتساب بروابط الدخول المباشرة فوراً.
+              </div>
+            </div>
+
             <div className="flex justify-end pt-2">
               <button
                 type="submit"
-                className="bg-rose-600 hover:bg-rose-500 text-white font-black text-xs px-8 py-3.5 rounded-2xl shadow-lg transition-all flex items-center gap-2"
+                className="bg-rose-600 hover:bg-rose-500 text-white font-black text-xs px-8 py-3.5 rounded-2xl shadow-lg transition-all flex items-center gap-2 hover:scale-105"
               >
                 <Radio className="w-4 h-4" />
-                <span>حفظ وجدولة حصة البث 🚀</span>
+                <span>بدء البث المباشر وإرسال الإشعارات والواتساب فوراً 🚀</span>
               </button>
             </div>
 
