@@ -607,23 +607,21 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                   allowFullScreen
                 />
               ) : (() => {
-                  const jitsiRoom = 'elm-live-' + currentSession.id;
-                  const namePrefix = isTeacher ? 'Teacher ' : 'Student ';
-                  const displayName = encodeURIComponent(namePrefix + studentDisplayName);
-                  const roomSubject = encodeURIComponent(currentSession.title || 'Live Class');
-                  const jitsiUrl = 'https://meet.jit.si/' + jitsiRoom
-                    + '#config.prejoinPageEnabled=false'
-                    + '&config.disableDeepLinking=true'
-                    + '&config.startWithVideoMuted=false'
-                    + '&config.startWithAudioMuted=false'
-                    + '&config.subject=' + roomSubject
-                    + '&userInfo.displayName=' + displayName;
+                  const roomName = 'elm_live_' + currentSession.id;
+                  const pushId = isTeacher ? 'teacher_host' : ('std_' + (studentCode || 'guest'));
+                  const userLabel = encodeURIComponent((isTeacher ? '👨‍🏫 ' : '🎓 ') + studentDisplayName);
+                  
+                  // Unlimited 100% Free Room URL (No 5-minute limits, No accounts needed)
+                  const liveRoomUrl = isTeacher
+                    ? `https://vdo.ninja/?room=${roomName}&push=${pushId}&label=${userLabel}&webcam=1&mic=1&screenshare=1&autostart=1&order=1&vd=0`
+                    : `https://vdo.ninja/?room=${roomName}&push=${pushId}&label=${userLabel}&webcam=1&mic=1&autostart=1&order=2&vd=0`;
+
                   return (
-                    <div className="relative w-full h-full flex flex-col">
+                    <div className="relative w-full h-full flex flex-col bg-slate-950">
                       <iframe
-                        src={jitsiUrl}
-                        title="قاعة الحصة المباشرة"
-                        className="w-full h-full border-0 min-h-[520px]"
+                        src={liveRoomUrl}
+                        title="قاعة البث المباشر المجانية"
+                        className="w-full h-full border-0 min-h-[540px]"
                         allow="camera; microphone; display-capture; autoplay; clipboard-write; fullscreen; speaker; self *"
                         allowFullScreen
                       />
