@@ -43,12 +43,14 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveId
   const activeGrade = (userRole === 'student' && student?.grade) ? student.grade : currentGrade;
 
   // Find active or upcoming live session for this user/admin
-  const targetLiveSession = liveSessionsDB.find(s => {
+  const targetLiveSession = (liveSessionsDB || []).find(s => {
     if (userRole === 'admin') {
-      if (adminIdentity === 'eng_nour') return s.subject !== 'اللغة العربية' && (s.status === 'live' || s.status === 'scheduled');
-      if (adminIdentity === 'mr_sayed') return s.subject === 'اللغة العربية' && (s.status === 'live' || s.status === 'scheduled');
+      if (adminIdentity === 'eng_nour') return (!s.subject?.includes('عرب') && s.subject !== 'اللغة العربية' && s.subject !== 'arabic') && (s.status === 'live' || s.status === 'scheduled');
+      if (adminIdentity === 'mr_sayed') return (s.subject?.includes('عرب') || s.subject === 'اللغة العربية' || s.subject === 'arabic') && (s.status === 'live' || s.status === 'scheduled');
     }
-    return (s.grade === activeGrade || s.grade === 'all') && (s.status === 'live' || s.status === 'scheduled');
+    // If student: show any active live broadcast, or scheduled broadcast for student grade/all
+    if (s.status === 'live') return true;
+    return (s.grade === activeGrade || s.grade === 'all' || !s.grade) && s.status === 'scheduled';
   });
 
   const gradeTitles = {
