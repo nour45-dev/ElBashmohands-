@@ -1246,6 +1246,81 @@ https://elbashmohands.dev`;
     }
   };
 
+  const requestJoinLive = async (sessionId) => {
+    try {
+      const res = await fetch(`/api/live/${sessionId}/join-request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentId: currentStudent?.id || 'std_anon',
+          studentName: currentStudent?.name || 'طالب منصة عِلم',
+          studentCode: currentStudent?.code || '3001',
+          studentPhone: currentStudent?.phone || ''
+        }),
+        credentials: 'include'
+      });
+      const data = await res.json();
+      return data;
+    } catch (err) {
+      return { success: false, message: 'خطأ في الاتصال بالخادم.' };
+    }
+  };
+
+  const admitStudentLive = async (sessionId, requestId, allow) => {
+    try {
+      const res = await fetch(`/api/live/${sessionId}/admit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId, allow }),
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        await refreshLiveSession(sessionId);
+      }
+      return data;
+    } catch (err) {
+      return { success: false, message: 'خطأ في الاتصال بالخادم.' };
+    }
+  };
+
+  const admitAllStudentsLive = async (sessionId) => {
+    try {
+      const res = await fetch(`/api/live/${sessionId}/admit-all`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        await refreshLiveSession(sessionId);
+      }
+      return data;
+    } catch (err) {
+      return { success: false, message: 'خطأ في الاتصال بالخادم.' };
+    }
+  };
+
+  const sendLiveHeartbeat = async (sessionId) => {
+    try {
+      const userKey = userRole === 'admin' ? `admin_${adminIdentity}` : (currentStudent?.code || 'std_anon');
+      const userName = userRole === 'admin' ? (adminIdentity === 'mr_sayed' ? 'أ / سيد عبد العاطي' : 'م / نور الدين') : (currentStudent?.name || 'طالب');
+      const res = await fetch(`/api/live/${sessionId}/heartbeat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userKey, userName, userRole }),
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (res.ok && data.viewersCount !== undefined) {
+        setLiveSessionsDB(prev => prev.map(s => s.id === sessionId ? { ...s, viewersCount: data.viewersCount } : s));
+      }
+      return data;
+    } catch (err) {
+      return null;
+    }
+  };
+
   if (loadingSession) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-900 dark:text-white font-black text-sm">
@@ -1326,7 +1401,11 @@ https://elbashmohands.dev`;
       sendLiveChatMessage,
       adminLaunchLivePoll,
       submitLivePollVote,
-      sendHandRaiseRequest
+      sendHandRaiseRequest,
+      requestJoinLive,
+      admitStudentLive,
+      admitAllStudentsLive,
+      sendLiveHeartbeat
     }}>
       {children}
     </AppContext.Provider>
