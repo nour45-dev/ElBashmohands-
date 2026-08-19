@@ -890,14 +890,14 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                    قاعة البث التفاعلية المباشرة المدمجة (فيديو وصوت ثنائي الاتجاه)
                    ==================================================== */
                 (() => {
-                  const roomName = `elm_live_room_${currentSession.id}`;
-                  const pushId = isTeacher ? 'teacher_host' : `std_${studentCode || 'guest'}`;
+                  const teacherStreamId = `elm_teacher_${currentSession.id}`;
+                  const roomName = `elm_room_${currentSession.id}`;
                   const userLabel = encodeURIComponent((isTeacher ? '👨‍🏫 ' : '🎓 ') + studentDisplayName);
                   
-                  // Clean, 100% working WebRTC parameters with 2-way voice & video
+                  // Teacher pushes with unique ID, Student views teacher in full screen with 2-way audio
                   const streamSrc = isTeacher
-                    ? `https://vdo.ninja/?room=${roomName}&push=${pushId}&label=${userLabel}&webcam=1&mic=1&screenshare=1&autostart=1&order=1`
-                    : `https://vdo.ninja/?room=${roomName}&push=${pushId}&label=${userLabel}&webcam=1&mic=1&autostart=1&order=2`;
+                    ? `https://vdo.ninja/?room=${roomName}&push=${teacherStreamId}&label=${userLabel}&webcam=1&mic=1&screenshare=1&autostart=1`
+                    : `https://vdo.ninja/?room=${roomName}&push=std_${studentCode || 'guest'}&view=${teacherStreamId}&label=${userLabel}&mic=1&autostart=1&autoplay=1&cleanoutput=1`;
 
                   return (
                     <div className="relative w-full h-full min-h-[520px] flex flex-col bg-slate-950">
