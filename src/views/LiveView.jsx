@@ -45,6 +45,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
     admitStudentLive,
     admitAllStudentsLive,
     sendLiveHeartbeat,
+    uploadVideoFile,
     student, 
     userRole, 
     adminIdentity,
@@ -95,7 +96,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
   // Pending admission requests for Teacher (Google Meet style)
   const pendingRequests = currentSession?.joinRequests?.filter(r => r.status === 'pending') || [];
 
-  // Actual Real-Time Viewers Count (No fake 342)
+  // Actual Real-Time Viewers Count
   const actualViewersCount = currentSession?.viewersCount || 1;
 
   // Fast 1.5s Heartbeat & Real-time Live Presence / Admission Polling
@@ -117,7 +118,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
   const [isSendingChat, setIsSendingChat] = useState(false);
   const chatBottomRef = useRef(null);
 
-  // Floating floating reactions state
+  // Floating reactions state
   const [floatingReactions, setFloatingReactions] = useState([]);
 
   // Hand raise status
@@ -153,21 +154,11 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
     }
   };
 
-  // In-Browser Native Camera & Screen Share Live Studio State (for Teacher)
-  const [localStream, setLocalStream] = useState(false);
-  const [isMicMuted, setIsMicMuted] = useState(false);
-  const [isCameraOff, setIsCameraOff] = useState(false);
-  const [isSharingScreen, setIsSharingScreen] = useState(false);
-  const [isUploadingRecording, setIsUploadingRecording] = useState(false);
-
-  // In-App Live Broadcast Recording Controller
+  // Live Screen Recording State
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
-  const [recordingSavedUrl, setRecordingSavedUrl] = useState(currentSession?.recordingUrl || null);
   const mediaRecorderRef = useRef(null);
   const recordedChunksRef = useRef([]);
-
-  const { uploadVideoFile } = useApp();
 
   useEffect(() => {
     let interval;
@@ -199,29 +190,19 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
 
       recorder.onstop = async () => {
         setIsRecording(false);
-        setIsUploadingRecording(true);
         const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
         const file = new File([blob], `live_record_${currentSession.id}.webm`, { type: 'video/webm' });
 
         try {
-          // Automatic Upload to Server without manual link copying!
+          alert('جاري رفع تسجيل الحصة تلقائياً على السيرفر...');
           const uploadRes = await uploadVideoFile(file);
           if (uploadRes?.url) {
-            setRecordingSavedUrl(uploadRes.url);
             await adminUpdateLiveStatus(currentSession.id, currentSession.status, uploadRes.url);
             await refreshLiveSession(currentSession.id);
-            alert('تم تسجيل ورفع الحصة تلقائياً على السيرفر وحفظ الرابط بنجاح في أرشيف الأدمن! 💾🎉');
-          } else {
-            const videoUrl = URL.createObjectURL(blob);
-            setRecordingSavedUrl(videoUrl);
-            await adminUpdateLiveStatus(currentSession.id, currentSession.status, videoUrl);
-            await refreshLiveSession(currentSession.id);
-            alert('تم حفظ تسجيل الحصة بنجاح! 💾');
+            alert('تم رفع وتخزين تسجيل الحصة تلقائياً بنجاح! 💾🎉');
           }
         } catch (e) {
           console.error('Auto upload error', e);
-        } finally {
-          setIsUploadingRecording(false);
         }
       };
 
@@ -240,28 +221,12 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
     }
   };
 
-  const stopLocalStream = () => {
-    setLocalStream(false);
-    handleStopRecording();
-  };
-
   // Countdown timer calculation
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
 
   // Floating Watermark coordinates
   const [watermarkPos, setWatermarkPos] = useState({ top: '15%', left: '20%' });
 
-  // Refresh live session every 4 seconds for real-time chat & polls
-  useEffect(() => {
-    if (!currentSession?.id) return;
-    refreshLiveSession(currentSession.id);
-    const interval = setInterval(() => {
-      refreshLiveSession(currentSession.id);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [currentSession?.id]);
-
-  // Floating watermark reposition timer
   useEffect(() => {
     const wmInterval = setInterval(() => {
       const randomTop = Math.floor(Math.random() * 70 + 10) + '%';
@@ -348,16 +313,10 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
     setTimeout(() => setCopiedLink(false), 3000);
   };
 
-  // Active Poll
   const activePoll = currentSession?.polls?.find(p => p.isActive);
 
-  // Student details for dynamic watermark
-  const studentDisplayName = student?.name || 'طالب منصة عِلم';
-  const studentCode = student?.code || '3003';
-  const studentPhone = student?.phone || '01002169889';
-
   return (
-    <div className="space-y-6 animate-in fade-in pb-12">
+    <div className="space-y-6 animate-in fade-in pb-12" dir="rtl">
       
       {/* ═══ Top Breadcrumbs & Control Bar ═══ */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-[#162534] p-4 md:p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
@@ -367,7 +326,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
             onClick={onBack}
             className="p-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all font-black flex items-center gap-1.5 text-xs shadow-xs"
           >
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-4 h-4 rotate-180" />
             <span>العودة للرئيسية</span>
           </button>
 
@@ -382,7 +341,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
               {currentSession?.status === 'live' ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs font-black animate-pulse">
                   <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-                  <span>مباشر الآن 🔴</span>
+                  <span>Google Meet مباشر 🔴</span>
                 </span>
               ) : currentSession?.status === 'scheduled' ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-600 dark:text-blue-400 text-xs font-black">
@@ -410,7 +369,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
             <button
               onClick={async () => {
                 if (window.confirm('هل أنت متأكد من إنهاء وإيقاف البث المباشر لجميع الطلاب الآن؟')) {
-                  stopLocalStream();
+                  handleStopRecording();
                   await adminUpdateLiveStatus(currentSession.id, 'ended');
                   await refreshLiveSession(currentSession.id);
                 }
@@ -449,13 +408,13 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
 
       </div>
 
-      {/* ═══ Main Live Classroom Grid (Video + Real-time Interactive Sidebar) ═══ */}
+      {/* ═══ Main Live Classroom Grid ═══ */}
       <div className={`grid grid-cols-1 ${isTheater ? 'lg:grid-cols-1' : 'lg:grid-cols-12'} gap-6 items-start`}>
         
-        {/* Left / Main Column (Video Player + Live Interactive Overlays + Details) */}
+        {/* Left / Main Column */}
         <div className={`${isTheater ? 'lg:col-span-12' : 'lg:col-span-8'} space-y-6`}>
           
-          {/* Main Video Stream Player Container with Anti-Piracy Floating Watermark */}
+          {/* Main Google Meet Classroom Container */}
           <div 
             ref={videoContainerRef}
             className="relative bg-slate-950 rounded-3xl overflow-hidden border border-slate-800 shadow-2xl aspect-video group flex flex-col justify-between"
@@ -463,9 +422,9 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
             
             {/* Top Live Overlay Header Badge */}
             <div className="absolute top-4 right-4 z-30 flex items-center gap-2 pointer-events-none">
-              <div className="bg-rose-600 text-white px-3 py-1 rounded-full text-xs font-black flex items-center gap-1.5 shadow-lg">
-                <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-                <span>LIVE HD</span>
+              <div className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-black flex items-center gap-1.5 shadow-lg">
+                <Video className="w-3.5 h-3.5" />
+                <span>GOOGLE MEET HD</span>
               </div>
               <div className="bg-black/70 backdrop-blur-md text-white/90 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 border border-white/10">
                 <Users className="w-3.5 h-3.5 text-amber-400" />
@@ -473,7 +432,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
               </div>
             </div>
 
-            {/* Teacher Admission Request Floating Banner (Google Meet Style) */}
+            {/* Teacher Admission Request Floating Banner */}
             {isTeacher && pendingRequests.length > 0 && (
               <div className="absolute top-16 right-4 left-4 md:left-auto md:w-96 z-50 bg-slate-900/95 backdrop-blur-md border-2 border-blue-500 p-4 rounded-3xl shadow-2xl text-right animate-in slide-in-from-top space-y-3">
                 <div className="flex items-center justify-between">
@@ -523,7 +482,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
               </div>
             )}
 
-            {/* Top Left Subject / Fullscreen Status */}
+            {/* Top Left Subject / Instructor Status */}
             <div className="absolute top-4 left-4 z-30 flex items-center gap-2 pointer-events-none">
               <span className="bg-black/60 backdrop-blur-md text-amber-400 px-3 py-1 rounded-full text-xs font-black border border-amber-500/20">
                 {currentSession.instructor} • {currentSession.subject}
@@ -552,7 +511,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                       <div className="space-y-1.5">
                         <h3 className="text-lg md:text-xl font-black text-amber-400">جاري انتظار موافقة المعلم للدخول...</h3>
                         <p className="text-xs text-slate-300 font-bold leading-relaxed">
-                          تم إرسال طلب الانضمام للمستر. ستفتح الحصة والشات فور موافقة المعلم على دخولك.
+                          تم إرسال طلب الانضمام للمستر. ستفتح الحصة والشات فور موافقة المعلم على دخولك تلقائياً.
                         </p>
                       </div>
                       <div className="inline-flex items-center gap-2 bg-slate-900 border border-amber-500/30 text-amber-300 text-xs font-bold px-4 py-2 rounded-full">
@@ -602,36 +561,62 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                     </>
                   )}
                 </div>
-              ) : currentSession.streamType === 'youtube_live' && currentSession.streamUrl && !currentSession.streamUrl.includes('platform_native') && !currentSession.streamUrl.includes('meet.google') ? (
-                /* External YouTube / Stream if selected */
-                <iframe
-                  src={formatVideoEmbedUrl(currentSession.streamUrl)}
-                  title={currentSession.title}
-                  className="w-full h-full object-cover border-0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
-                  allowFullScreen
-                />
               ) : (
-                /* Native Embedded Multi-User Live Classroom (Google Meet / Zoom Experience) */
-                <div className="relative w-full h-full flex items-center justify-center bg-slate-950">
+                /* Native Embedded Multi-User Live Classroom (Full Screen Teacher + Student PiP + Mic) */
+                <div className="relative w-full h-full flex flex-col items-center justify-center bg-slate-950">
                   {isTeacher ? (
                     <iframe
-                      src={`https://vdo.ninja/?room=elm_live_${currentSession.id}&push=teacher_${adminIdentity}&webcam&mic&screenshare&label=${encodeURIComponent(studentDisplayName)}&broadcast&chat=0`}
+                      src={`https://vdo.ninja/?room=elm_live_${currentSession.id}&push=teacher_${currentSession.id}&webcam=1&mic=1&screenshare=1&label=${encodeURIComponent(studentDisplayName)}&director=1&chat=0&autostart=1&audiodevice=1&audiobitrate=128`}
                       title="Google Meet Teacher Room"
-                      className="w-full h-full border-0 min-h-[500px]"
+                      className="w-full h-full border-0 min-h-[520px]"
                       allow="camera; microphone; display-capture; autoplay; clipboard-write; fullscreen; speaker; self *"
                       allowFullScreen
                     />
                   ) : (
-                    /* Admitted Student Room (Automatically Entered!) */
+                    /* Admitted Student Room: Teacher is 100% Fullscreen + Student Camera in Corner (PiP) + Live Audio */
                     isAdmitted ? (
-                      <iframe
-                        src={`https://vdo.ninja/?room=elm_live_${currentSession.id}&push=std_${studentCode}&webcam&mic&screenshare&label=${encodeURIComponent(studentDisplayName)}&chat=0`}
-                        title="Google Meet Student Room"
-                        className="w-full h-full border-0 min-h-[500px]"
-                        allow="camera; microphone; display-capture; autoplay; clipboard-write; fullscreen; speaker; self *"
-                        allowFullScreen
-                      />
+                      <div className="relative w-full h-full flex flex-col">
+                        <iframe
+                          src={`https://vdo.ninja/?room=elm_live_${currentSession.id}&push=std_${studentCode}&view=teacher_${currentSession.id}&solo=teacher_${currentSession.id}&order=teacher_${currentSession.id}&webcam=1&mic=1&label=${encodeURIComponent(studentDisplayName)}&autostart=1&autoplay=1&audiodevice=1&chat=0&pip=1`}
+                          title="Google Meet Student Room"
+                          className="w-full h-full border-0 min-h-[520px]"
+                          allow="camera; microphone; display-capture; autoplay; clipboard-write; fullscreen; speaker; self *"
+                          allowFullScreen
+                        />
+
+                        {/* Top In-Room Student Action Floating Bar */}
+                        <div className="absolute top-4 right-4 left-4 z-40 flex items-center justify-between pointer-events-auto">
+                          <button
+                            onClick={onBack}
+                            className="bg-slate-900/90 hover:bg-slate-800 text-white text-xs font-black px-3.5 py-2 rounded-xl border border-slate-700 shadow-xl backdrop-blur-md flex items-center gap-1.5 transition-all hover:scale-105"
+                          >
+                            <ChevronRight className="w-4 h-4 rotate-180" />
+                            <span>مغادرة القاعة والرجوع 🚪</span>
+                          </button>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={handleHandRaise}
+                              className={`text-xs font-black px-3.5 py-2 rounded-xl border shadow-xl backdrop-blur-md flex items-center gap-1.5 transition-all hover:scale-105 ${
+                                handRaised 
+                                  ? 'bg-amber-500 text-slate-950 border-amber-400 font-black animate-pulse' 
+                                  : 'bg-slate-900/90 text-amber-400 border-amber-500/40 hover:bg-slate-800'
+                              }`}
+                            >
+                              <Hand className="w-4 h-4" />
+                              <span>{handRaised ? 'تم رفع يدك للمستر ✋' : 'طلب التحدث (رفع اليد) ✋'}</span>
+                            </button>
+
+                            <button
+                              onClick={toggleFullscreen}
+                              className="bg-slate-900/90 hover:bg-slate-800 text-white text-xs font-black p-2 rounded-xl border border-slate-700 shadow-xl backdrop-blur-md"
+                              title="ملء الشاشة"
+                            >
+                              <Maximize2 className="w-4 h-4 text-amber-400" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     ) : null
                   )}
                 </div>
@@ -709,18 +694,32 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
               {/* Left / Teacher Studio End Stream & Recording Indicator */}
               <div className="flex flex-wrap items-center gap-2">
                 {isTeacher && (
-                  <button
-                    onClick={async () => {
-                      if (window.confirm('هل أنت متأكد من إنهاء وإيقاف البث المباشر لجميع الطلاب الآن؟')) {
-                        stopLocalStream();
-                        await adminUpdateLiveStatus(currentSession.id, 'ended');
-                        await refreshLiveSession(currentSession.id);
-                      }
-                    }}
-                    className="px-4 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black transition-all shadow-md flex items-center gap-1.5 hover:scale-105"
-                  >
-                    <span>⏹️ إنهاء وإيقاف البث لجميع الطلاب</span>
-                  </button>
+                  <>
+                    <button
+                      onClick={isRecording ? handleStopRecording : handleStartRecording}
+                      className={`px-4 py-2.5 rounded-2xl font-black text-xs transition-all flex items-center gap-2 shadow-lg ${
+                        isRecording 
+                          ? 'bg-rose-600 text-white animate-pulse' 
+                          : 'bg-slate-800 hover:bg-slate-700 text-rose-400 border border-slate-700'
+                      }`}
+                    >
+                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                      <span>{isRecording ? `جاري التسجيل (${formatRecordingDuration(recordingSeconds)})` : '🔴 تسجيل الحصة'}</span>
+                    </button>
+
+                    <button
+                      onClick={async () => {
+                        if (window.confirm('هل أنت متأكد من إنهاء وإيقاف البث المباشر لجميع الطلاب الآن؟')) {
+                          handleStopRecording();
+                          await adminUpdateLiveStatus(currentSession.id, 'ended');
+                          await refreshLiveSession(currentSession.id);
+                        }
+                      }}
+                      className="px-4 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black transition-all shadow-md flex items-center gap-1.5 hover:scale-105"
+                    >
+                      <span>⏹️ إنهاء وإيقاف البث لجميع الطلاب</span>
+                    </button>
+                  </>
                 )}
               </div>
 
@@ -806,7 +805,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                       className="bg-rose-600 hover:bg-rose-500 text-white font-black text-xs px-6 py-3 rounded-2xl shadow-xl transition-all flex items-center gap-2 hover:scale-105 animate-pulse"
                     >
                       <Radio className="w-4 h-4" />
-                      <span>بدء وفتح قاعة الفيديو (مثل Zoom) الآن 🔴</span>
+                      <span>بدء وفتح قاعة البث المباشر الآن 🔴</span>
                     </button>
                   ) : (
                     <a
@@ -837,7 +836,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                   <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center space-y-3 bg-slate-950 text-white">
                     <div className="text-4xl">📼</div>
                     <h3 className="text-base font-black">انتهى البث المباشر</h3>
-                    <p className="text-xs text-slate-400 font-bold">جاري معالجة تسجيل الحصة لتكون متاحة بجودة عالية في الأرشيف قريباً.</p>
+                    <p className="text-xs text-slate-400 font-bold">تسجيل الحصة متاح في أرشيف الأدمن ويمكن نشره في كروت المواد للطلاب.</p>
                   </div>
                 )}
               </div>
@@ -845,103 +844,60 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
 
           </div>
 
-          {/* ═══ Fast Interactive Reactions & Hand Raise Bar ═══ */}
-          <div className="bg-white dark:bg-[#162534] p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-wrap items-center justify-between gap-3">
-            
-            {/* Quick Reactions */}
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <span className="text-xs font-black text-slate-500 dark:text-slate-400 ml-1 hidden sm:inline">تفاعل مع المستر:</span>
-              {[
-                { emoji: '❤️', label: 'حب' },
-                { emoji: '🔥', label: 'حماس' },
-                { emoji: '👏', label: 'تسقيف' },
-                { emoji: '💡', label: 'فهمت' },
-                { emoji: '🙋‍♂️', label: 'سؤال' },
-                { emoji: '💯', label: 'عاش' }
-              ].map((rec, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => triggerReaction(rec.emoji)}
-                  title={rec.label}
-                  className="w-10 h-10 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 flex items-center justify-center text-lg hover:scale-110 active:scale-95 transition-all shadow-2xs"
-                >
-                  {rec.emoji}
-                </button>
-              ))}
-            </div>
-
-            {/* Student Hand Raise Button */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleHandRaise}
-                disabled={handRaised}
-                className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center gap-2 shadow-md ${
-                  handRaised 
-                    ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' 
-                    : 'bg-amber-500 hover:bg-amber-400 text-slate-950 hover:scale-105'
-                }`}
-              >
-                <Hand className={`w-4 h-4 ${handRaised ? 'text-emerald-500' : 'text-slate-950 animate-bounce'}`} />
-                <span>{handRaised ? 'تم طلب المداخلة ✋' : 'طلب مداخلة مع المستر'}</span>
-              </button>
-            </div>
-
-          </div>
-
-          {handRaiseSuccessMsg && (
-            <div className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 p-3 rounded-2xl text-xs font-black flex items-center gap-2 animate-in fade-in">
-              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-              <span>{handRaiseSuccessMsg}</span>
-            </div>
-          )}
-
-          {/* ═══ Session Information & Instructor Card ═══ */}
+          {/* Session Overview Box */}
           <div className="bg-white dark:bg-[#162534] p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
-            
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-center gap-3.5">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-600 flex items-center justify-center text-white text-2xl shadow-md">
-                  {currentSession?.instructorId === 'mr_sayed' ? '📖' : '💻'}
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center text-2xl font-black">
+                  👨‍🏫
                 </div>
                 <div>
-                  <h3 className="font-black text-base md:text-lg text-slate-900 dark:text-white">
-                    {currentSession?.instructor}
+                  <h3 className="font-black text-slate-900 dark:text-white text-base">
+                    {currentSession.instructor}
                   </h3>
-                  <p className="text-xs font-bold text-amber-600 dark:text-amber-400">
-                    {currentSession?.instructorId === 'mr_sayed' ? 'خبير ومُعلم اللغة العربية للثانوية العامة' : 'محاضر البرمجة وعلوم الحاسب'}
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">
+                    محاضر المادة • {currentSession.subject}
                   </p>
                 </div>
               </div>
 
-              <div className="text-right">
-                <span className="text-[11px] font-black text-slate-500 dark:text-slate-400 block">الصف الدراسي</span>
-                <span className="text-xs font-black text-slate-800 dark:text-slate-200">{currentSession?.gradeName}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-xl">
+                  {currentSession.gradeName}
+                </span>
               </div>
             </div>
 
-            <div className="border-t border-slate-100 dark:border-slate-800 pt-4 space-y-2">
-              <h4 className="text-xs font-black text-slate-700 dark:text-slate-300">موضوع ومحاور الحصة المباشرة:</h4>
-              <p className="text-xs md:text-sm text-slate-600 dark:text-slate-300 font-bold leading-relaxed">
-                {currentSession?.description}
+            <div className="space-y-2">
+              <h4 className="text-xs font-black text-slate-800 dark:text-slate-200">عن هذه الحصة:</h4>
+              <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-300 font-medium">
+                {currentSession.description || 'شرح تفاعلي مباشر مع حل تدريبات وزارية ونماذج امتحانات وإجابة على أسئلة الطلاب لحظة بلحظة.'}
               </p>
             </div>
 
+            {handRaiseSuccessMsg && (
+              <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-black flex items-center gap-2 animate-in fade-in">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                <span>{handRaiseSuccessMsg}</span>
+              </div>
+            )}
           </div>
 
         </div>
 
-        {/* Right Column / Interactive Sidebar (Live Chat, Q&A, Other Lives) */}
-        {!isTheater && (
-          <div className="lg:col-span-4 bg-white dark:bg-[#162534] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden flex flex-col h-[640px]">
+        {/* Right / Sidebar: Real-time Live Chat & Interactive QA Queue */}
+        <div className={`${isTheater ? 'lg:col-span-12' : 'lg:col-span-4'} space-y-4`}>
+          
+          <div className="bg-white dark:bg-[#162534] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[560px]">
             
-            {/* Sidebar Tabs Switcher */}
-            <div className="bg-slate-100 dark:bg-slate-900/80 p-1.5 border-b border-slate-200 dark:border-slate-800 flex items-center gap-1 text-xs font-black">
+            {/* Sidebar Tabs */}
+            <div className="flex items-center border-b border-slate-100 dark:border-slate-800 p-2 bg-slate-50/50 dark:bg-slate-900/50">
               <button
                 onClick={() => setSidebarTab('chat')}
-                className={`flex-1 py-2.5 rounded-xl transition-all text-center flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
                   sidebarTab === 'chat'
-                    ? 'bg-white dark:bg-blue-600 text-blue-600 dark:text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    ? 'bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 shadow-xs'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
               >
                 <MessageSquare className="w-3.5 h-3.5" />
@@ -949,56 +905,62 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
               </button>
 
               <button
-                onClick={() => setSidebarTab('archive')}
-                className={`flex-1 py-2.5 rounded-xl transition-all text-center flex items-center justify-center gap-1.5 ${
-                  sidebarTab === 'archive'
-                    ? 'bg-white dark:bg-blue-600 text-blue-600 dark:text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                onClick={() => setSidebarTab('qa')}
+                className={`flex-1 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
+                  sidebarTab === 'qa'
+                    ? 'bg-white dark:bg-slate-800 text-amber-600 dark:text-amber-400 shadow-xs'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
               >
-                <Radio className="w-3.5 h-3.5" />
-                <span>كل البثوث ({liveSessionsDB.length})</span>
+                <HelpCircle className="w-3.5 h-3.5" />
+                <span>المداخلات والانتظار ({pendingRequests.length + (currentSession?.handRaises?.length || 0)})</span>
               </button>
             </div>
 
-            {/* TAB 1: Real-time Live Chat Feed */}
+            {/* Chat Tab Body */}
             {sidebarTab === 'chat' && (
               <div className="flex-1 flex flex-col justify-between overflow-hidden">
                 
-                {/* Pinned Teacher Announcement if any */}
-                <div className="bg-amber-500/10 border-b border-amber-500/20 px-3.5 py-2 flex items-center gap-2 text-xs font-bold text-amber-700 dark:text-amber-400">
-                  <Pin className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
-                  <span className="truncate">تنبيه: اكتب سؤالك بوضوح وسيتم الإجابة عليه أثناء البث مباشرة.</span>
-                </div>
+                {/* Chat Messages Scroll Container */}
+                <div className="flex-1 p-4 overflow-y-auto space-y-3">
+                  <div className="p-2.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 rounded-2xl text-[11px] font-bold text-amber-800 dark:text-amber-300 text-center">
+                    📢 تنبيه: اكتب سؤالك بوضوح وسيتم الإجابة عليه أثناء البث مباشرة.
+                  </div>
 
-                {/* Messages Scrollable List */}
-                <div className="flex-1 p-3.5 space-y-2.5 overflow-y-auto custom-scrollbar">
                   {(!currentSession?.chatMessages || currentSession.chatMessages.length === 0) ? (
-                    <div className="h-full flex flex-col items-center justify-center text-center p-4 text-slate-400 space-y-2">
-                      <div className="text-3xl">💬</div>
-                      <p className="text-xs font-bold">لا توجد رسائل بعد. كن أول من يكتب في الشات!</p>
+                    <div className="text-center py-12 text-slate-400 space-y-2">
+                      <MessageSquare className="w-8 h-8 mx-auto stroke-[1.5] text-slate-300 dark:text-slate-600" />
+                      <p className="text-xs font-bold">لا توجد رسائل بعد. كن أول من يرحب بالمستر والزملاء!</p>
                     </div>
                   ) : (
                     currentSession.chatMessages.map(msg => {
-                      const isTeacher = msg.senderRole === 'teacher';
+                      const isMe = msg.senderCode === studentCode || (isTeacher && msg.isAdmin);
                       return (
-                        <div
+                        <div 
                           key={msg.id}
-                          className={`p-2.5 rounded-2xl text-xs space-y-1 transition-all ${
-                            isTeacher 
-                              ? 'bg-amber-500/15 border border-amber-500/30 text-slate-900 dark:text-white' 
-                              : 'bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-slate-800 dark:text-slate-200'
-                          }`}
+                          className={`flex flex-col space-y-1 ${isMe ? 'items-end' : 'items-start'}`}
                         >
-                          <div className="flex items-center justify-between">
-                            <span className={`font-black flex items-center gap-1 ${isTeacher ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'}`}>
-                              {isTeacher && <span>🎓</span>}
-                              <span>{msg.senderName}</span>
-                              {isTeacher && <span className="text-[10px] bg-amber-500 text-slate-950 px-1.5 py-0.2 rounded font-black">المعلم</span>}
+                          <div className="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400 font-bold">
+                            <span>{msg.senderName}</span>
+                            {msg.isAdmin && (
+                              <span className="bg-amber-500 text-slate-950 px-1.5 py-0.2 rounded font-black text-[9px]">
+                                المعلم
+                              </span>
+                            )}
+                            <span className="text-[9px] font-mono text-slate-400">
+                              {new Date(msg.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
                             </span>
-                            <span className="text-[10px] text-slate-400 font-mono">{msg.timestamp || 'الآن'}</span>
                           </div>
-                          <p className="text-xs font-bold leading-relaxed break-words">{msg.text}</p>
+
+                          <div className={`p-3 rounded-2xl text-xs font-medium max-w-[85%] leading-relaxed ${
+                            msg.isAdmin
+                              ? 'bg-amber-500/15 border border-amber-500/30 text-amber-950 dark:text-amber-100 rounded-tr-none'
+                              : isMe
+                                ? 'bg-slate-900 dark:bg-slate-700 text-white rounded-tr-none'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-none'
+                          }`}>
+                            {msg.text}
+                          </div>
                         </div>
                       );
                     })
@@ -1006,20 +968,22 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                   <div ref={chatBottomRef} />
                 </div>
 
-                {/* Chat Send Input Box */}
-                <form onSubmit={handleSendChat} className="p-3 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center gap-2">
+                {/* Chat Input Footer */}
+                <form 
+                  onSubmit={handleSendChat}
+                  className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center gap-2"
+                >
                   <input
                     type="text"
-                    required
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     placeholder="اكتب رسالتك أو سؤالك في الشات..."
-                    className="flex-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 outline-none"
                   />
                   <button
                     type="submit"
-                    disabled={isSendingChat || !chatInput.trim()}
-                    className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white p-2.5 rounded-xl transition-all shadow-md flex-shrink-0"
+                    disabled={!chatInput.trim() || isSendingChat}
+                    className="p-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black transition-all disabled:opacity-40 shadow-xs"
                   >
                     <Send className="w-4 h-4 rotate-180" />
                   </button>
@@ -1028,57 +992,86 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
               </div>
             )}
 
-            {/* TAB 2: All Live Sessions & Archive List */}
-            {sidebarTab === 'archive' && (
-              <div className="flex-1 p-3.5 space-y-3 overflow-y-auto custom-scrollbar">
-                <div className="text-xs font-black text-slate-700 dark:text-slate-300 mb-1">
-                  جدول البثوث المباشرة لحسابك:
+            {/* QA & Hand Raise Queue Tab Body */}
+            {sidebarTab === 'qa' && (
+              <div className="flex-1 p-4 overflow-y-auto space-y-3">
+                
+                {/* Pending Join Requests for Teacher */}
+                {isTeacher && pendingRequests.length > 0 && (
+                  <div className="p-3 rounded-2xl bg-blue-500/10 border border-blue-500/25 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-black text-blue-700 dark:text-blue-300">
+                      <span>⏳ طلبات الانضمام المعلقة ({pendingRequests.length})</span>
+                      <button
+                        onClick={() => admitAllStudentsLive(currentSession.id)}
+                        className="bg-blue-600 text-white text-[10px] px-2.5 py-1 rounded-lg"
+                      >
+                        قبول الكل
+                      </button>
+                    </div>
+                    <div className="space-y-1.5">
+                      {pendingRequests.map(req => (
+                        <div key={req.id} className="p-2 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-between text-xs">
+                          <div>
+                            <span className="font-black text-slate-900 dark:text-white">{req.studentName}</span>
+                            <span className="text-[10px] text-slate-400 block font-mono">كود: {req.studentCode}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => admitStudentLive(currentSession.id, req.id, true)}
+                              className="bg-emerald-600 text-white text-[10px] px-2.5 py-1 rounded-lg font-black"
+                            >
+                              سماح
+                            </button>
+                            <button
+                              onClick={() => admitStudentLive(currentSession.id, req.id, false)}
+                              className="bg-rose-600 text-white text-[10px] px-2 py-1 rounded-lg"
+                            >
+                              رفض
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-700 dark:text-amber-300 text-xs font-bold text-center">
+                  ✋ قائمة الطلاب الراغبين في التحدث والمداخلة بالمايك
                 </div>
 
-                {liveSessionsDB.map(s => {
-                  const isCurrent = s.id === currentSession.id;
-                  return (
-                    <div
-                      key={s.id}
-                      onClick={() => { setCurrentSessionId(s.id); if (onSelectLive) onSelectLive(s.id); }}
-                      className={`p-3 rounded-2xl border cursor-pointer transition-all space-y-2 ${
-                        isCurrent 
-                          ? 'bg-blue-50 dark:bg-blue-600/20 border-blue-500 ring-2 ring-blue-500/20' 
-                          : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-slate-400'
-                      }`}
+                {(!currentSession?.handRaises || currentSession.handRaises.length === 0) ? (
+                  <div className="text-center py-10 text-slate-400 space-y-2">
+                    <Hand className="w-8 h-8 mx-auto stroke-[1.5] text-slate-300 dark:text-slate-600" />
+                    <p className="text-xs font-bold">لا توجد طلبات مداخلة حالياً.</p>
+                  </div>
+                ) : (
+                  currentSession.handRaises.map((hr, idx) => (
+                    <div 
+                      key={hr.id || idx}
+                      className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3"
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-400">
-                          {s.subject}
-                        </span>
-                        {s.status === 'live' ? (
-                          <span className="text-[10px] font-black text-rose-500 flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
-                            <span>مباشر الآن 🔴</span>
-                          </span>
-                        ) : s.status === 'scheduled' ? (
-                          <span className="text-[10px] font-bold text-blue-500">⏳ مجدول</span>
-                        ) : (
-                          <span className="text-[10px] font-bold text-emerald-500">📼 مسجل</span>
-                        )}
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center text-sm font-black">
+                          ✋
+                        </div>
+                        <div>
+                          <h5 className="text-xs font-black text-slate-900 dark:text-white">{hr.studentName}</h5>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono font-bold">كود: {hr.studentCode}</span>
+                        </div>
                       </div>
 
-                      <h4 className="text-xs font-black text-slate-900 dark:text-white leading-tight">
-                        {s.title}
-                      </h4>
-
-                      <div className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
-                        <span>{s.instructor}</span>
-                        <span className="font-mono">{new Date(s.scheduledAt).toLocaleDateString('ar-EG')}</span>
-                      </div>
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                        في الانتظار ⏳
+                      </span>
                     </div>
-                  );
-                })}
+                  ))
+                )}
               </div>
             )}
 
           </div>
-        )}
+
+        </div>
 
       </div>
 
