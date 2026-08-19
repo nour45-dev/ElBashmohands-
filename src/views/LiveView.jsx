@@ -528,45 +528,59 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                   </a>
                 </div>
               ) : (
-                /* Native Zero-Latency Google Meet Style Room Feed */
+                /* Real-Time Live Broadcast & Screen Share Classroom */
                 <div className="relative w-full h-full flex items-center justify-center bg-slate-950">
                   {isTeacher ? (
                     localStream ? (
-                      <iframe
-                        src={`https://meet.jit.si/elm_live_${currentSession.id}#userInfo.displayName="${encodeURIComponent(studentDisplayName)}"&config.defaultLanguage="ar"&config.prejoinPageEnabled=false&config.disableDeepLinking=true`}
-                        title="Teacher Live Room"
-                        className="w-full h-full border-0 min-h-[480px]"
-                        allow="camera; microphone; display-capture; autoplay; clipboard-write; fullscreen; speaker; self *"
-                        allowFullScreen
-                      />
+                      <div className="relative w-full h-full flex flex-col bg-black">
+                        <iframe
+                          src={`https://vdo.ninja/?push=elm_room_${currentSession.id}&screenshare=1&webcam=1&mic=1&label=${encodeURIComponent(studentDisplayName)}`}
+                          title="Teacher Broadcaster"
+                          className="w-full h-full border-0 min-h-[480px]"
+                          allow="camera; microphone; display-capture; autoplay; clipboard-write; fullscreen; speaker; self *"
+                          allowFullScreen
+                        />
+                        
+                        {/* Live Studio Floating Toolbar */}
+                        <div className="absolute top-4 left-4 z-40 flex items-center gap-2 bg-slate-900/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-700">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                          <span className="text-[11px] font-black text-emerald-400">البث المباشر ومشاركة الشاشة نشطة 🖥️</span>
+                          <button
+                            onClick={() => setLocalStream(false)}
+                            className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold px-2 py-0.5 rounded-md mr-2"
+                          >
+                            إيقاف ✕
+                          </button>
+                        </div>
+                      </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center p-6 text-center space-y-4 text-white max-w-md animate-in fade-in">
                         <div className="w-20 h-20 rounded-3xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-4xl shadow-2xl animate-pulse">
                           🎥
                         </div>
                         <div className="space-y-1">
-                          <h3 className="text-lg md:text-xl font-black">قاعة الشرح المباشر (مثل Google Meet) 💻</h3>
+                          <h3 className="text-lg md:text-xl font-black">أستوديو البث والشرح المباشر 💻</h3>
                           <p className="text-xs text-slate-300 font-bold leading-relaxed">
-                            تتيح لك القاعة التحكم الكامل في الكاميرا، المايكروفون، مشاركة الشاشة، والتفاعل الصوتي والمرئي مع الطلاب وتسجيل الحصة.
+                            اضغط على الزر أدناه لبدء مشاركة الشاشة ومذكرات الشرح أو الكاميرا مع الطلاب بالصوت والصورة فوراً.
                           </p>
                         </div>
                         <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
                           <button
                             onClick={() => setLocalStream(true)}
-                            className="bg-blue-600 hover:bg-blue-500 text-white font-black text-xs px-6 py-3 rounded-2xl shadow-xl transition-all flex items-center gap-2 hover:scale-105"
+                            className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-6 py-3.5 rounded-2xl shadow-xl transition-all flex items-center gap-2 hover:scale-105"
                           >
-                            <Radio className="w-4 h-4" />
-                            <span>دخول وبدء قاعة الحصة التفاعلية 📹</span>
+                            <Share2 className="w-4 h-4" />
+                            <span>🖥️ بدء مشاركة الشاشة والشرح المباشر للطلاب</span>
                           </button>
                         </div>
                       </div>
                     )
                   ) : (
-                    /* Student View Screen - Interactive Google Meet Room */
+                    /* Student Live Viewer Screen */
                     isAdmitted ? (
                       <iframe
-                        src={`https://meet.jit.si/elm_live_${currentSession.id}#userInfo.displayName="${encodeURIComponent(studentDisplayName)}"&config.defaultLanguage="ar"&config.prejoinPageEnabled=false&config.disableDeepLinking=true`}
-                        title="Student Live Room"
+                        src={`https://vdo.ninja/?view=elm_room_${currentSession.id}&autoplay=1&cleanoutput=1`}
+                        title="Student Live Viewer"
                         className="w-full h-full border-0 min-h-[480px]"
                         allow="camera; microphone; display-capture; autoplay; clipboard-write; fullscreen; speaker; self *"
                         allowFullScreen
@@ -745,7 +759,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                       className="bg-rose-600 hover:bg-rose-500 text-white font-black text-xs px-6 py-3 rounded-2xl shadow-xl transition-all flex items-center gap-2 hover:scale-105 animate-pulse"
                     >
                       <Radio className="w-4 h-4" />
-                      <span>بدء وفتح قاعة الفيديو (مثل Google Meet) الآن 🔴</span>
+                      <span>بدء وفتح قاعة الفيديو الآن 🔴</span>
                     </button>
                   ) : (
                     <a
