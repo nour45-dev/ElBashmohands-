@@ -30,7 +30,11 @@ import {
   Image as ImageIcon,
   X,
   BarChart2,
-  Bell
+  Bell,
+  Radio,
+  Hand,
+  Sparkles,
+  Share2
 } from 'lucide-react';
 
 export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
@@ -59,7 +63,14 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
     triggerSmsSend,
     broadcastNewLesson,
     adminIdentity,
-    setActiveWhatsAppModal 
+    setActiveWhatsAppModal,
+    // Live Studio functions
+    liveSessionsDB,
+    adminCreateLiveSession,
+    adminUpdateLiveStatus,
+    adminDeleteLiveSession,
+    adminBroadcastLiveAlert,
+    adminLaunchLivePoll
   } = useApp();
 
   const isSayedAdmin = adminIdentity === 'mr_sayed';
@@ -72,6 +83,25 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
 
   const [adminTab, setAdminTab] = useState('videos');
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Live Studio States
+  const [newLiveTitle, setNewLiveTitle] = useState('');
+  const [newLiveSubject, setNewLiveSubject] = useState(defaultAdminSubject);
+  const [newLiveGrade, setNewLiveGrade] = useState('3sec');
+  const [newLiveDate, setNewLiveDate] = useState('');
+  const [newLiveTime, setNewLiveTime] = useState('');
+  const [newLiveStreamUrl, setNewLiveStreamUrl] = useState('');
+  const [newLiveDesc, setNewLiveDesc] = useState('');
+  const [liveSuccessMsg, setLiveSuccessMsg] = useState(null);
+  const [selectedStudioSessionId, setSelectedStudioSessionId] = useState(null);
+  
+  // Live Studio Poll Creator State
+  const [newPollQ, setNewPollQ] = useState('');
+  const [newPollOptA, setNewPollOptA] = useState('');
+  const [newPollOptB, setNewPollOptB] = useState('');
+  const [newPollOptC, setNewPollOptC] = useState('');
+  const [newPollOptD, setNewPollOptD] = useState('');
+  const [newPollCorrect, setNewPollCorrect] = useState('0');
 
   // Student Performance Modal State
   const [studentPerfModal, setStudentPerfModal] = useState(null); // student object
@@ -94,6 +124,81 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
   const [editLessonPrice, setEditLessonPrice] = useState(25);
   const [editLessonGrade, setEditLessonGrade] = useState('3sec');
   const [editLessonDesc, setEditLessonDesc] = useState('');
+
+  // Live Management Handlers
+  const handleCreateLive = async (e) => {
+    e.preventDefault();
+    if (!newLiveTitle.trim()) return;
+
+    const scheduledIso = (newLiveDate && newLiveTime) 
+      ? new Date(`${newLiveDate}T${newLiveTime}`).toISOString()
+      : new Date().toISOString();
+
+    const res = await adminCreateLiveSession({
+      title: newLiveTitle.trim(),
+      instructor: isSayedAdmin ? 'أ / سيد عبد العاطي' : 'م / نور الدين',
+      instructorId: adminIdentity,
+      subject: newLiveSubject,
+      grade: newLiveGrade,
+      scheduledAt: scheduledIso,
+      streamUrl: newLiveStreamUrl.trim() || 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
+      description: newLiveDesc.trim() || `بث مباشر تفاعلي لمادة ${newLiveSubject}`
+    });
+
+    if (res.success) {
+      setLiveSuccessMsg('تمت جدولة البث المباشر بنجاح! 🔴');
+      setNewLiveTitle('');
+      setNewLiveDesc('');
+      setNewLiveStreamUrl('');
+      setTimeout(() => setLiveSuccessMsg(null), 4000);
+    } else {
+      alert(res.message);
+    }
+  };
+
+  const handleBroadcastLive = async (session) => {
+    const res = await adminBroadcastLiveAlert(session.id);
+    if (res.success) {
+      setBroadcastModal({
+        lessonTitle: `🔴 ${session.title}`,
+        links: res.whatsappLinks || []
+      });
+    } else {
+      alert(res.message);
+    }
+  };
+
+  const handleLaunchStudioPoll = async (e) => {
+    e.preventDefault();
+    if (!newPollQ.trim() || !newPollOptA.trim() || !newPollOptB.trim()) {
+      alert('يرجى كتابة السؤال وخيارين على الأقل');
+      return;
+    }
+    const activeStudioSession = liveSessionsDB.find(s => s.id === selectedStudioSessionId) || liveSessionsDB[0];
+    if (!activeStudioSession) {
+      alert('حدد حصة البث المباشر أولاً');
+      return;
+    }
+
+    const options = [newPollOptA, newPollOptB];
+    if (newPollOptC.trim()) options.push(newPollOptC.trim());
+    if (newPollOptD.trim()) options.push(newPollOptD.trim());
+
+    const res = await adminLaunchLivePoll(activeStudioSession.id, {
+      question: newPollQ.trim(),
+      options,
+      correctIndex: Number(newPollCorrect)
+    });
+
+    if (res.success) {
+      setNewPollQ('');
+      setNewPollOptA('');
+      setNewPollOptB('');
+      setNewPollOptC('');
+      setNewPollOptD('');
+      alert('تم إطلاق السؤال التفاعلي على شاشات الطلاب الآن بنجاح! 🎯');
+    }
+  };
 
   const handleResetDevice = async (studentId) => {
     try {
@@ -547,6 +652,17 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
       {/* Admin Navigation Tabs */}
       <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-2 overflow-x-auto">
         <button
+          onClick={() => setAdminTab('live')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all whitespace-nowrap ${adminTab === 'live' ? 'bg-rose-600 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
+        >
+          <Radio className="w-4 h-4 text-rose-400" />
+          <span>🔴 إدارة البث المباشر ({liveSessionsDB.length})</span>
+          {liveSessionsDB.some(s => s.status === 'live') && (
+            <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+          )}
+        </button>
+
+        <button
           onClick={() => setAdminTab('videos')}
           className={`px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all whitespace-nowrap ${adminTab === 'videos' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
         >
@@ -594,6 +710,409 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
           الإشعارات ({notifications.length}) 🔔
         </button>
       </div>
+
+      {/* ═══ Tab: Live Studio (إدارة البث المباشر) ═══ */}
+      {adminTab === 'live' && (
+        <div className="space-y-8 animate-in fade-in" dir="rtl">
+          
+          {/* Header Action Banner */}
+          <div className="bg-gradient-to-r from-rose-900 via-slate-900 to-slate-950 text-white p-6 md:p-8 rounded-3xl border border-rose-500/30 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="space-y-2 text-right">
+              <div className="inline-flex items-center gap-2 bg-rose-500/20 text-rose-300 text-xs font-black px-3.5 py-1 rounded-full border border-rose-500/30">
+                <Radio className="w-4 h-4 text-rose-400" />
+                <span>استوديو البث المباشر التفاعلي • Live Studio 🔴</span>
+              </div>
+              <h2 className="text-xl md:text-2xl font-black">جدولة وبث الحصص المباشرة والتفاعل مع الطلاب</h2>
+              <p className="text-xs text-slate-300 font-bold max-w-xl leading-relaxed">
+                حدد موعد الحصة، ابدأ البث الحي بجودة عالية، وأرسل إشعاراً ورسالة واتساب بضغطة زر لكل الطلاب المسجلين لحضور البث فوراً.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <a
+                href="#create-live-form"
+                className="bg-rose-600 hover:bg-rose-500 text-white text-xs font-black px-5 py-3 rounded-2xl shadow-lg transition-all flex items-center gap-2"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>جدولة بث جديد</span>
+              </a>
+            </div>
+          </div>
+
+          {/* Success Message Banner */}
+          {liveSuccessMsg && (
+            <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 p-4 rounded-2xl text-xs font-black flex items-center gap-2 animate-in fade-in shadow-xs">
+              <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+              <span>{liveSuccessMsg}</span>
+            </div>
+          )}
+
+          {/* ═══ Form: Create / Schedule New Live Broadcast ═══ */}
+          <form 
+            id="create-live-form" 
+            onSubmit={handleCreateLive} 
+            className="bg-white dark:bg-[#162534] p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-md space-y-5"
+          >
+            <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+              <h3 className="font-black text-slate-900 dark:text-white text-base md:text-lg flex items-center gap-2">
+                <Radio className="w-5 h-5 text-rose-500" />
+                <span>إنشاء أو جدولة حصة بث مباشر جديدة 🔴</span>
+              </h3>
+              <p className="text-slate-500 dark:text-slate-400 text-xs mt-1 font-bold">
+                أدخل تفاصيل البث ومصدر الفيديو ورابط الشرح
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              
+              <div className="md:col-span-2">
+                <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1.5">عنوان البث المباشر:</label>
+                <input
+                  type="text"
+                  required
+                  value={newLiveTitle}
+                  onChange={(e) => setNewLiveTitle(e.target.value)}
+                  placeholder="مثال: المراجعة النهائية الشاملة: فرع النحو وأسرار الامتحان 🔴"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-4 py-3 text-xs font-black text-slate-900 dark:text-white focus:ring-2 focus:ring-rose-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1.5">المادة:</label>
+                <select
+                  value={newLiveSubject}
+                  onChange={(e) => setNewLiveSubject(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-4 py-3 text-xs font-black text-slate-900 dark:text-white focus:ring-2 focus:ring-rose-500 outline-none"
+                >
+                  <option value="اللغة العربية">📖 اللغة العربية (أ / سيد عبد العاطي)</option>
+                  <option value="برمجة وعلوم الحاسب">💻 برمجة وعلوم الحاسب (م / نور الدين)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1.5">الصف الدراسي المستهدف:</label>
+                <select
+                  value={newLiveGrade}
+                  onChange={(e) => setNewLiveGrade(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-4 py-3 text-xs font-black text-slate-900 dark:text-white focus:ring-2 focus:ring-rose-500 outline-none"
+                >
+                  <option value="3sec">🎓 الصف الثالث الثانوي (ثانوية عامة)</option>
+                  <option value="2sec">📘 الصف الثاني الثانوي</option>
+                  <option value="1sec">📗 الصف الأول الثانوي</option>
+                  <option value="all">🌟 جميع الصفوف</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1.5">تاريخ البث:</label>
+                <input
+                  type="date"
+                  value={newLiveDate}
+                  onChange={(e) => setNewLiveDate(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-4 py-3 text-xs font-black text-slate-900 dark:text-white focus:ring-2 focus:ring-rose-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1.5">توقيت البث (الساعة):</label>
+                <input
+                  type="time"
+                  value={newLiveTime}
+                  onChange={(e) => setNewLiveTime(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-4 py-3 text-xs font-black text-slate-900 dark:text-white focus:ring-2 focus:ring-rose-500 outline-none"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1.5">رابط مصدر البث المباشر (YouTube Live / Vimeo / RTMP / Stream URL):</label>
+                <input
+                  type="url"
+                  value={newLiveStreamUrl}
+                  onChange={(e) => setNewLiveStreamUrl(e.target.value)}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-4 py-3 text-xs font-mono font-black text-slate-900 dark:text-white focus:ring-2 focus:ring-rose-500 outline-none dir-ltr"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1.5">وصف ومحاور الحصة المباشرة:</label>
+                <textarea
+                  rows="3"
+                  value={newLiveDesc}
+                  onChange={(e) => setNewLiveDesc(e.target.value)}
+                  placeholder="اكتب نبذة تشويقية عما سيتم شرحه في الحصة والأسئلة التي سيتم حلها..."
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl p-3.5 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-rose-500 outline-none"
+                />
+              </div>
+
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="submit"
+                className="bg-rose-600 hover:bg-rose-500 text-white font-black text-xs px-8 py-3.5 rounded-2xl shadow-lg transition-all flex items-center gap-2"
+              >
+                <Radio className="w-4 h-4" />
+                <span>حفظ وجدولة حصة البث 🚀</span>
+              </button>
+            </div>
+
+          </form>
+
+          {/* ═══ Live Sessions Management Table & Live Studio Controls ═══ */}
+          <div className="bg-white dark:bg-[#162534] p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-md space-y-6">
+            
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div>
+                <h3 className="font-black text-slate-900 dark:text-white text-base md:text-lg">
+                  قائمة حصص البث المباشر ({liveSessionsDB.length})
+                </h3>
+                <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5 font-bold">
+                  تحكم بحالة البث، ابدأ البث الحي، وابعت الإشعارات للطلاب
+                </p>
+              </div>
+            </div>
+
+            {liveSessionsDB.length === 0 ? (
+              <div className="text-center py-12 text-slate-400 space-y-2">
+                <Radio className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 stroke-[1.5]" />
+                <p className="text-xs font-bold">لا توجد حصص بث مباشر مسجلة حتى الآن.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {liveSessionsDB.map(s => {
+                  const isStudioActive = selectedStudioSessionId === s.id;
+                  return (
+                    <div 
+                      key={s.id}
+                      className={`p-5 rounded-3xl border transition-all space-y-4 ${
+                        s.status === 'live'
+                          ? 'bg-rose-500/5 dark:bg-rose-500/10 border-rose-500/40 ring-2 ring-rose-500/20'
+                          : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800'
+                      }`}
+                    >
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400">
+                              {s.subject} • {s.gradeName}
+                            </span>
+
+                            {s.status === 'live' ? (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-rose-600 text-white text-xs font-black animate-pulse shadow-xs">
+                                <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                                <span>مباشر الآن 🔴</span>
+                              </span>
+                            ) : s.status === 'scheduled' ? (
+                              <span className="text-xs font-black text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2.5 py-0.5 rounded-full border border-blue-500/20">
+                                ⏳ موعد البث: {new Date(s.scheduledAt).toLocaleString('ar-EG')}
+                              </span>
+                            ) : (
+                              <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                                📼 مسجل ومنتهي
+                              </span>
+                            )}
+                          </div>
+
+                          <h4 className="text-base font-black text-slate-900 dark:text-white">
+                            {s.title}
+                          </h4>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">
+                            المحاضر: <span className="text-slate-800 dark:text-slate-200">{s.instructor}</span> • المشاهدين: <span className="text-amber-500 font-mono font-black">{s.viewersCount || 0}</span> • الرسائل: <span className="font-mono">{s.chatMessages?.length || 0}</span>
+                          </p>
+                        </div>
+
+                        {/* Actions Control Buttons */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          
+                          {/* Broadcast to Students Button */}
+                          <button
+                            onClick={() => handleBroadcastLive(s)}
+                            className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black px-4 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-1.5"
+                          >
+                            <Send className="w-3.5 h-3.5 rotate-180" />
+                            <span>📢 بث إشعار وواتساب للطلاب</span>
+                          </button>
+
+                          {/* Status Actions */}
+                          {s.status !== 'live' && (
+                            <button
+                              onClick={() => adminUpdateLiveStatus(s.id, 'live')}
+                              className="bg-rose-600 hover:bg-rose-500 text-white text-xs font-black px-4 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-1.5"
+                            >
+                              <Radio className="w-3.5 h-3.5" />
+                              <span>بدء البث فوراً 🔴</span>
+                            </button>
+                          )}
+
+                          {s.status === 'live' && (
+                            <button
+                              onClick={() => adminUpdateLiveStatus(s.id, 'ended')}
+                              className="bg-slate-800 hover:bg-slate-700 text-white text-xs font-black px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5"
+                            >
+                              <span>⏹️ إنهاء البث</span>
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => setSelectedStudioSessionId(isStudioActive ? null : s.id)}
+                            className={`text-xs font-black px-4 py-2.5 rounded-xl border transition-all flex items-center gap-1.5 ${
+                              isStudioActive 
+                                ? 'bg-amber-500 text-slate-950 border-amber-400 font-black' 
+                                : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                            }`}
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>{isStudioActive ? 'إغلاق لوحة التفاعل' : 'لوحة التفاعل والأسئلة 🎯'}</span>
+                          </button>
+
+                          <button
+                            onClick={() => { if (confirm('هل أنت متأكد من حذف هذا البث؟')) adminDeleteLiveSession(s.id); }}
+                            className="p-2.5 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50"
+                            title="حذف البث"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+
+                        </div>
+
+                      </div>
+
+                      {/* ═══ Expandable Live Studio Interactivity & Polls & Hand-Raises Panel ═══ */}
+                      {isStudioActive && (
+                        <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 grid grid-cols-1 md:grid-cols-12 gap-6 bg-white dark:bg-slate-950/60 p-5 rounded-2xl">
+                          
+                          {/* Live Interactive Quiz / Poll Launcher (7 cols) */}
+                          <div className="md:col-span-7 space-y-4">
+                            <div className="flex items-center justify-between">
+                              <h5 className="text-xs md:text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+                                <Award className="w-4 h-4 text-amber-500" />
+                                <span>إطلاق سؤال تفاعلي لحظي على شاشات الطلاب 🎯</span>
+                              </h5>
+                              <span className="text-[11px] text-slate-400 font-bold">يظهر للطالب فوراً على الفيديو</span>
+                            </div>
+
+                            <div className="space-y-3">
+                              <div>
+                                <label className="block text-[11px] font-black text-slate-600 dark:text-slate-400 mb-1">نص السؤال:</label>
+                                <input
+                                  type="text"
+                                  value={newPollQ}
+                                  onChange={(e) => setNewPollQ(e.target.value)}
+                                  placeholder="اكتب السؤال هنا (مثال: ما إعراب كلمة «العلم» في الجملة؟)..."
+                                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-amber-500"
+                                />
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="block text-[10px] font-bold text-slate-500 mb-0.5">الخيار (أ):</label>
+                                  <input
+                                    type="text"
+                                    value={newPollOptA}
+                                    onChange={(e) => setNewPollOptA(e.target.value)}
+                                    placeholder="الخيار الأول..."
+                                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] font-bold text-slate-500 mb-0.5">الخيار (ب):</label>
+                                  <input
+                                    type="text"
+                                    value={newPollOptB}
+                                    onChange={(e) => setNewPollOptB(e.target.value)}
+                                    placeholder="الخيار الثاني..."
+                                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] font-bold text-slate-500 mb-0.5">الخيار (ج):</label>
+                                  <input
+                                    type="text"
+                                    value={newPollOptC}
+                                    onChange={(e) => setNewPollOptC(e.target.value)}
+                                    placeholder="الخيار الثالث (اختياري)..."
+                                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-[10px] font-bold text-slate-500 mb-0.5">الخيار (د):</label>
+                                  <input
+                                    type="text"
+                                    value={newPollOptD}
+                                    onChange={(e) => setNewPollOptD(e.target.value)}
+                                    placeholder="الخيار الرابع (اختياري)..."
+                                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-bold"
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between pt-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[11px] font-black text-slate-600 dark:text-slate-400">الإجابة الصحيحة:</span>
+                                  <select
+                                    value={newPollCorrect}
+                                    onChange={(e) => setNewPollCorrect(e.target.value)}
+                                    className="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg text-xs font-bold px-2 py-1"
+                                  >
+                                    <option value="0">الخيار (أ)</option>
+                                    <option value="1">الخيار (ب)</option>
+                                    <option value="2">الخيار (ج)</option>
+                                    <option value="3">الخيار (د)</option>
+                                  </select>
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={handleLaunchStudioPoll}
+                                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-5 py-2.5 rounded-xl shadow-md transition-all"
+                                >
+                                  بث السؤال للطلاب الآن 🚀
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Hand Raises Queue (5 cols) */}
+                          <div className="md:col-span-5 space-y-3 border-r md:border-r-slate-200 dark:md:border-r-slate-800 md:pr-5">
+                            <h5 className="text-xs md:text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+                              <Hand className="w-4 h-4 text-emerald-500" />
+                              <span>طابور طلبات المداخلة ✋ ({s.handRaises?.length || 0})</span>
+                            </h5>
+
+                            <div className="max-h-48 overflow-y-auto space-y-2">
+                              {(!s.handRaises || s.handRaises.length === 0) ? (
+                                <p className="text-[11px] text-slate-400 font-bold py-6 text-center">لا توجد طلبات مداخلة حالياً.</p>
+                              ) : (
+                                s.handRaises.map(hr => (
+                                  <div key={hr.id} className="bg-slate-100 dark:bg-slate-900 p-2.5 rounded-xl text-xs flex items-center justify-between">
+                                    <div>
+                                      <div className="font-black text-slate-900 dark:text-white">{hr.studentName}</div>
+                                      <div className="text-[10px] text-slate-500 font-mono">كود: {hr.studentCode} • {hr.requestedAt}</div>
+                                    </div>
+                                    <span className="text-[10px] bg-emerald-500/20 text-emerald-600 font-black px-2 py-0.5 rounded-md">
+                                      طالب للمداخلة
+                                    </span>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </div>
+
+                        </div>
+                      )}
+
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+          </div>
+
+        </div>
+      )}
 
       {/* Tab: Notifications */}
       {adminTab === 'notifications' && (
