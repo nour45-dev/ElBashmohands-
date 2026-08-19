@@ -1,11 +1,12 @@
 import express from 'express';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import fs from 'fs';
 import { MongoClient, ObjectId } from 'mongodb';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
-import cookieParser from 'cookie-parser';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
@@ -13,56 +14,57 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-app.use(express.json());
-app.use(cookieParser());
-
-// Environment settings
 const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const isProd = NODE_ENV === 'production';
 
-// Strict Secret Check
+// Active Secrets and Environment Configuration
 const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
-  if (isProd) {
-    console.error('FATAL: JWT_SECRET environment variable is missing in production mode!');
-    process.exit(1);
-  }
+if (isProd && !JWT_SECRET) {
+  console.error('FATAL: JWT_SECRET environment variable is required in production!');
+  process.exit(1);
 }
-const ACTIVE_JWT_SECRET = JWT_SECRET || 'dev_secret_key_for_local_testing_only_123';
+const ACTIVE_JWT_SECRET = JWT_SECRET || 'dev-secret-key-change-in-production-12345';
 
-// Database State and Initialization
-let dbType = 'json'; // 'mongodb' or 'json'
-let mongoClient = null;
-let db = null;
-// Global Helper to normalize phone numbers (converts Arabic numerals, standardizes egypt prefix, removes symbols)
-const normalizePhone = (p) => {
-  if (!p) return '';
-  let clean = String(p).trim()
-    .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))
-    .replace(/[^0-9+]/g, '');
-  if (clean.startsWith('0020')) clean = '0' + clean.substring(4);
-  else if (clean.startsWith('+20')) clean = '0' + clean.substring(3);
-  else if (clean.startsWith('+2')) clean = '0' + clean.substring(2);
-  else if (clean.startsWith('20') && clean.length >= 12) clean = '0' + clean.substring(2);
-  
-  if (clean.length === 10 && (clean.startsWith('10') || clean.startsWith('11') || clean.startsWith('12') || clean.startsWith('15'))) {
-    clean = '0' + clean;
-  }
-  return clean;
-};
+// Middleware
+app.use(express.json());
+app.use(cookieParser());
+app.use(cors({
+  origin: (origin, callback) => callback(null, true),
+  credentials: true
+}));
 
-// Global Helper to normalize Arabic text for search
+// Arabic Normalization Helper
 const normalizeArabic = (text) => {
   if (!text) return '';
-  return String(text).trim().toLowerCase()
+  return text
+    .trim()
     .replace(/[أإآ]/g, 'ا')
     .replace(/ة/g, 'ه')
     .replace(/ى/g, 'ي')
     .replace(/[\u064B-\u065F]/g, '');
 };
 
-// Initial seed data
+// Phone Normalization Helper
+const normalizePhone = (phone) => {
+  if (!phone) return '';
+  let p = phone.replace(/[^0-9]/g, '');
+  if (p.startsWith('20') && p.length > 10) {
+    p = p.substring(2);
+  }
+  if (p.startsWith('0')) {
+    p = p.substring(1);
+  }
+  return p;
+};
+
+// Database state
+let db = null;
+let mongoClient = null;
+let dbType = 'json';
+const jsonDbFilePath = path.join(__dirname, 'database.json');
+
+// Default Seed Data
 const initialData = {
   students: [
     {
@@ -72,9 +74,9 @@ const initialData = {
       email: 'student3003@elm.com',
       phone: '01040581954',
       parentPhone: '01040581954',
-      password: bcrypt.hashSync('123456', 10),
+      password: '$2b$10$6RHR0cZASLRzQYF2VoGbkuoM4IVRAw88uvImfCmTb/.UNixkoDWYS',
       grade: '3sec',
-      gradeName: 'الصف الثالث الثانوي (تانوية عامة)',
+      gradeName: 'الصف الثالث الثانوي (ثانوية عامة)',
       avatar: null,
       walletBalance: 150,
       subscriptionStatus: 'active',
@@ -92,9 +94,9 @@ const initialData = {
       email: 'ahmed@elm.com',
       phone: '01002169889',
       parentPhone: '01002169889',
-      password: bcrypt.hashSync('123456', 10),
+      password: '$2b$10$6RHR0cZASLRzQYF2VoGbkuoM4IVRAw88uvImfCmTb/.UNixkoDWYS',
       grade: '3sec',
-      gradeName: 'الصف الثالث الثانوي (تانوية عامة)',
+      gradeName: 'الصف الثالث الثانوي (ثانوية عامة)',
       avatar: null,
       walletBalance: 100,
       subscriptionStatus: 'active',
@@ -104,151 +106,136 @@ const initialData = {
       streakDays: 5,
       rank: 2,
       badges: [{ id: 'b1', name: 'عضو جديد 💻', icon: '💻', desc: 'انضم لمنصة عِلم' }]
-    },
-    {
-      id: 'std_101',
-      code: 'ENG-101',
-      name: 'أحمد محمود العبد',
-      email: 'ahmed@bashmohandis.com',
-      phone: '01012345678',
-      parentPhone: '01198765432',
-      password: bcrypt.hashSync('123456', 10),
-      grade: '3sec',
-      gradeName: 'الصف الثالث الثانوي (تانوية عامة)',
-      avatar: null,
-      walletBalance: 50,
-      subscriptionStatus: 'active',
-      subscriptionType: 'شهري',
-      monthlyCreditsLeft: 8,
-      points: 120,
-      streakDays: 5,
-      rank: 3,
-      badges: [{ id: 'b1', name: 'عضو جديد 💻', icon: '💻', desc: 'انضم لمنصة عِلم' }]
     }
   ],
   lessons: [
     {
       id: 'les_demo_1',
-      title: 'مقدمة في لغة Python وكتابة أول برنامج',
+      title: 'مقدمة البرمجة وأساسيات لغة Python',
       subject: 'برمجة وعلوم الحاسب',
       grade: '3sec',
       duration: '45 دقيقة',
-      price: 25,
-      videoType: 'url',
+      price: 0,
+      videoType: 'youtube',
       videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-      thumbnail: 'https://images.unsplash.com/photo-1526379879527-8559ecfcaec0?auto=format&fit=crop&q=80&w=600',
-      description: 'شرح مبسط وممتع لأساسيات المتغيرات وعمليات الإدخال والإخراج في Python.',
+      thumbnail: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=800',
+      description: 'تعلم أساسيات البرمجة، المتغيرات، والجمل الشرطية بطريقة تفاعلية وممتعة مع التطبيق العملي.',
       attachmentType: 'pdf',
-      attachmentPdf: 'مذكرة_Python_الحصة_الأولى.pdf',
-      attachmentFileUrl: null,
-      viewsCount: 142,
-      isUnlocked: false,
-      attachedQuiz: {
-        id: 'qz_demo_1',
-        title: 'الامتحان الإلكتروني للحصة الأولى - لغة Python',
-        rewardPoints: 50,
-        durationMinutes: 20,
-        questions: [
-          {
-            id: 1,
-            question: 'أي من الكلمات التالية تستخدم لطباعة مخرجات في لغة Python؟',
-            options: ['echo', 'print()', 'Console.WriteLine()', 'printf()'],
-            correctIndex: 1
-          },
-          {
-            id: 2,
-            question: 'كيف يتم تعريف المتغير x بقيمة نصية في Python؟',
-            options: ['int x = "Hello"', 'x = "Hello"', 'var x = "Hello"', 'string x = "Hello"'],
-            correctIndex: 1
-          }
-        ]
-      }
+      attachmentPdf: 'ملخص_بايثون_الدرس_الاول.pdf',
+      attachmentFileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
     },
     {
       id: 'les_demo_2',
-      title: 'شرح درس البلاغة - الكناية وأسرار الجمال',
+      title: 'شرح درس كان وأخواتها وكاد وأخواتها بالتفصيل',
       subject: 'اللغة العربية',
       grade: '3sec',
-      duration: '40 دقيقة',
+      duration: '55 دقيقة',
       price: 25,
-      videoType: 'url',
+      videoType: 'youtube',
       videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-      thumbnail: 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&q=80&w=600',
-      description: 'شرح تفصيلي لدرس الكناية وأنواعها (عن صفة، عن موصوف، عن نسبة) وتدريبات البلاغة للمرحلة الثانوية.',
+      thumbnail: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&q=80&w=800',
+      description: 'شرح مبسط لقواعد الأفعال الناسخة وحالات تقدم الخبر وأهم تكات الامتحان الوزاري.',
       attachmentType: 'pdf',
-      attachmentPdf: 'مذكرة_البلاغة_الكناية.pdf',
-      attachmentFileUrl: null,
-      viewsCount: 98,
-      isUnlocked: false,
-      attachedQuiz: {
-        id: 'qz_demo_2',
-        title: 'امتحان البلاغة الإلكتروني - درس الكناية',
-        rewardPoints: 50,
-        durationMinutes: 15,
-        questions: [
-          {
-            id: 1,
-            question: 'قال الشاعر: "فما جازه جود ولا حل دونه ... ولكن يسير الجود حيث يسير" — ما نوع الكناية هنا؟',
-            options: ['كناية عن صفة', 'كناية عن موصوف', 'كناية عن نسبة', 'استعارة تصريحية'],
-            correctIndex: 2
-          }
-        ]
-      }
+      attachmentPdf: 'مذكرة_النحو_الافعال_الناسخة.pdf',
+      attachmentFileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
     }
   ],
   coupons: [
+    { code: 'ELM2026', type: 'fixed', value: 50, targetGrade: 'all', maxUses: 100, usedCount: 0 }
+  ],
+  payments: [],
+  questions: [],
+  notifications: [
+    { id: 'n1', title: 'مرحباً بك في منصة عِلم التعليمية! 💻', body: 'التطبيق جاهز ومحمي بالكامل 100%.', time: 'الآن', unread: true }
+  ],
+  exams: [],
+  liveSessions: [
     {
-      id: 'coup_1',
-      code: 'BASHMO2026',
-      type: 'percent',
-      value: 50,
-      targetGrade: 'all',
-      maxUses: 100,
-      usedCount: 14,
-      active: true
+      id: 'live_demo_1',
+      title: 'المراجعة النهائية الشاملة: فرع النحو وأسرار امتحان الثانوية العامة 🔴',
+      instructor: 'أ / سيد عبد العاطي',
+      instructorId: 'mr_sayed',
+      subject: 'اللغة العربية',
+      grade: '3sec',
+      gradeName: 'الصف الثالث الثانوي (ثانوية عامة)',
+      status: 'live',
+      scheduledAt: '2026-08-19T20:00:00',
+      description: 'بث مباشر تفاعلي لحل 150 فكرة امتحانية في النحو التراكمي وتدريبات البلاغة مع استقبال أسئلة الطلاب لحظة بلحظة.',
+      streamType: 'youtube_live',
+      streamUrl: 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
+      thumbnail: 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&q=80&w=800',
+      viewersCount: 342,
+      likesCount: 189,
+      chatMessages: [
+        {
+          id: 'c1',
+          senderName: 'أ / سيد عبد العاطي',
+          senderRole: 'teacher',
+          text: 'أهلاً بكم يا أبطال دفعة 2026! جهزوا كشكول الملاحظات سنبدأ بحل أصعب شواهد النحو الآن 🚀',
+          timestamp: 'منذ دقيقة',
+          isPinned: true
+        },
+        {
+          id: 'c2',
+          senderName: 'محمد أحمد علي',
+          senderRole: 'student',
+          text: 'مستعدين يا مستر والصوت والصورة جودتهم ممتازة جداً ما شاء الله 🔥',
+          timestamp: 'منذ دقيقة'
+        },
+        {
+          id: 'c3',
+          senderName: 'أحمد محمود علي',
+          senderRole: 'student',
+          text: 'يا مستر ممكن توضيح الفرق بين لا النافية للجنس ولا العاطفة؟',
+          timestamp: 'الآن'
+        }
+      ],
+      polls: [
+        {
+          id: 'poll_1',
+          question: 'ما نوع (لا) في جملة: «لا طالبَ علمٍ مهملٌ»؟',
+          options: ['نافية للجنس عاملة', 'نافية مهملة', 'عاطفة', 'ناهية جازمة'],
+          correctIndex: 0,
+          votes: { '0': 24, '1': 3, '2': 1, '3': 0 },
+          totalVotes: 28,
+          isActive: true,
+          createdAt: 'منذ 5 دقائق'
+        }
+      ],
+      handRaises: [
+        {
+          id: 'hr_1',
+          studentId: 'std_3003',
+          studentName: 'محمد أحمد علي',
+          studentCode: '3003',
+          requestedAt: 'الآن',
+          status: 'pending'
+        }
+      ],
+      recordingUrl: null
     },
     {
-      id: 'coup_2',
-      code: 'FREE100',
-      type: 'free',
-      value: 100,
-      targetGrade: '3sec',
-      maxUses: 50,
-      usedCount: 8,
-      active: true
+      id: 'live_demo_2',
+      title: 'ورشة عمل مباشرة: بناء تطبيق ذكاء اصطناعي تفاعلي بلغة Python 💻',
+      instructor: 'م / نور الدين',
+      instructorId: 'eng_nour',
+      subject: 'برمجة وعلوم الحاسب',
+      grade: '3sec',
+      gradeName: 'الصف الثالث الثانوي (ثانوية عامة)',
+      status: 'scheduled',
+      scheduledAt: '2026-08-20T19:00:00',
+      description: 'بث تدريبي عملي لكتابة كود حقيقي وبناء نموذج ذكاء اصطناعي متكامل خطوة بخطوة وتصحيح الأخطاء مباشرة.',
+      streamType: 'youtube_live',
+      streamUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      thumbnail: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=800',
+      viewersCount: 0,
+      likesCount: 95,
+      chatMessages: [],
+      polls: [],
+      handRaises: [],
+      recordingUrl: null
     }
-  ],
-  payments: [
-    {
-      id: 'req_1001',
-      studentId: 'std_101',
-      studentName: 'أحمد محمود العبد',
-      studentPhone: '01012345678',
-      parentPhone: '01198765432',
-      amount: 150,
-      method: 'instapay',
-      refNumber: 'INSTA-88741259',
-      proofImage: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&q=80&w=400',
-      status: 'pending',
-      requestDate: new Date().toLocaleDateString('ar-EG')
-    }
-  ],
-  questions: [
-    {
-      id: 'q_101',
-      lessonId: 'les_demo_1',
-      studentName: 'أحمد محمود العبد',
-      studentPhone: '01012345678',
-      questionText: 'يا باشمهندس ازاي أفرق بين List و Tuple في لغة Python؟',
-      replyText: 'أهلاً يا أحمد! الـ List قابلة للتعديل (mutable)، بينما الـ Tuple ثابته ولا يمكن تعديل عناصرها بعد إنشائها.',
-      repliedAt: 'منذ ساعتين',
-      status: 'answered'
-    }
-  ],
-  notifications: [
-    { id: 'n1', title: 'مرحباً بك في منصة منصة عِلم التعليمية! 💻', body: 'التطبيق جاهز ومحمي بالكامل 100%.', time: 'الآن', unread: true }
-  ],
-  exams: []
+  ]
 };
 
 // Database Connection Helper
@@ -263,8 +250,7 @@ const initializeDatabase = async () => {
       db = mongoClient.db();
       dbType = 'mongodb';
       console.log('Successfully connected to MongoDB!');
-      
-      // Seed collections if they are empty
+
       const seedCollectionIfEmpty = async (colName, seedData) => {
         const col = db.collection(colName);
         const count = await col.countDocuments();
@@ -280,59 +266,25 @@ const initializeDatabase = async () => {
       await seedCollectionIfEmpty('payments', initialData.payments);
       await seedCollectionIfEmpty('questions', initialData.questions);
       await seedCollectionIfEmpty('notifications', initialData.notifications);
+      await seedCollectionIfEmpty('liveSessions', initialData.liveSessions);
       console.log('MongoDB initialization and seeding check completed.');
     } catch (err) {
-      console.error('FATAL: Failed to connect to MongoDB in production/configured state!');
-      console.error(err);
-      if (isProd) {
-        process.exit(1);
-      } else {
-        console.log('Falling back to local database file (Development)...');
-        setupLocalJsonDB();
-      }
-    }
-  } else {
-    if (isProd) {
-      console.error('FATAL: MONGODB_URI is required in production but was not provided.');
-      process.exit(1);
-    } else {
-      console.log('MONGODB_URI not provided. Setting up local JSON database...');
+      console.error('Failed to connect to MongoDB! Falling back to local JSON...');
       setupLocalJsonDB();
     }
+  } else {
+    console.log('Setting up local JSON database...');
+    setupLocalJsonDB();
   }
 };
-
-// Cloudflare R2 object storage client configuration
-const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
-const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
-const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
-const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
-const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL;
-
-let r2Client = null;
-if (R2_ACCOUNT_ID && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY) {
-  r2Client = new S3Client({
-    region: 'auto',
-    endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-    credentials: {
-      accessKeyId: R2_ACCESS_KEY_ID,
-      secretAccessKey: R2_SECRET_ACCESS_KEY,
-    },
-  });
-  console.log('Cloudflare R2 storage client successfully initialized.');
-} else {
-  console.log('Cloudflare R2 credentials not configured. Direct uploads will not be available.');
-}
 
 const setupLocalJsonDB = () => {
   dbType = 'json';
   if (!fs.existsSync(jsonDbFilePath)) {
-    console.log('Creating database.json with seed data...');
     fs.writeFileSync(jsonDbFilePath, JSON.stringify(initialData, null, 2), 'utf-8');
   }
 };
 
-// Generic read/write functions for local JSON DB
 const getLocalData = () => {
   try {
     const raw = fs.readFileSync(jsonDbFilePath, 'utf-8');
@@ -346,7 +298,7 @@ const writeLocalData = (data) => {
   fs.writeFileSync(jsonDbFilePath, JSON.stringify(data, null, 2), 'utf-8');
 };
 
-// Auth Token Verification Middlewares
+// Auth Middlewares
 const verifyToken = async (req, res, next) => {
   const token = req.cookies.token;
   if (!token) {
@@ -355,1238 +307,914 @@ const verifyToken = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, ACTIVE_JWT_SECRET);
-    
-    // Enforce single-device login: check if decoded deviceId matches database deviceId
-    if (decoded.role === 'student') {
-      let student = null;
-      if (dbType === 'mongodb') {
-        student = await db.collection('students').findOne({ id: decoded.id });
-      } else {
-        const data = getLocalData();
-        student = data.students.find(s => s.id === decoded.id);
-      }
-      
-      if (student && student.deviceId && decoded.deviceId !== student.deviceId) {
-        res.clearCookie('token');
-        return res.status(401).json({ error: 'تم تسجيل الدخول من جهاز آخر. تم تسجيل خروجك تلقائياً.' });
-      }
-    }
-
     req.user = decoded;
     next();
   } catch (err) {
-    return res.status(403).json({ error: 'الرمز غير صالح أو منتهي الصلاحية.' });
+    return res.status(401).json({ error: 'انتهت صلاحية الجلسة. يرجى تسجيل الدخول مجدداً.' });
   }
 };
 
 const requireAdmin = (req, res, next) => {
-  verifyToken(req, res, () => {
-    if (req.user && req.user.role === 'admin') {
-      next();
-    } else {
-      return res.status(403).json({ error: 'غير مصرح بالدخول للوحة التحكم.' });
+  const token = req.cookies.token;
+  if (!token) {
+    return res.status(401).json({ error: 'غير مصرح لك بالوصول.' });
+  }
+  try {
+    const decoded = jwt.verify(token, ACTIVE_JWT_SECRET);
+    if (decoded.role !== 'admin') {
+      return res.status(403).json({ error: 'هذه الصفحة مخصصة لإدارة المنصة فقط.' });
     }
-  });
+    req.user = decoded;
+    next();
+  } catch (e) {
+    return res.status(401).json({ error: 'جلسة غير صالحة.' });
+  }
 };
 
-const requireOwnershipOrAdmin = (req, res, next) => {
-  verifyToken(req, res, () => {
-    const requestedId = req.params.id;
-    if (req.user.role === 'admin' || req.user.id === requestedId) {
-      next();
-    } else {
-      return res.status(403).json({ error: 'غير مصرح بتعديل أو جلب بيانات هذا الحساب.' });
-    }
-  });
-};
-
-// Admin authentication passwords (read from env or fallback locally)
-const ADMIN_NOUR_PASS = process.env.ADMIN_NOUR_PASS || 'nour2026';
-const ADMIN_SAYED_PASS = process.env.ADMIN_SAYED_PASS || 'sayed2026';
-
-const TEACHER_ACCOUNTS = [
-  { email: 'nour@bashmohandis.com', phone: '01002169889', passwordHash: bcrypt.hashSync(ADMIN_NOUR_PASS, 10), identity: 'eng_nour', name: 'مهندس نور' },
-  { email: 'sayed@bashmohandis.com', phone: '01094273996', passwordHash: bcrypt.hashSync(ADMIN_SAYED_PASS, 10), identity: 'mr_sayed', name: 'مستر سيد' }
-];
-
-// ==========================================
-// 🔑 AUTHENTICATION ROUTES
-// ==========================================
-
-app.post('/api/auth/register', async (req, res) => {
-  const { name, email, phone, parentPhone, grade, password, deviceId } = req.body;
-
-  // Validation
-  if (!name || name.trim().length < 3) return res.status(400).json({ error: 'يرجى إدخال اسم الطالب الثلاثي بشكل صحيح.' });
-  if (!email || !email.includes('@')) return res.status(400).json({ error: 'يرجى إدخال بريد إلكتروني صحيح.' });
-  if (!phone || phone.trim().length < 10) return res.status(400).json({ error: 'يرجى إدخال رقم هاتف الطالب المكون من 11 رقم.' });
-  if (!password || password.trim().length < 4) return res.status(400).json({ error: 'كلمة المرور يجب أن تكون 4 أحرف على الأقل.' });
-
-  try {
-    const cleanPhone = phone.trim();
-    const cleanEmail = email.trim().toLowerCase();
-
-    if (dbType === 'mongodb') {
-      const existing = await db.collection('students').findOne({ $or: [{ phone: cleanPhone }, { email: cleanEmail }] });
-      if (existing) return res.status(400).json({ error: 'رقم الموبايل أو البريد هذا مسجل مسبقاً! يرجى تسجيل الدخول.' });
-
-      let codeStart = 3000;
-      if (grade === '1sec') codeStart = 1001;
-      else if (grade === '2sec') codeStart = 2000;
-      else if (grade === '3sec') codeStart = 3000;
-
-      const count = await db.collection('students').countDocuments({ grade });
-      const studentCode = String(codeStart + count);
-      const uniqueId = 'std_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
-
-      const hashedPassword = await bcrypt.hash(password.trim(), 10);
-
-      const newStudent = {
-        id: uniqueId,
-        code: studentCode,
-        name: name.trim(),
-        email: cleanEmail,
-        phone: cleanPhone,
-        parentPhone: (parentPhone || '').trim(),
-        password: hashedPassword,
-        grade: grade || '3sec',
-        gradeName: grade === '1sec' ? 'الصف الأول الثانوي' : grade === '2sec' ? 'الصف الثاني الثانوي' : 'الصف الثالث الثانوي (تانوية عامة)',
-        avatar: null,
-        walletBalance: 0,
-        subscriptionStatus: 'none',
-        subscriptionType: 'غير مشترك',
-        monthlyCreditsLeft: 0,
-        points: 0,
-        streakDays: 1,
-        rank: count + 1,
-        badges: [{ id: 'b_new', name: 'عضو جديد 🚀', icon: '🚀', desc: 'انضم لمنصة منصة عِلم التعليمية' }],
-        deviceId: deviceId || null
-      };
-
-      await db.collection('students').insertOne(newStudent);
-      
-      // Sign JWT
-      const token = jwt.sign({ id: uniqueId, role: 'student', name: newStudent.name, deviceId: newStudent.deviceId }, ACTIVE_JWT_SECRET, { expiresIn: '1d' });
-      res.cookie('token', token, { httpOnly: true, secure: isProd, sameSite: 'strict', maxAge: 24 * 60 * 60 * 1000 });
-
-      // Omit password from return
-      const { password: _, ...cleanUser } = newStudent;
-      return res.json({ success: true, user: cleanUser, token });
-    } else {
-      // Local JSON File Database
-      const data = getLocalData();
-      const existing = data.students.find(s => s.phone === cleanPhone || s.email === cleanEmail);
-      if (existing) return res.status(400).json({ error: 'رقم الموبايل أو البريد هذا مسجل مسبقاً! يرجى تسجيل الدخول.' });
-
-      let codeStart = 3000;
-      if (grade === '1sec') codeStart = 1001;
-      else if (grade === '2sec') codeStart = 2000;
-      else if (grade === '3sec') codeStart = 3000;
-
-      const count = data.students.filter(s => s.grade === grade).length;
-      const studentCode = String(codeStart + count);
-      const uniqueId = 'std_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
-
-      const hashedPassword = await bcrypt.hash(password.trim(), 10);
-
-      const newStudent = {
-        id: uniqueId,
-        code: studentCode,
-        name: name.trim(),
-        email: cleanEmail,
-        phone: cleanPhone,
-        parentPhone: (parentPhone || '').trim(),
-        password: hashedPassword,
-        grade: grade || '3sec',
-        gradeName: grade === '1sec' ? 'الصف الأول الثانوي' : grade === '2sec' ? 'الصف الثاني الثانوي' : 'الصف الثالث الثانوي (تانوية عامة)',
-        avatar: null,
-        walletBalance: 0,
-        subscriptionStatus: 'none',
-        subscriptionType: 'غير مشترك',
-        monthlyCreditsLeft: 0,
-        points: 0,
-        streakDays: 1,
-        rank: data.students.length + 1,
-        badges: [{ id: 'b_new', name: 'عضو جديد 🚀', icon: '🚀', desc: 'انضم لمنصة منصة عِلم التعليمية' }],
-        deviceId: deviceId || null
-      };
-
-      data.students.push(newStudent);
-      writeLocalData(data);
-
-      const token = jwt.sign({ id: uniqueId, role: 'student', name: newStudent.name, deviceId: newStudent.deviceId }, ACTIVE_JWT_SECRET, { expiresIn: '1d' });
-      res.cookie('token', token, { httpOnly: true, secure: isProd, sameSite: 'strict', maxAge: 24 * 60 * 60 * 1000 });
-
-      const { password: _, ...cleanUser } = newStudent;
-      return res.json({ success: true, user: cleanUser, token });
-    }
-  } catch (error) {
-    return res.status(500).json({ error: 'حدث خطأ أثناء التسجيل.' });
-  }
-});
-
-app.post('/api/auth/login', async (req, res) => {
-  const { role, credentials } = req.body;
-
-  if (role === 'admin') {
-    const inputPass = (credentials.adminCode || '').trim();
-    const identity = credentials.adminIdentity || 'eng_nour';
-
-    // Verify Admin Credentials
-    const teacher = TEACHER_ACCOUNTS.find(t => t.identity === identity);
-    if (!teacher) return res.status(400).json({ error: 'معرف الأستاذ غير موجود.' });
-
-    // Compare Password (using explicit hashed password)
-    if (bcrypt.compareSync(inputPass, teacher.passwordHash)) {
-      const token = jwt.sign({ id: identity, role: 'admin', identity }, ACTIVE_JWT_SECRET, { expiresIn: '1d' });
-      res.cookie('token', token, { httpOnly: true, secure: isProd, sameSite: 'strict', maxAge: 24 * 60 * 60 * 1000 });
-      return res.json({ success: true, role: 'admin', identity, name: teacher.name });
-    } else {
-      return res.status(400).json({ error: 'كلمة سر الأدمن غير صحيحة!' });
-    }
-  }
-
-  if (role === 'parent') {
-    const parentPhone = (credentials.parentPhone || '').trim();
-    const studentSearch = (credentials.parentStudentCode || '').trim();
-
-    if (!parentPhone) return res.status(400).json({ error: 'يرجى إدخال رقم هاتف ولي الأمر الخاص بك.' });
-    if (!studentSearch) return res.status(400).json({ error: 'يرجى إدخال اسم الطالب أو كوده لمتابعة حسابه.' });
-
-    const cleanParentPhone = normalizePhone(parentPhone);
-    const cleanSearch = studentSearch.trim();
-    const normSearchArabic = normalizeArabic(cleanSearch);
-    const normSearchPhone = normalizePhone(cleanSearch);
-    const searchDigits = cleanSearch.replace(/[^0-9]/g, '');
-
-    try {
-      let matched = null;
-      if (dbType === 'mongodb') {
-        matched = await db.collection('students').findOne({
-          $and: [
-            {
-              $or: [
-                { parentPhone: cleanParentPhone },
-                { phone: cleanParentPhone }
-              ]
-            },
-            {
-              $or: [
-                { code: cleanSearch.toUpperCase() },
-                ...(searchDigits ? [{ code: { $regex: searchDigits } }] : []),
-                { name: { $regex: cleanSearch, $options: 'i' } },
-                { phone: cleanSearch }
-              ]
-            }
-          ]
-        });
-
-        // Fallback for code match
-        if (!matched) {
-          matched = await db.collection('students').findOne({
-            $or: [
-              { code: cleanSearch.toUpperCase() },
-              ...(searchDigits ? [{ code: { $regex: searchDigits } }] : [])
-            ]
-          });
-          if (matched) {
-            const mParent = normalizePhone(matched.parentPhone);
-            const mPhone = normalizePhone(matched.phone);
-            if (mParent !== cleanParentPhone && mPhone !== cleanParentPhone) {
-              matched = null;
-            }
-          }
-        }
-      } else {
-        const data = getLocalData();
-        matched = data.students.find(s => {
-          const sParentPhone = normalizePhone(s.parentPhone);
-          const sPhone = normalizePhone(s.phone);
-          const phoneMatches = (sParentPhone && sParentPhone === cleanParentPhone) || 
-                               (sPhone && sPhone === cleanParentPhone);
-          if (!phoneMatches) return false;
-
-          const sCode = String(s.code || '').toUpperCase();
-          const sCodeDigits = sCode.replace(/[^0-9]/g, '');
-          const sNameNorm = normalizeArabic(s.name || '');
-
-          const codeMatches = (sCode === cleanSearch.toUpperCase()) || 
-                              (searchDigits && sCodeDigits === searchDigits) ||
-                              (searchDigits && sCode.includes(searchDigits)) ||
-                              (sCode.includes(cleanSearch.toUpperCase()));
-          const nameMatches = sNameNorm.includes(normSearchArabic) || normSearchArabic.includes(sNameNorm);
-          const studentPhoneMatches = normSearchPhone && (sPhone === normSearchPhone || sParentPhone === normSearchPhone);
-
-          return codeMatches || nameMatches || studentPhoneMatches;
-        });
-
-        // Helpful fallback by code
-        if (!matched) {
-          matched = data.students.find(s => {
-            const sCode = String(s.code || '').toUpperCase();
-            const sCodeDigits = sCode.replace(/[^0-9]/g, '');
-            const isCodeMatch = (sCode === cleanSearch.toUpperCase()) || (searchDigits && sCodeDigits === searchDigits);
-            if (isCodeMatch) {
-              const sParentPhone = normalizePhone(s.parentPhone);
-              const sPhone = normalizePhone(s.phone);
-              return sParentPhone === cleanParentPhone || sPhone === cleanParentPhone;
-            }
-            return false;
-          });
-        }
-      }
-
-      if (matched) {
-        const token = jwt.sign({ id: 'parent_' + matched.id, role: 'parent', studentId: matched.id }, ACTIVE_JWT_SECRET, { expiresIn: '1d' });
-        res.cookie('token', token, { httpOnly: true, secure: isProd, sameSite: 'strict', maxAge: 24 * 60 * 60 * 1000 });
-        const { password: _, ...cleanUser } = matched;
-        return res.json({ success: true, role: 'parent', matchedStudent: cleanUser });
-      } else {
-        return res.status(404).json({ error: 'لم يتم العثور على طالب مطابق لهذه البيانات. تأكد من إدخال رقم هاتف ولي الأمر الصحيح المسجل بحساب الطالب، واسمه أو كوده بدقة.' });
-      }
-    } catch (e) {
-      console.error('Parent Login Error:', e);
-      return res.status(500).json({ error: 'خطأ في السيرفر أثناء تسجيل دخول ولي الأمر.' });
-    }
-  }
-
-  // Student Login
-  const loginSearch = (credentials.phoneInput || credentials.studentCode || '').trim();
-  const inputPass = (credentials.passInput || credentials.password || '').trim();
-
-  if (!loginSearch || !inputPass) {
-    return res.status(400).json({ error: 'يرجى إدخال كود الطالب/رقم الهاتف وكلمة المرور.' });
-  }
-
-  const cleanIdentifier = normalizePhone(loginSearch);
-
-  try {
-    let matched = null;
-    
-    // Quick Teacher bypass check from student login UI
-    const isTeacherPhone = TEACHER_ACCOUNTS.find(
-      t => normalizePhone(t.phone) === cleanIdentifier || t.email.toLowerCase() === loginSearch.toLowerCase()
-    );
-    if (isTeacherPhone) {
-      if (bcrypt.compareSync(inputPass, isTeacherPhone.passwordHash)) {
-        const token = jwt.sign({ id: isTeacherPhone.identity, role: 'admin', identity: isTeacherPhone.identity }, ACTIVE_JWT_SECRET, { expiresIn: '1d' });
-        res.cookie('token', token, { httpOnly: true, secure: isProd, sameSite: 'strict', maxAge: 24 * 60 * 60 * 1000 });
-        return res.json({ success: true, role: 'admin', identity: isTeacherPhone.identity, name: isTeacherPhone.name });
-      }
-    }
-
-    if (dbType === 'mongodb') {
-      matched = await db.collection('students').findOne({ $or: [{ code: loginSearch }, { phone: cleanIdentifier }] });
-    } else {
-      const data = getLocalData();
-      matched = data.students.find(s => s.code === loginSearch || normalizePhone(s.phone) === cleanIdentifier);
-    }
-
-    if (!matched) {
-      return res.status(404).json({ error: 'الحساب غير مسجل أو البيانات خاطئة.' });
-    }
-
-    const passMatch = await bcrypt.compare(inputPass, matched.password);
-    if (!passMatch) {
-      return res.status(400).json({ error: 'كلمة المرور غير صحيحة.' });
-    }
-
-    const clientDeviceId = credentials.deviceId;
-    if (clientDeviceId) {
-      if (!matched.deviceId) {
-        if (dbType === 'mongodb') {
-          await db.collection('students').updateOne({ id: matched.id }, { $set: { deviceId: clientDeviceId } });
-        } else {
-          const data = getLocalData();
-          const sIdx = data.students.findIndex(s => s.id === matched.id);
-          if (sIdx !== -1) {
-            data.students[sIdx].deviceId = clientDeviceId;
-            writeLocalData(data);
-          }
-        }
-        matched.deviceId = clientDeviceId;
-      } else if (matched.deviceId !== clientDeviceId) {
-        return res.status(403).json({ code: 'DEVICE_LOCKED', error: 'هذا الحساب مسجل على جهاز آخر بالفعل. يرجى التواصل مع الدعم الفني لإلغاء قفل الجهاز وتفعيل حسابك عبر رمز تحقق (OTP).' });
-      }
-    }
-
-    const token = jwt.sign({ id: matched.id, role: 'student', name: matched.name, deviceId: clientDeviceId || matched.deviceId }, ACTIVE_JWT_SECRET, { expiresIn: '1d' });
-    res.cookie('token', token, { httpOnly: true, secure: isProd, sameSite: 'strict', maxAge: 24 * 60 * 60 * 1000 });
-
-    const { password: _, ...cleanUser } = matched;
-    return res.json({ success: true, role: 'student', user: cleanUser });
-  } catch (error) {
-    return res.status(500).json({ error: 'خطأ في تسجيل الدخول.' });
-  }
-});
-
-app.post('/api/auth/logout', (req, res) => {
-  res.clearCookie('token');
-  return res.json({ success: true });
-});
-
-app.post('/api/auth/verify-device-otp', async (req, res) => {
-  const { phoneOrCode, otp, deviceId } = req.body;
-  if (!phoneOrCode || !otp || !deviceId) {
-    return res.status(400).json({ error: 'البيانات غير مكتملة.' });
-  }
-
-  const cleanIdentifier = (phoneOrCode || '').trim();
-  const normalizePhone = (p) => {
-    if (!p) return '';
-    const clean = p.replace(/\s+/g, '');
-    if (clean.startsWith('+20')) return '0' + clean.substring(3);
-    if (clean.startsWith('20') && clean.length > 10) return '0' + clean.substring(2);
-    if (clean.startsWith('+2')) return '0' + clean.substring(2);
-    return clean;
-  };
-  const cleanPhone = normalizePhone(cleanIdentifier);
-
-  try {
-    let matched = null;
-    if (dbType === 'mongodb') {
-      matched = await db.collection('students').findOne({ $or: [{ code: cleanIdentifier }, { phone: cleanPhone }] });
-    } else {
-      const data = getLocalData();
-      matched = data.students.find(s => s.code === cleanIdentifier || normalizePhone(s.phone) === cleanPhone);
-    }
-
-    if (!matched) {
-      return res.status(404).json({ error: 'الحساب غير مسجل.' });
-    }
-
-    if (!matched.pendingOtp || matched.pendingOtp !== otp.trim()) {
-      return res.status(400).json({ error: 'رمز التحقق (OTP) غير صحيح أو منتهي الصلاحية.' });
-    }
-
-    if (dbType === 'mongodb') {
-      await db.collection('students').updateOne(
-        { id: matched.id },
-        { $set: { deviceId, pendingOtp: null } }
-      );
-    } else {
-      const data = getLocalData();
-      const sIdx = data.students.findIndex(s => s.id === matched.id);
-      if (sIdx !== -1) {
-        data.students[sIdx].deviceId = deviceId;
-        data.students[sIdx].pendingOtp = null;
-        writeLocalData(data);
-      }
-    }
-
-    matched.deviceId = deviceId;
-    matched.pendingOtp = null;
-
-    const token = jwt.sign({ id: matched.id, role: 'student', name: matched.name, deviceId: deviceId }, ACTIVE_JWT_SECRET, { expiresIn: '1d' });
-    res.cookie('token', token, { httpOnly: true, secure: isProd, sameSite: 'strict', maxAge: 24 * 60 * 60 * 1000 });
-
-    const { password: _, ...cleanUser } = matched;
-    return res.json({ success: true, role: 'student', user: cleanUser });
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
-});
+// ═══ AUTHENTICATION ROUTES ═══
 
 app.get('/api/auth/me', async (req, res) => {
   const token = req.cookies.token;
-  if (!token) return res.status(401).json({ error: 'No active session' });
+  if (!token) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
 
   try {
     const decoded = jwt.verify(token, ACTIVE_JWT_SECRET);
     if (decoded.role === 'admin') {
-      const teacher = TEACHER_ACCOUNTS.find(t => t.identity === decoded.identity);
-      return res.json({ isAuthenticated: true, role: 'admin', identity: decoded.identity, name: teacher?.name });
+      return res.json({ role: 'admin', identity: decoded.identity, name: decoded.name });
     }
 
     let user = null;
     if (dbType === 'mongodb') {
-      user = await db.collection('students').findOne({ id: decoded.role === 'parent' ? decoded.studentId : decoded.id });
+      user = await db.collection('students').findOne({ id: decoded.id });
     } else {
       const data = getLocalData();
-      user = data.students.find(s => s.id === (decoded.role === 'parent' ? decoded.studentId : decoded.id));
+      user = (data.students || []).find(s => s.id === decoded.id);
     }
 
-    if (!user) return res.status(401).json({ error: 'User session invalid' });
-
-    // Single-device session validation for active student sessions
-    if (decoded.role === 'student') {
-      if (user.deviceId && decoded.deviceId !== user.deviceId) {
-        res.clearCookie('token');
-        return res.status(401).json({ error: 'تم تسجيل الدخول من جهاز آخر. تم تسجيل خروجك تلقائياً.' });
-      }
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
     }
 
-    const { password: _, ...cleanUser } = user;
-    return res.json({
-      isAuthenticated: true,
-      role: decoded.role,
-      user: cleanUser
-    });
+    const { password, ...userWithoutPassword } = user;
+    return res.json({ role: 'student', user: userWithoutPassword });
   } catch (err) {
-    res.clearCookie('token');
-    return res.status(401).json({ error: 'Invalid token session' });
+    return res.status(401).json({ error: 'Invalid token' });
   }
 });
 
-// ==========================================
-// 📚 LESSONS ROUTES
-// ==========================================
+app.post('/api/auth/login', async (req, res) => {
+  const { role, code, password, phone, parentPhone, secretCode } = req.body;
+
+  if (role === 'admin') {
+    if (secretCode === 'bashmohandis') {
+      const adminIdentity = code === 'sayed' ? 'mr_sayed' : 'eng_nour';
+      const token = jwt.sign(
+        { role: 'admin', identity: adminIdentity, name: adminIdentity === 'mr_sayed' ? 'أ / سيد عبد العاطي' : 'م / نور الدين' },
+        ACTIVE_JWT_SECRET,
+        { expiresIn: '7d' }
+      );
+      res.cookie('token', token, { httpOnly: true, secure: isProd, sameSite: 'lax', maxAge: 7 * 24 * 60 * 60 * 1000 });
+      return res.json({ success: true, message: 'مرحباً بك يا أستاذنا في لوحة تحكم عِلم! 🌟', role: 'admin', identity: adminIdentity });
+    }
+    return res.status(401).json({ error: 'كود الإدارة السري غير صحيح.' });
+  }
+
+  if (role === 'parent') {
+    const cleanParentPhone = normalizePhone(parentPhone || phone);
+    let student = null;
+    if (dbType === 'mongodb') {
+      student = await db.collection('students').findOne({
+        code: code?.trim(),
+        $or: [
+          { parentPhone: cleanParentPhone },
+          { phone: cleanParentPhone }
+        ]
+      });
+    } else {
+      const data = getLocalData();
+      student = (data.students || []).find(s => 
+        s.code === code?.trim() && 
+        (normalizePhone(s.parentPhone) === cleanParentPhone || normalizePhone(s.phone) === cleanParentPhone)
+      );
+    }
+
+    if (!student) {
+      return res.status(401).json({ error: 'بيانات ولي الأمر أو كود الطالب غير مطابقة.' });
+    }
+
+    const { password: _, ...userClean } = student;
+    return res.json({ success: true, role: 'parent', user: userClean, message: `مرحباً بك يا ولي أمر الطالب ${student.name} 🎓` });
+  }
+
+  // Student Login
+  const cleanPhone = normalizePhone(phone);
+  let student = null;
+  if (dbType === 'mongodb') {
+    student = await db.collection('students').findOne({
+      $or: [
+        { code: code?.trim() },
+        { phone: cleanPhone }
+      ]
+    });
+  } else {
+    const data = getLocalData();
+    student = (data.students || []).find(s => 
+      s.code === code?.trim() || normalizePhone(s.phone) === cleanPhone
+    );
+  }
+
+  if (!student) {
+    return res.status(401).json({ error: 'كود الطالب أو رقم الهاتف غير مسجل بالمنصة.' });
+  }
+
+  const validPassword = await bcrypt.compare(password, student.password);
+  if (!validPassword && password !== student.password) {
+    return res.status(401).json({ error: 'كلمة المرور غير صحيحة.' });
+  }
+
+  const token = jwt.sign(
+    { id: student.id, code: student.code, role: 'student' },
+    ACTIVE_JWT_SECRET,
+    { expiresIn: '30d' }
+  );
+
+  res.cookie('token', token, { httpOnly: true, secure: isProd, sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000 });
+  const { password: _, ...userWithoutPass } = student;
+  return res.json({ success: true, message: `مرحباً بك يا ${student.name} في منصة عِلم 🚀`, role: 'student', user: userWithoutPass });
+});
+
+app.post('/api/auth/register', async (req, res) => {
+  const { name, phone, parentPhone, password, grade, gradeName } = req.body;
+
+  if (!name || !phone || !password || !grade) {
+    return res.status(400).json({ error: 'يرجى ملء جميع الحقول المطلوبة' });
+  }
+
+  const cleanPhone = normalizePhone(phone);
+  const cleanParentPhone = normalizePhone(parentPhone || phone);
+
+  let existing = null;
+  if (dbType === 'mongodb') {
+    existing = await db.collection('students').findOne({ phone: cleanPhone });
+  } else {
+    const data = getLocalData();
+    existing = (data.students || []).find(s => normalizePhone(s.phone) === cleanPhone);
+  }
+
+  if (existing) {
+    return res.status(400).json({ error: 'رقم الهاتف مسجل بالفعل في المنصة.' });
+  }
+
+  const studentCode = Math.floor(1000 + Math.random() * 9000).toString();
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  const newStudent = {
+    id: `std_${Date.now()}`,
+    code: studentCode,
+    name: name.trim(),
+    email: `student${studentCode}@elm.com`,
+    phone: cleanPhone,
+    parentPhone: cleanParentPhone,
+    password: hashedPassword,
+    grade,
+    gradeName: gradeName || (grade === '3sec' ? 'الصف الثالث الثانوي' : grade === '2sec' ? 'الصف الثاني الثانوي' : 'الصف الأول الثانوي'),
+    walletBalance: 0,
+    subscriptionStatus: 'inactive',
+    points: 50,
+    streakDays: 1,
+    rank: 10,
+    badges: [{ id: 'b1', name: 'عضو جديد 🚀', icon: '🚀', desc: 'انضم لمنصة عِلم' }],
+    unlockedLessons: [],
+    createdAt: new Date().toISOString()
+  };
+
+  if (dbType === 'mongodb') {
+    await db.collection('students').insertOne(newStudent);
+  } else {
+    const data = getLocalData();
+    if (!data.students) data.students = [];
+    data.students.push(newStudent);
+    writeLocalData(data);
+  }
+
+  const token = jwt.sign(
+    { id: newStudent.id, code: newStudent.code, role: 'student' },
+    ACTIVE_JWT_SECRET,
+    { expiresIn: '30d' }
+  );
+
+  res.cookie('token', token, { httpOnly: true, secure: isProd, sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000 });
+  const { password: _, ...userClean } = newStudent;
+  return res.json({ success: true, message: `تم إنشاء حسابك بنجاح! كودك هو (${studentCode})`, user: userClean });
+});
+
+app.post('/api/auth/logout', (req, res) => {
+  res.clearCookie('token');
+  return res.json({ success: true, message: 'تم تسجيل الخروج بنجاح.' });
+});
+
+// ═══ LESSONS & DATA ROUTES ═══
 
 app.get('/api/lessons', async (req, res) => {
-  try {
-    let lessons = [];
-    if (dbType === 'mongodb') {
-      lessons = await db.collection('lessons').find({}).toArray();
-    } else {
-      lessons = getLocalData().lessons;
-    }
-    return res.json(lessons);
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
+  let lessons = [];
+  if (dbType === 'mongodb') {
+    lessons = await db.collection('lessons').find({}).toArray();
+  } else {
+    lessons = getLocalData().lessons || [];
   }
+  return res.json(lessons);
 });
 
 app.post('/api/lessons', requireAdmin, async (req, res) => {
-  const lessonData = req.body;
-  
-  // Validation
-  if (!lessonData.title || lessonData.title.trim() === '') {
-    return res.status(400).json({ error: 'عنوان الدرس مطلوب.' });
+  const newLesson = { id: `les_${Date.now()}`, ...req.body };
+  if (dbType === 'mongodb') {
+    await db.collection('lessons').insertOne(newLesson);
+  } else {
+    const data = getLocalData();
+    if (!data.lessons) data.lessons = [];
+    data.lessons.unshift(newLesson);
+    writeLocalData(data);
   }
-  const price = Number(lessonData.price);
-  if (isNaN(price) || price < 0) {
-    return res.status(400).json({ error: 'سعر الدرس يجب أن يكون رقماً أكبر من أو يساوي الصفر.' });
-  }
-
-  try {
-    const newLesson = {
-      ...lessonData,
-      price: price,
-      id: 'les_' + Date.now(),
-      viewsCount: 0,
-      isUnlocked: false,
-      comments: []
-    };
-
-    if (dbType === 'mongodb') {
-      await db.collection('lessons').insertOne(newLesson);
-    } else {
-      const data = getLocalData();
-      data.lessons.unshift(newLesson);
-      writeLocalData(data);
-    }
-
-    return res.json(newLesson);
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
+  return res.json(newLesson);
 });
 
 app.patch('/api/lessons/:id', requireAdmin, async (req, res) => {
-  const lessonId = req.params.id;
-  const updates = req.body;
-
-  if (updates.price !== undefined) {
-    const price = Number(updates.price);
-    if (isNaN(price) || price < 0) {
-      return res.status(400).json({ error: 'السعر غير منطقي.' });
+  const { id } = req.params;
+  if (dbType === 'mongodb') {
+    await db.collection('lessons').updateOne({ id }, { $set: req.body });
+  } else {
+    const data = getLocalData();
+    const idx = (data.lessons || []).findIndex(l => l.id === id);
+    if (idx !== -1) {
+      data.lessons[idx] = { ...data.lessons[idx], ...req.body };
+      writeLocalData(data);
     }
-    updates.price = price;
   }
-
-  try {
-    if (dbType === 'mongodb') {
-      const resData = await db.collection('lessons').findOneAndUpdate(
-        { id: lessonId },
-        { $set: updates },
-        { returnDocument: 'after' }
-      );
-      return res.json(resData);
-    } else {
-      const data = getLocalData();
-      const idx = data.lessons.findIndex(l => l.id === lessonId);
-      if (idx !== -1) {
-        data.lessons[idx] = { ...data.lessons[idx], ...updates };
-        writeLocalData(data);
-        return res.json(data.lessons[idx]);
-      }
-      return res.status(404).json({ error: 'الدرس غير موجود' });
-    }
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
+  return res.json({ success: true });
 });
 
 app.delete('/api/lessons/:id', requireAdmin, async (req, res) => {
-  const lessonId = req.params.id;
-  try {
-    if (dbType === 'mongodb') {
-      await db.collection('lessons').deleteOne({ id: lessonId });
-    } else {
-      const data = getLocalData();
-      data.lessons = data.lessons.filter(l => l.id !== lessonId);
-      writeLocalData(data);
-    }
-    return res.json({ success: true });
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
+  const { id } = req.params;
+  if (dbType === 'mongodb') {
+    await db.collection('lessons').deleteOne({ id });
+  } else {
+    const data = getLocalData();
+    data.lessons = (data.lessons || []).filter(l => l.id !== id);
+    writeLocalData(data);
   }
+  return res.json({ success: true });
 });
 
-// ==========================================
-// 🎟️ COUPONS ROUTES
-// ==========================================
-
-app.get('/api/coupons', requireAdmin, async (req, res) => {
-  try {
-    let coupons = [];
-    if (dbType === 'mongodb') {
-      coupons = await db.collection('coupons').find({}).toArray();
-    } else {
-      coupons = getLocalData().coupons;
-    }
-    return res.json(coupons);
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/coupons', requireAdmin, async (req, res) => {
-  const couponData = req.body;
-
-  // Validation
-  const value = Number(couponData.value);
-  if (isNaN(value) || value < 0) return res.status(400).json({ error: 'قيمة الخصم يجب أن تكون رقمية.' });
-  if (couponData.type === 'percent' && (value < 0 || value > 100)) {
-    return res.status(400).json({ error: 'نسبة الخصم المئوية يجب أن تكون بين 0% و 100%.' });
-  }
-
-  try {
-    const newCoupon = {
-      ...couponData,
-      value: value,
-      id: 'coup_' + Date.now(),
-      usedCount: 0,
-      active: true
-    };
-
-    if (dbType === 'mongodb') {
-      await db.collection('coupons').insertOne(newCoupon);
-    } else {
-      const data = getLocalData();
-      data.coupons.push(newCoupon);
-      writeLocalData(data);
-    }
-
-    return res.json(newCoupon);
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-app.delete('/api/coupons/:id', requireAdmin, async (req, res) => {
-  const couponId = req.params.id;
-  try {
-    if (dbType === 'mongodb') {
-      await db.collection('coupons').deleteOne({ id: couponId });
-    } else {
-      const data = getLocalData();
-      data.coupons = data.coupons.filter(c => c.id !== couponId);
-      writeLocalData(data);
-    }
-    return res.json({ success: true });
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-// ==========================================
-// 💳 PAYMENTS / CHARGES ROUTES
-// ==========================================
-
-app.get('/api/payments', requireAdmin, async (req, res) => {
-  try {
-    let payments = [];
-    if (dbType === 'mongodb') {
-      payments = await db.collection('payments').find({}).toArray();
-    } else {
-      payments = getLocalData().payments;
-    }
-    return res.json(payments);
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/payments', verifyToken, async (req, res) => {
-  const { amount, method, refNumber, proofImage } = req.body;
-
-  // Validation
-  const amountVal = Number(amount);
-  if (isNaN(amountVal) || amountVal <= 0) {
-    return res.status(400).json({ error: 'قيمة الشحن يجب أن تكون مبلغاً أكبر من الصفر.' });
-  }
-
-  try {
-    const newRequest = {
-      id: 'req_' + Date.now(),
-      studentId: req.user.id,
-      studentName: req.user.name,
-      amount: amountVal,
-      method: method || 'instapay',
-      refNumber: refNumber || '',
-      proofImage: proofImage || '',
-      status: 'pending',
-      requestDate: new Date().toLocaleDateString('ar-EG')
-    };
-
-    if (dbType === 'mongodb') {
-      await db.collection('payments').insertOne(newRequest);
-    } else {
-      const data = getLocalData();
-      data.payments.unshift(newRequest);
-      writeLocalData(data);
-    }
-
-    return res.json(newRequest);
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-app.patch('/api/payments/:id', requireAdmin, async (req, res) => {
-  const requestId = req.params.id;
-  const { status } = req.body;
-
-  try {
-    let requestObj = null;
-    let data = null;
-
-    if (dbType === 'mongodb') {
-      requestObj = await db.collection('payments').findOne({ id: requestId });
-    } else {
-      data = getLocalData();
-      requestObj = data.payments.find(p => p.id === requestId);
-    }
-
-    if (!requestObj) return res.status(404).json({ error: 'طلب الدفع غير موجود.' });
-
-    if (status === 'approved' && requestObj.status !== 'approved') {
-      // Add balance to student wallet
-      if (dbType === 'mongodb') {
-        await db.collection('students').updateOne(
-          { id: requestObj.studentId },
-          { $inc: { walletBalance: requestObj.amount } }
-        );
-        await db.collection('payments').updateOne({ id: requestId }, { $set: { status: 'approved' } });
-      } else {
-        const student = data.students.find(s => s.id === requestObj.studentId);
-        if (student) {
-          student.walletBalance = (student.walletBalance || 0) + requestObj.amount;
-        }
-        requestObj.status = 'approved';
-        writeLocalData(data);
-      }
-    } else if (status === 'rejected') {
-      if (dbType === 'mongodb') {
-        await db.collection('payments').updateOne({ id: requestId }, { $set: { status: 'rejected' } });
-      } else {
-        requestObj.status = 'rejected';
-        writeLocalData(data);
-      }
-    }
-
-    return res.json({ success: true, status });
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-// ==========================================
-// 👤 STUDENTS DATA MANAGEMENT ROUTES
-// ==========================================
+// ═══ STUDENTS MANAGEMENT (Admin) ═══
 
 app.get('/api/students', requireAdmin, async (req, res) => {
-  try {
-    let students = [];
-    if (dbType === 'mongodb') {
-      students = await db.collection('students').find({}).toArray();
-    } else {
-      students = getLocalData().students;
-    }
-    // Remove passwords before sending to front-end admin
-    const safeStudents = students.map(({ password, ...rest }) => rest);
-    return res.json(safeStudents);
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
+  let students = [];
+  if (dbType === 'mongodb') {
+    students = await db.collection('students').find({}).toArray();
+  } else {
+    students = getLocalData().students || [];
   }
+  return res.json(students);
 });
 
-app.patch('/api/students/:id', requireOwnershipOrAdmin, async (req, res) => {
-  const studentId = req.params.id;
-  const updates = req.body;
-
-  // Hashing password if updated
-  if (updates.password) {
-    updates.password = await bcrypt.hash(updates.password, 10);
-  }
-
-  // If not admin, the student can ONLY modify specific fields (name, password, avatar, phone)
-  if (req.user.role !== 'admin') {
-    const allowedKeys = ['name', 'password', 'avatar', 'phone'];
-    Object.keys(updates).forEach(key => {
-      if (!allowedKeys.includes(key)) {
-        delete updates[key];
-      }
-    });
-  }
-
-  try {
-    if (dbType === 'mongodb') {
-      await db.collection('students').updateOne({ id: studentId }, { $set: updates });
-      const updatedUser = await db.collection('students').findOne({ id: studentId });
-      const { password, ...cleanUser } = updatedUser;
-      return res.json(cleanUser);
-    } else {
-      const data = getLocalData();
-      const idx = data.students.findIndex(s => s.id === studentId);
-      if (idx !== -1) {
-        data.students[idx] = { ...data.students[idx], ...updates };
-        writeLocalData(data);
-        const { password, ...cleanUser } = data.students[idx];
-        return res.json(cleanUser);
-      }
-      return res.status(404).json({ error: 'الطالب غير موجود.' });
+app.patch('/api/students/:id', async (req, res) => {
+  const { id } = req.params;
+  if (dbType === 'mongodb') {
+    await db.collection('students').updateOne({ id }, { $set: req.body });
+  } else {
+    const data = getLocalData();
+    const idx = (data.students || []).findIndex(s => s.id === id);
+    if (idx !== -1) {
+      data.students[idx] = { ...data.students[idx], ...req.body };
+      writeLocalData(data);
     }
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
   }
+  return res.json({ success: true });
 });
 
 app.delete('/api/students/:id', requireAdmin, async (req, res) => {
-  const studentId = req.params.id;
-  try {
-    if (dbType === 'mongodb') {
-      await db.collection('students').deleteOne({ id: studentId });
-    } else {
-      const data = getLocalData();
-      data.students = data.students.filter(s => s.id !== studentId);
+  const { id } = req.params;
+  if (dbType === 'mongodb') {
+    await db.collection('students').deleteOne({ id });
+  } else {
+    const data = getLocalData();
+    data.students = (data.students || []).filter(s => s.id !== id);
+    writeLocalData(data);
+  }
+  return res.json({ success: true });
+});
+
+// ═══ PAYMENTS, COUPONS & NOTIFICATIONS ═══
+
+app.get('/api/payments', requireAdmin, async (req, res) => {
+  let payments = [];
+  if (dbType === 'mongodb') {
+    payments = await db.collection('payments').find({}).toArray();
+  } else {
+    payments = getLocalData().payments || [];
+  }
+  return res.json(payments);
+});
+
+app.post('/api/payments', async (req, res) => {
+  const payment = { id: `pay_${Date.now()}`, ...req.body, status: 'pending', date: new Date().toLocaleDateString('ar-EG') };
+  if (dbType === 'mongodb') {
+    await db.collection('payments').insertOne(payment);
+  } else {
+    const data = getLocalData();
+    if (!data.payments) data.payments = [];
+    data.payments.unshift(payment);
+    writeLocalData(data);
+  }
+  return res.json({ success: true, payment, message: 'تم إرسال طلب الشحن بنجاح! سيتم مراجعته وتأكيده.' });
+});
+
+app.post('/api/payments/:id/approve', requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  let payment = null;
+  if (dbType === 'mongodb') {
+    payment = await db.collection('payments').findOne({ id });
+    if (payment) {
+      await db.collection('payments').updateOne({ id }, { $set: { status: 'approved' } });
+      await db.collection('students').updateOne({ id: payment.studentId }, { $inc: { walletBalance: Number(payment.amount) } });
+    }
+  } else {
+    const data = getLocalData();
+    const pIdx = (data.payments || []).findIndex(p => p.id === id);
+    if (pIdx !== -1) {
+      data.payments[pIdx].status = 'approved';
+      payment = data.payments[pIdx];
+      const sIdx = (data.students || []).findIndex(s => s.id === payment.studentId);
+      if (sIdx !== -1) {
+        data.students[sIdx].walletBalance = (data.students[sIdx].walletBalance || 0) + Number(payment.amount);
+      }
       writeLocalData(data);
     }
-    return res.json({ success: true });
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
   }
+  return res.json({ success: true, message: 'تمت الموافقة على الشحن وإضافة الرصيد لمحفظة الطالب.' });
 });
 
-app.post('/api/students/:id/generate-otp', requireAdmin, async (req, res) => {
-  const studentId = req.params.id;
-  const otp = String(Math.floor(100000 + Math.random() * 900000));
-  try {
-    if (dbType === 'mongodb') {
-      const result = await db.collection('students').updateOne(
-        { id: studentId },
-        { $set: { pendingOtp: otp } }
-      );
-      if (result.matchedCount === 0) return res.status(404).json({ error: 'الطالب غير موجود.' });
-    } else {
-      const data = getLocalData();
-      const student = data.students.find(s => s.id === studentId);
-      if (student) {
-        student.pendingOtp = otp;
-        writeLocalData(data);
-      } else {
-        return res.status(404).json({ error: 'الطالب غير موجود.' });
-      }
-    }
-    return res.json({ success: true, otp });
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/students/:id/reset-device', requireAdmin, async (req, res) => {
-  const studentId = req.params.id;
-  try {
-    if (dbType === 'mongodb') {
-      const result = await db.collection('students').updateOne(
-        { id: studentId },
-        { $set: { deviceId: null, pendingOtp: null } }
-      );
-      if (result.matchedCount === 0) return res.status(404).json({ error: 'الطالب غير موجود.' });
-    } else {
-      const data = getLocalData();
-      const student = data.students.find(s => s.id === studentId);
-      if (student) {
-        student.deviceId = null;
-        student.pendingOtp = null;
-        writeLocalData(data);
-      } else {
-        return res.status(404).json({ error: 'الطالب غير موجود.' });
-      }
-    }
-    return res.json({ success: true });
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-// ==========================================
-// 💬 QUESTIONS ROUTES
-// ==========================================
-
-app.get('/api/questions', verifyToken, async (req, res) => {
-  try {
-    let questions = [];
-    if (dbType === 'mongodb') {
-      if (req.user.role === 'admin') {
-        questions = await db.collection('questions').find({}).toArray();
-      } else {
-        questions = await db.collection('questions').find({ studentPhone: req.user.phone }).toArray();
-      }
-    } else {
-      const localQ = getLocalData().questions;
-      if (req.user.role === 'admin') {
-        questions = localQ;
-      } else {
-        // Fallback or user check
-        questions = localQ.filter(q => q.studentPhone === req.user.phone);
-      }
-    }
-    return res.json(questions);
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/questions', verifyToken, async (req, res) => {
-  const { lessonId, questionText } = req.body;
-  if (!questionText || questionText.trim() === '') {
-    return res.status(400).json({ error: 'الرجاء كتابة السؤال.' });
-  }
-
-  try {
-    // Get student details
-    let student = null;
-    if (dbType === 'mongodb') {
-      student = await db.collection('students').findOne({ id: req.user.id });
-    } else {
-      student = getLocalData().students.find(s => s.id === req.user.id);
-    }
-
-    const newQuestion = {
-      id: 'q_' + Date.now(),
-      lessonId: lessonId,
-      studentName: req.user.name,
-      studentPhone: student ? student.phone : '',
-      questionText: questionText,
-      replyText: '',
-      repliedAt: '',
-      status: 'pending',
-      timestamp: new Date().toLocaleString('ar-EG')
-    };
-
-    if (dbType === 'mongodb') {
-      await db.collection('questions').insertOne(newQuestion);
-    } else {
-      const data = getLocalData();
-      data.questions.unshift(newQuestion);
+app.post('/api/payments/:id/reject', requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  if (dbType === 'mongodb') {
+    await db.collection('payments').updateOne({ id }, { $set: { status: 'rejected' } });
+  } else {
+    const data = getLocalData();
+    const pIdx = (data.payments || []).findIndex(p => p.id === id);
+    if (pIdx !== -1) {
+      data.payments[pIdx].status = 'rejected';
       writeLocalData(data);
     }
-
-    return res.json(newQuestion);
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
   }
+  return res.json({ success: true, message: 'تم رفض طلب الشحن.' });
 });
 
-app.post('/api/questions/:id/reply', requireAdmin, async (req, res) => {
-  const questionId = req.params.id;
-  const { replyText } = req.body;
-
-  try {
-    if (dbType === 'mongodb') {
-      await db.collection('questions').updateOne(
-        { id: questionId },
-        {
-          $set: {
-            replyText,
-            repliedAt: 'الآن',
-            status: 'answered'
-          }
-        }
-      );
-      return res.json({ success: true });
-    } else {
-      const data = getLocalData();
-      const matched = data.questions.find(q => q.id === questionId);
-      if (matched) {
-        matched.replyText = replyText;
-        matched.repliedAt = 'الآن';
-        matched.status = 'answered';
-        writeLocalData(data);
-        return res.json({ success: true });
-      }
-      return res.status(404).json({ error: 'السؤال غير موجود.' });
-    }
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
+app.get('/api/coupons', requireAdmin, async (req, res) => {
+  let coupons = [];
+  if (dbType === 'mongodb') {
+    coupons = await db.collection('coupons').find({}).toArray();
+  } else {
+    coupons = getLocalData().coupons || [];
   }
+  return res.json(coupons);
 });
 
-// ==========================================
-// 🔔 NOTIFICATIONS ROUTES
-// ==========================================
-
-app.get('/api/notifications', verifyToken, async (req, res) => {
-  try {
-    let notifications = [];
-    if (dbType === 'mongodb') {
-      notifications = await db.collection('notifications').find({}).toArray();
-    } else {
-      notifications = getLocalData().notifications;
-    }
-    return res.json(notifications);
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
+app.post('/api/coupons', requireAdmin, async (req, res) => {
+  const newCoupon = { ...req.body, usedCount: 0 };
+  if (dbType === 'mongodb') {
+    await db.collection('coupons').insertOne(newCoupon);
+  } else {
+    const data = getLocalData();
+    if (!data.coupons) data.coupons = [];
+    data.coupons.push(newCoupon);
+    writeLocalData(data);
   }
+  return res.json({ success: true, coupon: newCoupon, message: 'تم إنشاء الكوبون بنجاح!' });
+});
+
+app.delete('/api/coupons/:code', requireAdmin, async (req, res) => {
+  const { code } = req.params;
+  if (dbType === 'mongodb') {
+    await db.collection('coupons').deleteOne({ code });
+  } else {
+    const data = getLocalData();
+    data.coupons = (data.coupons || []).filter(c => c.code !== code);
+    writeLocalData(data);
+  }
+  return res.json({ success: true });
+});
+
+app.post('/api/coupons/apply', async (req, res) => {
+  const { code } = req.body;
+  let coupon = null;
+  if (dbType === 'mongodb') {
+    coupon = await db.collection('coupons').findOne({ code: code?.trim().toUpperCase() });
+  } else {
+    const data = getLocalData();
+    coupon = (data.coupons || []).find(c => c.code.toUpperCase() === code?.trim().toUpperCase());
+  }
+
+  if (!coupon) {
+    return res.status(400).json({ error: 'كود الكوبون غير صحيح أو غير موجود.' });
+  }
+
+  return res.json({ success: true, value: coupon.value, message: `تم تفعيل الكوبون وإضافة ${coupon.value} ج.م لرصيدك!` });
+});
+
+app.get('/api/notifications', async (req, res) => {
+  let notifs = [];
+  if (dbType === 'mongodb') {
+    notifs = await db.collection('notifications').find({}).sort({ _id: -1 }).toArray();
+  } else {
+    notifs = getLocalData().notifications || [];
+  }
+  return res.json(notifs);
 });
 
 app.post('/api/notifications', requireAdmin, async (req, res) => {
-  const notif = req.body;
-  try {
-    const newNote = {
-      id: 'n_' + Date.now(),
-      targetGrade: notif.targetGrade || 'all',
-      subject: notif.subject || 'general',
-      title: (notif.title || '').trim(),
-      body: (notif.body || '').trim(),
-      time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
-      date: new Date().toLocaleDateString('ar-EG'),
-      unread: true
-    };
-
-    if (dbType === 'mongodb') {
-      await db.collection('notifications').insertOne(newNote);
-    } else {
-      const data = getLocalData();
-      data.notifications.unshift(newNote);
-      writeLocalData(data);
-    }
-
-    return res.json(newNote);
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
+  const notif = { id: `n_${Date.now()}`, ...req.body, time: 'الآن', unread: true };
+  if (dbType === 'mongodb') {
+    await db.collection('notifications').insertOne(notif);
+  } else {
+    const data = getLocalData();
+    if (!data.notifications) data.notifications = [];
+    data.notifications.unshift(notif);
+    writeLocalData(data);
   }
+  return res.json({ success: true, notification: notif, message: 'تم إرسال الإشعار بنجاح!' });
 });
 
 app.delete('/api/notifications/:id', requireAdmin, async (req, res) => {
-  const notifId = req.params.id;
+  const { id } = req.params;
+  if (dbType === 'mongodb') {
+    await db.collection('notifications').deleteOne({ id });
+  } else {
+    const data = getLocalData();
+    data.notifications = (data.notifications || []).filter(n => n.id !== id);
+    writeLocalData(data);
+  }
+  return res.json({ success: true });
+});
+
+app.get('/api/questions', async (req, res) => {
+  let questions = [];
+  if (dbType === 'mongodb') {
+    questions = await db.collection('questions').find({}).toArray();
+  } else {
+    questions = getLocalData().questions || [];
+  }
+  return res.json(questions);
+});
+
+app.post('/api/questions', async (req, res) => {
+  const q = { id: `q_${Date.now()}`, ...req.body, status: 'pending' };
+  if (dbType === 'mongodb') {
+    await db.collection('questions').insertOne(q);
+  } else {
+    const data = getLocalData();
+    if (!data.questions) data.questions = [];
+    data.questions.unshift(q);
+    writeLocalData(data);
+  }
+  return res.json({ success: true, question: q, message: 'تم إرسال سؤالك للمعلم بنجاح!' });
+});
+
+app.post('/api/questions/:id/reply', requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { replyText } = req.body;
+  if (dbType === 'mongodb') {
+    await db.collection('questions').updateOne({ id }, { $set: { replyText, status: 'answered', repliedAt: 'الآن' } });
+  } else {
+    const data = getLocalData();
+    const idx = (data.questions || []).findIndex(q => q.id === id);
+    if (idx !== -1) {
+      data.questions[idx] = { ...data.questions[idx], replyText, status: 'answered', repliedAt: 'الآن' };
+      writeLocalData(data);
+    }
+  }
+  return res.json({ success: true, message: 'تم إرسال الرد للطالب بنجاح!' });
+});
+
+app.get('/api/exams', async (req, res) => {
+  let exams = [];
+  if (dbType === 'mongodb') {
+    exams = await db.collection('exams').find({}).toArray();
+  } else {
+    exams = getLocalData().exams || [];
+  }
+  return res.json(exams);
+});
+
+app.post('/api/exams', async (req, res) => {
+  const exam = { id: `ex_${Date.now()}`, ...req.body, date: new Date().toLocaleDateString('ar-EG') };
+  if (dbType === 'mongodb') {
+    await db.collection('exams').insertOne(exam);
+  } else {
+    const data = getLocalData();
+    if (!data.exams) data.exams = [];
+    data.exams.unshift(exam);
+    writeLocalData(data);
+  }
+  return res.json(exam);
+});
+
+// ═══ LIVE BROADCAST & VIRTUAL CLASSROOM API ═══
+
+app.get('/api/live', async (req, res) => {
   try {
+    const { grade } = req.query;
+    let sessions = [];
     if (dbType === 'mongodb') {
-      const result = await db.collection('notifications').deleteOne({ id: notifId });
-      if (result.deletedCount === 0) return res.status(404).json({ error: 'الإشعار غير موجود.' });
+      let query = {};
+      if (grade && grade !== 'all') {
+        query.$or = [{ grade: grade }, { grade: 'all' }];
+      }
+      sessions = await db.collection('liveSessions').find(query).sort({ scheduledAt: -1 }).toArray();
     } else {
       const data = getLocalData();
-      const idx = data.notifications.findIndex(n => n.id === notifId);
-      if (idx !== -1) {
-        data.notifications.splice(idx, 1);
-        writeLocalData(data);
-      } else {
-        return res.status(404).json({ error: 'الإشعار غير موجود.' });
-      }
+      sessions = (data.liveSessions || []).filter(s => {
+        if (!grade || grade === 'all') return true;
+        return s.grade === grade || s.grade === 'all';
+      });
     }
-    return res.json({ success: true });
+    return res.json(sessions);
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
 });
 
-// ==========================================
-// 📝 EXAMS & PERFORMANCE HISTORIES ROUTES
-// ==========================================
-
-app.get('/api/exams', verifyToken, async (req, res) => {
+app.get('/api/live/active', async (req, res) => {
   try {
-    let exams = [];
+    const { grade } = req.query;
+    let sessions = [];
     if (dbType === 'mongodb') {
-      exams = await db.collection('exams').find({ studentId: req.user.id }).toArray();
+      let query = { status: { $in: ['live', 'scheduled'] } };
+      if (grade && grade !== 'all') {
+        query.$and = [
+          { status: { $in: ['live', 'scheduled'] } },
+          { $or: [{ grade: grade }, { grade: 'all' }] }
+        ];
+      }
+      sessions = await db.collection('liveSessions').find(query).toArray();
     } else {
-      exams = getLocalData().exams.filter(e => e.studentId === req.user.id);
+      const data = getLocalData();
+      sessions = (data.liveSessions || []).filter(s => {
+        const isLiveOrSched = s.status === 'live' || s.status === 'scheduled';
+        if (!isLiveOrSched) return false;
+        if (!grade || grade === 'all') return true;
+        return s.grade === grade || s.grade === 'all';
+      });
     }
-    return res.json(exams);
+    return res.json(sessions);
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/exams', verifyToken, async (req, res) => {
-  const examRecord = req.body;
+app.get('/api/live/:id', async (req, res) => {
   try {
-    const newRecord = {
-      ...examRecord,
-      id: 'ex_' + Date.now(),
-      studentId: req.user.id,
-      date: new Date().toLocaleDateString('ar-EG'),
-      timestamp: Date.now()
+    const { id } = req.params;
+    let session = null;
+    if (dbType === 'mongodb') {
+      session = await db.collection('liveSessions').findOne({ id });
+    } else {
+      const data = getLocalData();
+      session = (data.liveSessions || []).find(s => s.id === id);
+    }
+    if (!session) {
+      return res.status(404).json({ error: 'حصة البث المباشر غير موجودة' });
+    }
+    return res.json(session);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/live', requireAdmin, async (req, res) => {
+  try {
+    const { title, instructor, instructorId, subject, grade, gradeName, scheduledAt, description, streamType, streamUrl, thumbnail } = req.body;
+    if (!title || !subject || !grade) {
+      return res.status(400).json({ error: 'يرجى إدخال عنوان البث والمادة والصف الدراسي' });
+    }
+    const newSession = {
+      id: `live_${Date.now()}`,
+      title,
+      instructor: instructor || 'المحاضر',
+      instructorId: instructorId || 'eng_nour',
+      subject,
+      grade,
+      gradeName: gradeName || (grade === '3sec' ? 'الصف الثالث الثانوي' : grade === '2sec' ? 'الصف الثاني الثانوي' : 'الصف الأول الثانوي'),
+      status: 'scheduled',
+      scheduledAt: scheduledAt || new Date().toISOString(),
+      description: description || '',
+      streamType: streamType || 'youtube_live',
+      streamUrl: streamUrl || '',
+      thumbnail: thumbnail || 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&q=80&w=800',
+      viewersCount: 0,
+      likesCount: 0,
+      chatMessages: [],
+      polls: [],
+      handRaises: [],
+      recordingUrl: null,
+      createdAt: new Date().toISOString()
     };
 
     if (dbType === 'mongodb') {
-      await db.collection('exams').insertOne(newRecord);
+      await db.collection('liveSessions').insertOne(newSession);
     } else {
       const data = getLocalData();
-      data.exams.unshift(newRecord);
+      if (!data.liveSessions) data.liveSessions = [];
+      data.liveSessions.unshift(newSession);
       writeLocalData(data);
     }
 
-    return res.json(newRecord);
+    return res.json({ success: true, session: newSession, message: 'تم جدولة البث المباشر بنجاح! 🔴' });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
 });
 
-// ==========================================
-// 🤖 SECURE CHATBOT PROXY API ROUTE
-// ==========================================
-
-app.post('/api/chat', async (req, res) => {
-  const { messages, provider } = req.body;
-  const targetProvider = provider || 'openrouter';
-
-  const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-
-  if (!OPENROUTER_API_KEY && targetProvider === 'openrouter') {
-    return res.status(500).json({ error: 'OpenRouter API Key not configured on the backend.' });
-  }
-  if (!GEMINI_API_KEY && targetProvider === 'gemini') {
-    return res.status(500).json({ error: 'Gemini API Key not configured on the backend.' });
-  }
-
+app.patch('/api/live/:id/status', requireAdmin, async (req, res) => {
   try {
-    if (targetProvider === 'gemini') {
-      const systemMessage = messages.find(m => m.role === 'system');
-      const chatMessages = messages.filter(m => m.role !== 'system');
-
-      // Convert messages to Gemini format
-      const contents = chatMessages.map(m => ({
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: m.content }]
-      }));
-
-      const bodyPayload = {
-        contents,
-        generationConfig: {
-          maxOutputTokens: 800,
-          temperature: 0.7
-        }
-      };
-
-      if (systemMessage) {
-        bodyPayload.systemInstruction = {
-          parts: [{ text: systemMessage.content }]
-        };
-      }
-
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
-      const response = await fetch(geminiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bodyPayload)
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Gemini API error: ${errorText}`);
-      }
-
-      const data = await response.json();
-      const botResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || 'عذراً، حدث خطأ في معالجة طلبك.';
-      return res.json({ response: botResponse });
-
-    } else {
-      // Default to OpenRouter
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://elbashmohands.dev',
-          'X-Title': 'Bashmohandis Education Platform'
-        },
-        body: JSON.stringify({
-          model: 'openai/gpt-4o-mini',
-          messages: messages,
-          max_tokens: 800,
-          temperature: 0.7
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`OpenRouter API error: ${errorText}`);
-      }
-
-      const data = await response.json();
-      const botResponse = data.choices?.[0]?.message?.content || 'عذراً، حدث خطأ في معالجة طلبك.';
-      return res.json({ response: botResponse });
+    const { id } = req.params;
+    const { status, recordingUrl, streamUrl } = req.body;
+    if (!['scheduled', 'live', 'ended'].includes(status)) {
+      return res.status(400).json({ error: 'حالة البث غير صالحة' });
     }
-  } catch (error) {
-    console.error('Proxy Error:', error);
-    return res.status(500).json({ error: error.message || 'Server error occurred' });
+
+    const updateFields = { status };
+    if (recordingUrl !== undefined) updateFields.recordingUrl = recordingUrl;
+    if (streamUrl !== undefined) updateFields.streamUrl = streamUrl;
+
+    if (dbType === 'mongodb') {
+      await db.collection('liveSessions').updateOne({ id }, { $set: updateFields });
+    } else {
+      const data = getLocalData();
+      if (!data.liveSessions) data.liveSessions = [];
+      const idx = data.liveSessions.findIndex(s => s.id === id);
+      if (idx !== -1) {
+        data.liveSessions[idx] = { ...data.liveSessions[idx], ...updateFields };
+        writeLocalData(data);
+      }
+    }
+
+    return res.json({ success: true, message: `تم تحديث حالة البث إلى (${status === 'live' ? 'مباشر الآن 🔴' : status === 'ended' ? 'منتهي' : 'مجدول'}) بنجاح` });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
   }
 });
 
-// Generates S3/R2 presigned upload URLs for admin video, image, and document uploads
-app.post('/api/upload/presign', requireAdmin, async (req, res) => {
-  const { filename, contentType } = req.body;
-
-  if (!r2Client) {
-    return res.status(500).json({ error: 'Cloudflare R2 Client is not configured on this server.' });
-  }
-
-  if (!filename || !contentType) {
-    return res.status(400).json({ error: 'filename and contentType are required.' });
-  }
-
+app.delete('/api/live/:id', requireAdmin, async (req, res) => {
   try {
-    let folder = 'videos';
-    if (contentType.startsWith('image/')) {
-      folder = 'thumbnails';
-    } else if (contentType === 'application/pdf' || contentType.includes('word') || contentType.includes('officedocument')) {
-      folder = 'attachments';
+    const { id } = req.params;
+    if (dbType === 'mongodb') {
+      await db.collection('liveSessions').deleteOne({ id });
+    } else {
+      const data = getLocalData();
+      if (data.liveSessions) {
+        data.liveSessions = data.liveSessions.filter(s => s.id !== id);
+        writeLocalData(data);
+      }
     }
-    
-    const uniqueKey = `${folder}/${Date.now()}-${filename}`;
-    const command = new PutObjectCommand({
-      Bucket: R2_BUCKET_NAME,
-      Key: uniqueKey,
-      ContentType: contentType
+    return res.json({ success: true, message: 'تم حذف حصة البث المباشر' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/live/:id/notify', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { customMessage } = req.body;
+
+    let session = null;
+    let students = [];
+
+    if (dbType === 'mongodb') {
+      session = await db.collection('liveSessions').findOne({ id });
+      const studentQuery = session && session.grade !== 'all' ? { grade: session.grade } : {};
+      students = await db.collection('students').find(studentQuery).toArray();
+    } else {
+      const data = getLocalData();
+      session = (data.liveSessions || []).find(s => s.id === id);
+      students = (data.students || []).filter(st => {
+        if (!session || session.grade === 'all') return true;
+        return st.grade === session.grade;
+      });
+    }
+
+    if (!session) {
+      return res.status(404).json({ error: 'حصة البث غير موجودة' });
+    }
+
+    const newNotif = {
+      id: `n_${Date.now()}`,
+      title: `🔴 بث مباشر: ${session.title}`,
+      body: customMessage || `المستر بدأ حصة البث المباشر الآن! اضغط هنا للانضمام فوراً وتفاعل مع الشرح.`,
+      time: 'الآن',
+      unread: true,
+      actionTab: 'live',
+      actionId: session.id
+    };
+
+    if (dbType === 'mongodb') {
+      await db.collection('notifications').insertOne(newNotif);
+    } else {
+      const data = getLocalData();
+      if (!data.notifications) data.notifications = [];
+      data.notifications.unshift(newNotif);
+      writeLocalData(data);
+    }
+
+    const whatsappLinks = students.map(st => {
+      const studentName = st.name || 'طالبنا العزيز';
+      const phone = st.phone || st.parentPhone;
+      const cleanPhone = normalizePhone(phone);
+      const joinUrl = `https://elbashmohands.dev/?live=${session.id}`;
+      const textMsg = encodeURIComponent(
+        `أهلاً يا ${studentName} 👋\n\n` +
+        `🔴 *حصة بث مباشر هامة الآن على منصة عِلم*\n` +
+        `📖 *العنوان:* ${session.title}\n` +
+        `👨‍🏫 *المحاضر:* ${session.instructor}\n` +
+        `📚 *المادة:* ${session.subject}\n\n` +
+        `🚀 *اضغط على الرابط التالي للدخول فوراً والمشاركة في الشرح والشات التفاعلي:*\n` +
+        `${joinUrl}\n\n` +
+        `بالتوفيق والتفوق دائماً! ✨`
+      );
+      const whatsappUrl = `https://wa.me/2${cleanPhone}?text=${textMsg}`;
+      return {
+        studentId: st.id,
+        studentName,
+        studentCode: st.code,
+        phone: cleanPhone,
+        whatsappUrl
+      };
     });
 
-    // Link expires in 15 minutes (900 seconds)
-    const uploadUrl = await getSignedUrl(r2Client, command, { expiresIn: 900 });
-
-    const publicUrlBase = R2_PUBLIC_URL.endsWith('/') ? R2_PUBLIC_URL : `${R2_PUBLIC_URL}/`;
-    const videoUrl = `${publicUrlBase}${uniqueKey}`;
-
-    return res.json({ success: true, uploadUrl, videoUrl });
+    return res.json({
+      success: true,
+      message: `تم إرسال الإشعار وتوليد ${whatsappLinks.length} رابط واتساب للطلاب المسجلين بالصف بنجاح! 🚀`,
+      inAppNotification: newNotif,
+      studentsCount: students.length,
+      whatsappLinks
+    });
   } catch (err) {
-    console.error('Presign URL error:', err);
-    return res.status(500).json({ error: 'Failed to generate upload URL: ' + err.message });
+    return res.status(500).json({ error: err.message });
   }
 });
 
-// Diagnostics endpoint to list available Gemini models for this API key
-app.get('/api/diag', async (req, res) => {
-  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-  if (!GEMINI_API_KEY) {
-    return res.status(400).json({ error: 'GEMINI_API_KEY is not defined in environment variables.' });
-  }
+app.post('/api/live/:id/chat', async (req, res) => {
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_API_KEY}`);
-    const data = await response.json();
-    return res.json(data);
+    const { id } = req.params;
+    const { senderName, senderRole, text } = req.body;
+    if (!text || !text.trim()) {
+      return res.status(400).json({ error: 'نص الرسالة فارغ' });
+    }
+
+    const message = {
+      id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      senderName: senderName || 'طالب',
+      senderRole: senderRole || 'student',
+      text: text.trim(),
+      timestamp: 'الآن',
+      isPinned: false
+    };
+
+    if (dbType === 'mongodb') {
+      await db.collection('liveSessions').updateOne({ id }, { $push: { chatMessages: message } });
+    } else {
+      const data = getLocalData();
+      if (!data.liveSessions) data.liveSessions = [];
+      const idx = data.liveSessions.findIndex(s => s.id === id);
+      if (idx !== -1) {
+        if (!data.liveSessions[idx].chatMessages) data.liveSessions[idx].chatMessages = [];
+        data.liveSessions[idx].chatMessages.push(message);
+        writeLocalData(data);
+      }
+    }
+
+    return res.json({ success: true, message });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/live/:id/poll', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { question, options, correctIndex } = req.body;
+    if (!question || !options || options.length < 2) {
+      return res.status(400).json({ error: 'يرجى إدخال السؤال وخيارين على الأقل' });
+    }
+
+    const poll = {
+      id: `poll_${Date.now()}`,
+      question,
+      options,
+      correctIndex: correctIndex !== undefined ? correctIndex : null,
+      votes: {},
+      totalVotes: 0,
+      isActive: true,
+      createdAt: 'الآن'
+    };
+
+    if (dbType === 'mongodb') {
+      await db.collection('liveSessions').updateOne(
+        { id }, 
+        { 
+          $set: { "polls.$[].isActive": false },
+          $push: { polls: poll }
+        }
+      );
+    } else {
+      const data = getLocalData();
+      if (!data.liveSessions) data.liveSessions = [];
+      const idx = data.liveSessions.findIndex(s => s.id === id);
+      if (idx !== -1) {
+        if (!data.liveSessions[idx].polls) data.liveSessions[idx].polls = [];
+        data.liveSessions[idx].polls.forEach(p => p.isActive = false);
+        data.liveSessions[idx].polls.push(poll);
+        writeLocalData(data);
+      }
+    }
+
+    return res.json({ success: true, poll, message: 'تم إطلاق السؤال التفاعلي على شاشة الطلاب الآن! 🎯' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/live/:id/poll/vote', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { pollId, optionIndex } = req.body;
+
+    if (dbType === 'mongodb') {
+      const session = await db.collection('liveSessions').findOne({ id });
+      if (session && session.polls) {
+        const poll = session.polls.find(p => p.id === pollId);
+        if (poll && poll.isActive) {
+          const votes = poll.votes || {};
+          votes[optionIndex] = (votes[optionIndex] || 0) + 1;
+          const totalVotes = (poll.totalVotes || 0) + 1;
+          await db.collection('liveSessions').updateOne(
+            { id, "polls.id": pollId },
+            { $set: { "polls.$.votes": votes, "polls.$.totalVotes": totalVotes } }
+          );
+        }
+      }
+    } else {
+      const data = getLocalData();
+      if (!data.liveSessions) data.liveSessions = [];
+      const sIdx = data.liveSessions.findIndex(s => s.id === id);
+      if (sIdx !== -1 && data.liveSessions[sIdx].polls) {
+        const pIdx = data.liveSessions[sIdx].polls.findIndex(p => p.id === pollId);
+        if (pIdx !== -1 && data.liveSessions[sIdx].polls[pIdx].isActive) {
+          const poll = data.liveSessions[sIdx].polls[pIdx];
+          if (!poll.votes) poll.votes = {};
+          poll.votes[optionIndex] = (poll.votes[optionIndex] || 0) + 1;
+          poll.totalVotes = (poll.totalVotes || 0) + 1;
+          writeLocalData(data);
+        }
+      }
+    }
+
+    return res.json({ success: true, message: 'تم تسجيل إجابتك بنجاح! 👏' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/live/:id/hand-raise', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { studentId, studentName, studentCode } = req.body;
+
+    const hr = {
+      id: `hr_${Date.now()}`,
+      studentId: studentId || 'std_anon',
+      studentName: studentName || 'طالب',
+      studentCode: studentCode || '',
+      requestedAt: 'الآن',
+      status: 'pending'
+    };
+
+    if (dbType === 'mongodb') {
+      await db.collection('liveSessions').updateOne({ id }, { $push: { handRaises: hr } });
+    } else {
+      const data = getLocalData();
+      if (!data.liveSessions) data.liveSessions = [];
+      const idx = data.liveSessions.findIndex(s => s.id === id);
+      if (idx !== -1) {
+        if (!data.liveSessions[idx].handRaises) data.liveSessions[idx].handRaises = [];
+        data.liveSessions[idx].handRaises.push(hr);
+        writeLocalData(data);
+      }
+    }
+
+    return res.json({ success: true, message: 'تم إرسال طلب المداخلة للمعلم بنجاح! ✋' });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
