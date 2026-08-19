@@ -4,29 +4,25 @@ const AppContext = createContext();
 
 export const formatVideoEmbedUrl = (url) => {
   if (!url) return '';
-  let cleanUrl = url.trim();
-
-  if (cleanUrl.includes('youtube.com/watch') || cleanUrl.includes('youtu.be') || cleanUrl.includes('youtube.com/shorts')) {
-    let videoId = '';
-    if (cleanUrl.includes('v=')) {
-      videoId = cleanUrl.split('v=')[1]?.split('&')[0];
-    } else if (cleanUrl.includes('youtu.be/')) {
-      videoId = cleanUrl.split('youtu.be/')[1]?.split('?')[0];
-    } else if (cleanUrl.includes('shorts/')) {
-      videoId = cleanUrl.split('shorts/')[1]?.split('?')[0];
-    }
-    if (videoId) {
-      return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
-    }
+  if (url.includes('youtube.com/watch?v=')) {
+    const videoId = url.split('v=')[1]?.split('&')[0];
+    return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`;
   }
-
-  return cleanUrl;
+  if (url.includes('youtu.be/')) {
+    const videoId = url.split('youtu.be/')[1]?.split('?')[0];
+    return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`;
+  }
+  if (url.includes('vimeo.com/')) {
+    const videoId = url.split('vimeo.com/')[1]?.split('?')[0];
+    return `https://player.vimeo.com/video/${videoId}?autoplay=1`;
+  }
+  return url;
 };
 
 export const AppProvider = ({ children }) => {
   const [currentGrade, setCurrentGrade] = useState('3sec');
-  const [userRole, setUserRole] = useState('student');
-  const [adminIdentity, setAdminIdentity] = useState('eng_nour');
+  const [userRole, setUserRole] = useState('student'); // 'student' | 'parent' | 'admin'
+  const [adminIdentity, setAdminIdentity] = useState('mr_sayed'); // 'mr_sayed' | 'eng_nour'
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loadingSession, setLoadingSession] = useState(true);
 
@@ -46,6 +42,10 @@ export const AppProvider = ({ children }) => {
   const [whatsappLogs, setWhatsappLogs] = useState([]);
   const [smsLogs, setSmsLogs] = useState([]);
   const [activeWhatsAppModal, setActiveWhatsAppModal] = useState(null);
+
+  // Live Broadcast & Virtual Classroom State
+  const [liveSessionsDB, setLiveSessionsDB] = useState([]);
+  const [activeLiveSession, setActiveLiveSession] = useState(null);
 
   // Theme states (Light / Dark) - Default: Light Mode
   const [theme, setTheme] = useState(() => {
@@ -97,7 +97,7 @@ export const AppProvider = ({ children }) => {
     fetchPublicData();
   }, [isAuthenticated, userRole]);
 
-  // Load public data (lessons list and notifications list)
+  // Load public data (lessons list, notifications, live sessions)
   const fetchPublicData = async () => {
     try {
       const resLessons = await fetch('/api/lessons');
@@ -114,6 +114,11 @@ export const AppProvider = ({ children }) => {
           unread: readIds.includes(n.id) ? false : (n.unread ?? false)
         }));
         setNotifications(processed);
+      }
+      const resLive = await fetch('/api/live');
+      if (resLive.ok) {
+        const data = await resLive.json();
+        setLiveSessionsDB(data);
       }
     } catch (err) {
       console.error('Failed to fetch public data:', err);
@@ -155,7 +160,6 @@ export const AppProvider = ({ children }) => {
       if (resExams.ok) {
         const data = await resExams.json();
         setExamHistory(data);
-        // Build attempts mapping
         const attemptsMap = {};
         data.forEach(ex => {
           if (ex.quizId) attemptsMap[ex.quizId] = ex;
@@ -195,274 +199,292 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  // Student Registration Handler
-  const registerStudent = async ({ name, email, phone, parentPhone, grade, password, confirmPassword }) => {
-    if (password !== confirmPassword) {
-      return { success: false, message: 'كلمة المرور وتأكيد كلمة المرور غير متطابقين!' };
-    }
+  const switchGrade = (gradeId) => {
+    setCurrentGrade(gradeId);
+  };
 
+  // 2. Auth Methods
+  const registerStudent = async (studentData) => {
     try {
-      let devId = localStorage.getItem('manara_device_uuid');
-      if (!devId) {
-        devId = 'dev_' + Math.random().toString(36).substring(2, 10) + Date.now();
-        localStorage.setItem('manara_device_uuid', devId);
-      }
-
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, phone, parentPhone, grade, password, deviceId: devId }),
+        body: JSON.stringify(studentData),
         credentials: 'include'
       });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        return { success: false, message: errData.error || 'فشلت عملية إنشاء الحساب.' };
-      }
-
       const data = await res.json();
-      setIsAuthenticated(true);
-      setUserRole('student');
-      setCurrentStudent(data.user);
-      setCurrentGrade(data.user.grade || '3sec');
-      
-      return { success: true, studentCode: data.user.code, message: `تم إنشاء حسابك بنجاح! كود الطالب الخاص بك هو: ${data.user.code}` };
+      if (res.ok && data.success) {
+        setIsAuthenticated(true);
+        setUserRole('student');
+        setCurrentStudent(data.user);
+        setCurrentGrade(data.user.grade || '3sec');
+        fetchStudentData();
+        return { success: true, message: data.message, user: data.user };
+      }
+      return { success: false, message: data.error || 'فشلت عملية إنشاء الحساب' };
     } catch (err) {
       return { success: false, message: 'خطأ في الاتصال بالخادم.' };
     }
   };
 
-  // Login Handler
   const loginUser = async (role, credentials) => {
     try {
-      const bodyCredentials = { ...credentials };
-      if (role === 'student') {
-        let devId = localStorage.getItem('manara_device_uuid');
-        if (!devId) {
-          devId = 'dev_' + Math.random().toString(36).substring(2, 10) + Date.now();
-          localStorage.setItem('manara_device_uuid', devId);
-        }
-        bodyCredentials.deviceId = devId;
-      }
-
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role, credentials: bodyCredentials }),
+        body: JSON.stringify({ role, ...credentials }),
         credentials: 'include'
       });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        if (res.status === 403 && errData.code === 'DEVICE_LOCKED') {
-          return { success: false, isLocked: true, message: errData.error };
-        }
-        return { success: false, message: errData.error || 'بيانات الدخول غير صحيحة.' };
-      }
-
       const data = await res.json();
-      setIsAuthenticated(true);
-      setUserRole(data.role);
-
-      if (data.role === 'admin') {
-        setAdminIdentity(data.identity);
-        await fetchAdminData();
-        return { success: true, message: `أهلاً وسهلاً بك يا ${data.name}! تم تسجيل الدخول.` };
-      } else if (data.role === 'parent') {
-        setCurrentStudent(data.matchedStudent);
-        await fetchStudentData();
-        return { success: true, matchedStudent: data.matchedStudent, message: `تم الوصول لحساب الطالب: ${data.matchedStudent.name}` };
-      } else {
-        setCurrentStudent(data.user);
-        setCurrentGrade(data.user.grade || '3sec');
-        await fetchStudentData();
-        return { success: true, message: `أهلاً بعودتك يا ${data.user.name}` };
+      if (res.ok && data.success) {
+        setIsAuthenticated(true);
+        setUserRole(data.role);
+        if (data.role === 'admin') {
+          setAdminIdentity(data.identity);
+          fetchAdminData();
+        } else {
+          setCurrentStudent(data.user);
+          setCurrentGrade(data.user.grade || '3sec');
+          fetchStudentData();
+        }
+        return { success: true, message: data.message, user: data.user, role: data.role };
       }
+
+      if (data.deviceLocked) {
+        return {
+          success: false,
+          deviceLocked: true,
+          studentId: data.studentId,
+          phone: data.phone,
+          message: data.error || 'الحساب مسجل على جهاز آخر.'
+        };
+      }
+
+      return { success: false, message: data.error || 'بيانات الدخول غير صحيحة.' };
     } catch (err) {
       return { success: false, message: 'خطأ في الاتصال بالخادم.' };
     }
   };
 
-  const verifyDeviceOtp = async (phoneOrCode, otp) => {
+  const verifyDeviceOtp = async (studentId, otp) => {
     try {
-      let devId = localStorage.getItem('manara_device_uuid');
-      if (!devId) {
-        devId = 'dev_' + Math.random().toString(36).substring(2, 10) + Date.now();
-        localStorage.setItem('manara_device_uuid', devId);
-      }
-
       const res = await fetch('/api/auth/verify-device-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phoneOrCode, otp, deviceId: devId }),
+        body: JSON.stringify({ studentId, otp }),
         credentials: 'include'
       });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        return { success: false, message: errData.error || 'رمز OTP غير صحيح أو منتهي الصلاحية.' };
-      }
-
       const data = await res.json();
-      setIsAuthenticated(true);
-      setUserRole(data.role);
-      setCurrentStudent(data.user);
-      setCurrentGrade(data.user.grade || '3sec');
-      await fetchStudentData();
-      return { success: true, message: `تم تفعيل الجهاز الجديد والدخول بنجاح! أهلاً بك يا ${data.user.name}` };
+      if (res.ok && data.success) {
+        setIsAuthenticated(true);
+        setUserRole('student');
+        setCurrentStudent(data.user);
+        setCurrentGrade(data.user.grade || '3sec');
+        fetchStudentData();
+        return { success: true, message: data.message };
+      }
+      return { success: false, message: data.error || 'رمز التأكيد غير صحيح أو منتهي.' };
     } catch (err) {
       return { success: false, message: 'خطأ في الاتصال بالخادم.' };
     }
   };
 
-  // Logout Handler
   const logoutUser = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
-    } catch (e) {}
-    setIsAuthenticated(false);
-    setUserRole('student');
-    setCurrentStudent(null);
-    setExamHistory([]);
-    setExamAttempts({});
-  };
-
-  const switchGrade = (gradeId) => {
-    if (userRole === 'admin') {
-      setCurrentGrade(gradeId);
-    } else {
-      setCurrentGrade(currentStudent?.grade || gradeId);
+      setIsAuthenticated(false);
+      setUserRole('student');
+      setCurrentStudent(null);
+      setStudentsDB([]);
+      setPaymentRequestsDB([]);
+      setCouponsDB([]);
+      setVideoQuestions([]);
+      setExamHistory([]);
+    } catch (err) {
+      console.error('Logout error:', err);
     }
   };
 
-  // Submit Payment Recharge Request (Requires Admin Approval)
-  const submitPaymentRequest = async ({ amount, method, refNumber, proofImage }) => {
-    if (!refNumber || refNumber.length < 4) {
-      return { success: false, message: 'يرجى إدخال مرجع عملية التحويل بشكل صحيح.' };
-    }
+  // Student Actions
+  const rechargeWallet = async (amount) => {
+    if (!currentStudent) return;
+    const newBal = (currentStudent.walletBalance || 0) + Number(amount);
+    setCurrentStudent(prev => ({ ...prev, walletBalance: newBal }));
+    await fetch(`/api/students/${currentStudent.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ walletBalance: newBal }),
+      credentials: 'include'
+    });
+  };
 
+  const submitPaymentRequest = async (requestData) => {
     try {
       const res = await fetch('/api/payments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount, method, refNumber, proofImage }),
+        body: JSON.stringify(requestData),
         credentials: 'include'
       });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        return { success: false, message: errData.error || 'فشل إرسال طلب الدفع.' };
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPaymentRequestsDB(prev => [data.payment, ...prev]);
+        return { success: true, message: data.message };
       }
-
-      const newRequest = await res.json();
-      setPaymentRequestsDB(prev => [newRequest, ...prev]);
-
-      return { 
-        success: true, 
-        message: 'تم إرسال طلب الشحن وصورة الإيصال بنجاح للإدارة! سيتم إضافة الرصيد فور مراجعة التحويل ⏳' 
-      };
+      return { success: false, message: data.error || 'فشل تقديم طلب الشحن' };
     } catch (err) {
       return { success: false, message: 'خطأ في الاتصال بالخادم.' };
     }
   };
 
-  // Admin Approve Payment Request
-  const adminApprovePayment = async (requestId) => {
-    const req = paymentRequestsDB.find(r => r.id === requestId);
-    if (!req) return;
+  const unlockLesson = async (lessonId, price) => {
+    if (!currentStudent) return { success: false, message: 'سجل دخولك أولاً.' };
+    const balance = currentStudent.walletBalance || 0;
+    if (balance < price) {
+      return { success: false, message: 'رصيد محفظتك غير كافٍ. يرجى شحن الرصيد أولاً.' };
+    }
 
     try {
-      const res = await fetch(`/api/payments/${requestId}`, {
+      const newBal = balance - price;
+      const currentUnlocked = currentStudent.unlockedLessons || [];
+      const updatedUnlocked = [...currentUnlocked, lessonId];
+
+      const res = await fetch(`/api/students/${currentStudent.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'approved' }),
+        body: JSON.stringify({
+          walletBalance: newBal,
+          unlockedLessons: updatedUnlocked
+        }),
         credentials: 'include'
       });
 
       if (res.ok) {
-        setStudentsDB(prev => prev.map(st => {
-          if (st.id === req.studentId) {
-            const newBalance = st.walletBalance + req.amount;
-            return { ...st, walletBalance: newBalance };
-          }
-          return st;
+        setCurrentStudent(prev => ({
+          ...prev,
+          walletBalance: newBal,
+          unlockedLessons: updatedUnlocked
         }));
-        setPaymentRequestsDB(prev => prev.map(r => r.id === requestId ? { ...r, status: 'approved' } : r));
-
-        triggerWhatsAppSend({
-          isFullParentReport: false,
-          studentName: req.studentName,
-          parentPhone: req.parentPhone,
-          studentPhone: req.studentPhone,
-          title: `تأكيد موافقة شحن رصيد بقيمة ${req.amount} ج.م`
-        }, 'parent');
-
-        triggerSmsSend({
-          title: `تم تأكيد إضافة ${req.amount} جنيه لرصيدك بمحفظة المعلم`,
-          studentName: req.studentName,
-          parentPhone: req.parentPhone,
-          studentPhone: req.studentPhone
-        }, 'student');
+        return { success: true, message: 'تم فتح الحصة بنجاح! مشاهدة ممتعة 🎓' };
       }
     } catch (err) {
-      console.error('Approve payment failed:', err);
+      console.error(err);
     }
+    return { success: false, message: 'حدث خطأ أثناء تفعيل الحصة.' };
   };
 
-  // Admin Reject Payment Request
-  const adminRejectPayment = async (requestId, reason = 'بيانات التحويل أو صورة الإيصال غير واضحة.') => {
+  const purchaseSubscription = async (subType, price, monthlyCredits) => {
+    if (!currentStudent) return { success: false, message: 'سجل دخولك أولاً.' };
+    const balance = currentStudent.walletBalance || 0;
+    if (balance < price) {
+      return { success: false, message: 'رصيد محفظتك غير كافٍ للاشتراك.' };
+    }
+
     try {
-      const res = await fetch(`/api/payments/${requestId}`, {
+      const newBal = balance - price;
+      const res = await fetch(`/api/students/${currentStudent.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'rejected' }),
+        body: JSON.stringify({
+          walletBalance: newBal,
+          subscriptionStatus: 'active',
+          subscriptionType: subType,
+          monthlyCreditsLeft: monthlyCredits
+        }),
         credentials: 'include'
       });
 
       if (res.ok) {
-        setPaymentRequestsDB(prev => prev.map(r => r.id === requestId ? { ...r, status: 'rejected', rejectReason: reason } : r));
+        setCurrentStudent(prev => ({
+          ...prev,
+          walletBalance: newBal,
+          subscriptionStatus: 'active',
+          subscriptionType: subType,
+          monthlyCreditsLeft: monthlyCredits
+        }));
+        return { success: true, message: 'تم تفعيل الاشتراك بنجاح! 🚀' };
       }
     } catch (err) {
-      console.error('Reject payment failed:', err);
+      console.error(err);
     }
+    return { success: false, message: 'حدث خطأ أثناء تفعيل الاشتراك.' };
   };
 
-  // Admin Lesson Edit Handler
-  const adminUpdateLesson = async (lessonId, updatedData) => {
+  const applyCoupon = async (code) => {
     try {
-      const res = await fetch(`/api/lessons/${lessonId}`, {
-        method: 'PATCH',
+      const res = await fetch('/api/coupons/apply', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedData),
+        body: JSON.stringify({ code }),
         credentials: 'include'
       });
-
-      if (res.ok) {
-        const updated = await res.json();
-        setLessons(prev => prev.map(les => les.id === lessonId ? updated : les));
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const newBal = (currentStudent?.walletBalance || 0) + Number(data.value);
+        setCurrentStudent(prev => ({ ...prev, walletBalance: newBal }));
+        return { success: true, message: data.message, value: data.value };
       }
+      return { success: false, message: data.error || 'الكوبون غير صالح.' };
     } catch (err) {
-      console.error('Update lesson failed:', err);
+      return { success: false, message: 'خطأ في الاتصال بالخادم.' };
     }
   };
 
-  // Admin Coupon Delete Handler
-  const adminDeleteCoupon = async (couponId) => {
+  const addStudentQuestion = async (questionData) => {
     try {
-      const res = await fetch(`/api/coupons/${couponId}`, {
-        method: 'DELETE',
+      const res = await fetch('/api/questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(questionData),
         credentials: 'include'
       });
-
-      if (res.ok) {
-        setCouponsDB(prev => prev.filter(c => c.id !== couponId));
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setVideoQuestions(prev => [data.question, ...prev]);
+        return { success: true, message: data.message };
       }
+      return { success: false, message: data.error || 'فشل إرسال السؤال' };
     } catch (err) {
-      console.error('Delete coupon failed:', err);
+      return { success: false, message: 'خطأ في الاتصال بالخادم.' };
     }
   };
 
-  // Admin Student Management: Edit Student
+  // Admin Actions
+  const adminApprovePayment = async (requestId) => {
+    try {
+      const res = await fetch(`/api/payments/${requestId}/approve`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPaymentRequestsDB(prev => prev.map(p => p.id === requestId ? { ...p, status: 'approved' } : p));
+        fetchAdminData();
+        return { success: true, message: data.message };
+      }
+      return { success: false, message: data.error || 'فشلت الموافقة على الطلب' };
+    } catch (err) {
+      return { success: false, message: 'خطأ في الاتصال بالخادم.' };
+    }
+  };
+
+  const adminRejectPayment = async (requestId) => {
+    try {
+      const res = await fetch(`/api/payments/${requestId}/reject`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPaymentRequestsDB(prev => prev.map(p => p.id === requestId ? { ...p, status: 'rejected' } : p));
+        return { success: true, message: data.message };
+      }
+      return { success: false, message: data.error || 'فشل رفض الطلب' };
+    } catch (err) {
+      return { success: false, message: 'خطأ في الاتصال بالخادم.' };
+    }
+  };
+
   const adminUpdateStudent = async (studentId, updatedData) => {
     try {
       const res = await fetch(`/api/students/${studentId}`, {
@@ -471,329 +493,51 @@ export const AppProvider = ({ children }) => {
         body: JSON.stringify(updatedData),
         credentials: 'include'
       });
-
       if (res.ok) {
-        const updated = await res.json();
-        setStudentsDB(prev => prev.map(st => st.id === studentId ? updated : st));
-        if (currentStudent && currentStudent.id === studentId) {
-          setCurrentStudent(updated);
+        setStudentsDB(prev => prev.map(s => s.id === studentId ? { ...s, ...updatedData } : s));
+        if (currentStudent?.id === studentId) {
+          setCurrentStudent(prev => ({ ...prev, ...updatedData }));
         }
+        return { success: true };
       }
     } catch (err) {
-      console.error('Update student failed:', err);
+      console.error('Update student error:', err);
     }
+    return { success: false };
   };
 
-  // Admin Student Management: Delete Student
   const adminDeleteStudent = async (studentId) => {
     try {
       const res = await fetch(`/api/students/${studentId}`, {
         method: 'DELETE',
         credentials: 'include'
       });
-
       if (res.ok) {
-        setStudentsDB(prev => prev.filter(st => st.id !== studentId));
+        setStudentsDB(prev => prev.filter(s => s.id !== studentId));
+        return { success: true };
       }
     } catch (err) {
-      console.error('Delete student failed:', err);
+      console.error('Delete student error:', err);
     }
+    return { success: false };
   };
 
-  // Manual Recharge via Code (fallback - purely clientside or updates student balance)
-  const rechargeWallet = async (codeOrAmount, paymentMethod = 'code') => {
-    let amount = 0;
-    const cleanCode = (codeOrAmount || '').trim().toUpperCase();
-    if (cleanCode.includes('50') || cleanCode === 'SAYED50') amount = 50;
-    else if (cleanCode.includes('100') || cleanCode === 'SAYED100') amount = 100;
-    else if (cleanCode.includes('200') || cleanCode === 'SAYED200') amount = 200;
-    else if (cleanCode.length >= 6) amount = 50;
-    else {
-      return { success: false, message: 'كود الشحن غير صحيح أو مستعمل مسبقاً.' };
-    }
-
+  const adminUpdateLesson = async (lessonId, updatedData) => {
     try {
-      const newBalance = (currentStudent.walletBalance || 0) + amount;
-      const res = await fetch(`/api/students/${currentStudent.id}`, {
+      const res = await fetch(`/api/lessons/${lessonId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ walletBalance: newBalance }),
+        body: JSON.stringify(updatedData),
         credentials: 'include'
       });
-
       if (res.ok) {
-        const updated = await res.json();
-        setCurrentStudent(updated);
-        return { success: true, amount, message: `تم شحن ${amount} جنيه بنجاح إلى محفظتك! 🎟️` };
-      }
-      return { success: false, message: 'فشلت عملية الشحن التلقائية.' };
-    } catch (err) {
-      return { success: false, message: 'خطأ في الاتصال بالخادم.' };
-    }
-  };
-
-  // Purchase Monthly (8 Video Credits) or Annual Subscription
-  const purchaseSubscription = async (planType, price) => {
-    if (currentStudent.walletBalance < price) {
-      return { success: false, message: `رصيد المحفظة لا يكفي الاشتراك (${price} ج.م). يرجى شحن المحفظة أولاً.` };
-    }
-
-    const isMonthly = planType === 'شهري';
-    const newCredits = isMonthly ? 8 : 999;
-    const newBalance = currentStudent.walletBalance - price;
-
-    try {
-      const res = await fetch(`/api/students/${currentStudent.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          walletBalance: newBalance,
-          subscriptionStatus: 'active',
-          subscriptionType: planType,
-          monthlyCreditsLeft: newCredits
-        }),
-        credentials: 'include'
-      });
-
-      if (res.ok) {
-        const updated = await res.json();
-        setCurrentStudent(updated);
-        return { 
-          success: true, 
-          message: isMonthly 
-            ? `تم تفعيل الاشتراك الشهري بنجاح! تم منحك رصيد 8 حصص اختيارية تختار فتحها بنفسك 🎓`
-            : `تم تفعيل الاشتراك السنوي الشامل بنجاح! تم فتح كافة حصص الصف كاملاً 🌟`
-        };
-      }
-      return { success: false, message: 'فشل تفعيل الاشتراك.' };
-    } catch (err) {
-      return { success: false, message: 'خطأ في الاتصال بالخادم.' };
-    }
-  };
-
-  // Unlock Lesson via Wallet, Coupon, OR 1 Monthly Credit (out of 8)
-  const unlockLesson = async (lessonId, price, useMonthlyCredit = false) => {
-    if (useMonthlyCredit) {
-      if ((currentStudent.monthlyCreditsLeft || 0) <= 0) {
-        return { success: false, message: 'استنفذت رصيد الـ 8 حصص المتاحة باشتراكك الشهري.' };
-      }
-
-      const newCredits = currentStudent.monthlyCreditsLeft - 1;
-
-      try {
-        const resUser = await fetch(`/api/students/${currentStudent.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ monthlyCreditsLeft: newCredits }),
-          credentials: 'include'
-        });
-
-        if (resUser.ok) {
-          const updatedUser = await resUser.json();
-          setCurrentStudent(updatedUser);
-
-          // Update lesson status in state/db
-          setLessons(prev => prev.map(les => les.id === lessonId ? { ...les, isUnlocked: true } : les));
-          return { success: true, message: `تم فتح الحصة باستخدام 1 حصة من اشتراكك الشهري! (متبقي: ${newCredits}/8 حصص)` };
-        }
-      } catch (e) {
-        return { success: false, message: 'خطأ في الاتصال بالخادم.' };
-      }
-    }
-
-    if (currentStudent.walletBalance < price) {
-      return { success: false, message: 'رصيد المحفظة لا يكفي. يرجى شحن المحفظة أولاً.' };
-    }
-
-    const newBalance = currentStudent.walletBalance - price;
-
-    try {
-      const resUser = await fetch(`/api/students/${currentStudent.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ walletBalance: newBalance }),
-        credentials: 'include'
-      });
-
-      if (resUser.ok) {
-        const updatedUser = await resUser.json();
-        setCurrentStudent(updatedUser);
-        setLessons(prev => prev.map(les => les.id === lessonId ? { ...les, isUnlocked: true } : les));
-        return { success: true, message: 'تم فتح الحصة بنجاح! مشاهدة ممتعة.' };
-      }
-    } catch (e) {
-      return { success: false, message: 'خطأ في الاتصال بالخادم.' };
-    }
-  };
-
-  // Parent WhatsApp Report Generator
-  const getParentFullWhatsAppReport = (std = currentStudent) => {
-    const lastExam = examHistory[0] || { quizTitle: 'اختبار البرمجة الموثق', score: 5, total: 5, percentage: 100 };
-
-    return `📌 *تقرير متابعة ولي الأمر الموثق - منصة منصة عِلم التعليمية* 💻
-━━━━━━━━━━━━━━━━━━━━
-👤 *اسم الطالب:* ${std.name}
-🆔 *كود الطالب:* ${std.code}
-🎓 *الصف الدراسي:* ${std.gradeName}
-📊 *حالة الاشتراك:* ${std.subscriptionType || 'مجاني'} (متبقي: ${std.monthlyCreditsLeft || 0} حصص)
-💰 *رصيد المحفظة:* ${std.walletBalance} جنيه
-🏆 *الترتيب في أوائل الدفعة:* المركز #${std.rank || 1}
-📝 *آخر امتحان:* ${lastExam.quizTitle} (${lastExam.score} من ${lastExam.total} - ${lastExam.percentage}%)
-
-💡 *ملاحظة المعلم:* الطالب متميز جداً وملتزم بكورسات وتطبيقات البرمجة العملية.
-
-🔗 لمتابعة المحتوى والدروس على منصة المعلم:
-https://elbashmohands.dev`;
-  };
-
-  const getWhatsAppMsgText = (payload, recipient = 'parent') => {
-    if (!payload) return '';
-    if (payload.isFullParentReport) {
-      return getParentFullWhatsAppReport(currentStudent);
-    }
-    return `📌 *إشعار من منصة منصة عِلم التعليمية*
-👤 *الطالب:* ${payload.studentName || currentStudent?.name}
-🎓 *الصف:* ${payload.gradeName || currentStudent?.gradeName}
-📝 *الموضوع:* ${payload.examTitle || payload.title || 'تقرير البرمجة الموثق'}
-
-🔗 https://elbashmohands.dev`;
-  };
-
-  const triggerWhatsAppSend = (payload, targetRecipient = 'parent') => {
-    const targetPhone = targetRecipient === 'parent' ? (payload.parentPhone || currentStudent?.parentPhone) : (payload.studentPhone || currentStudent?.phone);
-    const recipientLabel = targetRecipient === 'parent' ? 'ولي الأمر' : 'الطالب';
-    
-    const msgText = getWhatsAppMsgText(payload, targetRecipient);
-
-    const encodedMsg = encodeURIComponent(msgText);
-    const formattedPhone = (targetPhone || '').replace(/\s/g, '').startsWith('0') ? '2' + (targetPhone || '').replace(/\s/g, '') : (targetPhone || '').replace(/\s/g, '');
-    const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodedMsg}`;
-
-    setWhatsappLogs(prev => [
-      {
-        id: 'wa_' + Date.now(),
-        timestamp: new Date().toLocaleString('ar-EG'),
-        studentName: payload.studentName || currentStudent?.name,
-        phoneSentTo: `${targetPhone} (${recipientLabel})`,
-        examTitle: payload.examTitle || 'تقرير ولي الأمر الشامل',
-        scoreText: 'WhatsApp ✅',
-        status: 'تم التوجيه للواتساب ✅'
-      },
-      ...prev
-    ]);
-
-    return { whatsappUrl, msgText };
-  };
-
-  const triggerSmsSend = (payload, targetRecipient = 'parent') => {
-    const targetPhone = targetRecipient === 'parent'
-      ? (payload.parentPhone || currentStudent?.parentPhone || '')
-      : (payload.studentPhone || currentStudent?.phone || '');
-    const recipientLabel = targetRecipient === 'parent' ? 'ولي الأمر' : 'الطالب';
-
-    let msgText = '';
-    if (payload.isFullParentReport) {
-      msgText = `📌 تقرير منصة المعلم\nالطالب: ${currentStudent?.name}\nالاشتراك: ${currentStudent?.subscriptionType || 'مجاني'}\nالرصيد: ${currentStudent?.walletBalance || 0} ج\nالنقاط: ${currentStudent?.points || 0}`;
-    } else {
-      msgText = `📌 تنبيه من منصة منصة عِلم التعليمية\n${payload.examTitle || payload.title || 'إشعار جديد'}\nالطالب: ${payload.studentName || currentStudent?.name || ''}`;
-    }
-
-    const formattedPhone = targetPhone.replace(/\s/g, '').startsWith('0') ? '2' + targetPhone.replace(/\s/g, '') : targetPhone.replace(/\s/g, '');
-    const whatsappFallbackUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(msgText)}`;
-
-    setSmsLogs(prev => [
-      {
-        id: 'sms_' + Date.now(),
-        timestamp: new Date().toLocaleString('ar-EG'),
-        studentName: payload.studentName || currentStudent?.name || '',
-        phoneSentTo: `${targetPhone} (${recipientLabel})`,
-        messageSnippet: msgText,
-        status: 'جاهز للإرسال ✅'
-      },
-      ...prev
-    ]);
-
-    return { 
-      phone: targetPhone,
-      formattedPhone,
-      msgText,
-      whatsappFallbackUrl,
-      smsUrl: `sms:${targetPhone}?body=${encodeURIComponent(msgText)}`
-    };
-  };
-
-  const addNotification = async ({ targetGrade, title, body, subject }) => {
-    try {
-      const res = await fetch('/api/notifications', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetGrade, title, body, subject }),
-        credentials: 'include'
-      });
-
-      if (res.ok) {
-        const newNote = await res.json();
-        setNotifications(prev => [newNote, ...prev]);
-        return newNote;
+        setLessons(prev => prev.map(l => l.id === lessonId ? { ...l, ...updatedData } : l));
+        return { success: true };
       }
     } catch (err) {
-      console.error('Add notification failed:', err);
+      console.error('Update lesson error:', err);
     }
-  };
-
-  const broadcastNewLesson = (lessonData) => {
-    const gradeLabel = lessonData.grade === '3sec' ? 'ثالثة ثانوي' : lessonData.grade === '2sec' ? 'ثاني ثانوي' : 'أول ثانوي';
-    const priceLabel = lessonData.price === 0 ? 'مجاناً 🎁' : `${lessonData.price} ج.م`;
-
-    const targetStudents = studentsDB.filter(st =>
-      (st.phone || st.parentPhone) && (lessonData.grade === 'all' || st.grade === lessonData.grade)
-    );
-
-    const broadcastLinks = targetStudents.map(st => {
-      const targetPhone = st.phone || st.parentPhone;
-      const msg = `🎉 *حصة جديدة على منصة المعلم!*\n\n📚 *${lessonData.title}*\n📖 المادة: ${lessonData.subject || 'برمجة'}\n🎓 الصف: ${gradeLabel}\n💰 السعر: ${priceLabel}\n\n🔗 ادخل المنصة وشاهد الحصة الآن!\n📱 للتواصل: 01002169889`;
-      const formatted = (targetPhone || '').replace(/\s/g, '').startsWith('0') ? '2' + (targetPhone || '').replace(/\s/g, '') : (targetPhone || '').replace(/\s/g, '');
-      return {
-        studentName: st.name,
-        phone: targetPhone,
-        whatsappUrl: `https://wa.me/${formatted}?text=${encodeURIComponent(msg)}`
-      };
-    });
-
-    return broadcastLinks;
-  };
-
-  const applyCoupon = (couponCode, lessonPrice) => {
-    const cleanCode = (couponCode || '').trim().toUpperCase();
-    if (!cleanCode) return { success: false, message: 'يرجى كتابة كود الكوبون.' };
-
-    const coupon = couponsDB.find(c => c.code === cleanCode && c.active);
-    if (!coupon) return { success: false, message: 'كود الكوبون غير صالح.' };
-
-    if (coupon.usedCount >= coupon.maxUses) return { success: false, message: 'انتهت استخدامات هذا الكوبون.' };
-
-    let finalPrice = lessonPrice;
-    let discountText = '';
-
-    if (coupon.type === 'free') {
-      finalPrice = 0;
-      discountText = 'مجاني 100% 🎁';
-    } else if (coupon.type === 'percent') {
-      const discount = Math.round((lessonPrice * coupon.value) / 100);
-      finalPrice = Math.max(0, lessonPrice - discount);
-      discountText = `خصم ${coupon.value}% (${discount} ج.م)`;
-    } else if (coupon.type === 'fixed') {
-      finalPrice = Math.max(0, lessonPrice - coupon.value);
-      discountText = `خصم بقيمة ${coupon.value} ج.م`;
-    }
-
-    return {
-      success: true,
-      couponType: coupon.type,
-      discountText,
-      finalPrice,
-      message: `تم تطبيق الكوبون بنجاح! (${discountText})`
-    };
+    return { success: false };
   };
 
   const adminCreateCoupon = async (couponData) => {
@@ -804,38 +548,34 @@ https://elbashmohands.dev`;
         body: JSON.stringify(couponData),
         credentials: 'include'
       });
-
-      if (res.ok) {
-        const newCoupon = await res.json();
-        setCouponsDB(prev => [newCoupon, ...prev]);
-        return newCoupon;
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setCouponsDB(prev => [data.coupon, ...prev]);
+        return { success: true, message: data.message };
       }
+      return { success: false, message: data.error || 'فشل إنشاء الكوبون' };
     } catch (err) {
-      console.error('Create coupon failed:', err);
+      return { success: false, message: 'خطأ في الاتصال بالخادم.' };
     }
   };
 
-  const addStudentQuestion = async (lessonId, questionText) => {
-    if (!questionText.trim()) return;
+  const adminDeleteCoupon = async (code) => {
     try {
-      const res = await fetch('/api/questions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lessonId, questionText }),
+      const res = await fetch(`/api/coupons/${code}`, {
+        method: 'DELETE',
         credentials: 'include'
       });
-
       if (res.ok) {
-        const newQ = await res.json();
-        setVideoQuestions(prev => [newQ, ...prev]);
+        setCouponsDB(prev => prev.filter(c => c.code !== code));
+        return { success: true };
       }
     } catch (err) {
-      console.error('Add question failed:', err);
+      console.error('Delete coupon error:', err);
     }
+    return { success: false };
   };
 
   const adminReplyToQuestion = async (questionId, replyText) => {
-    if (!replyText.trim()) return;
     try {
       const res = await fetch(`/api/questions/${questionId}/reply`, {
         method: 'POST',
@@ -843,57 +583,94 @@ https://elbashmohands.dev`;
         body: JSON.stringify({ replyText }),
         credentials: 'include'
       });
-
-      if (res.ok) {
-        setVideoQuestions(prev => prev.map(q => {
-          if (q.id === questionId) {
-            return {
-              ...q,
-              replyText: replyText.trim(),
-              repliedAt: 'الآن',
-              status: 'answered'
-            };
-          }
-          return q;
-        }));
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setVideoQuestions(prev => prev.map(q => q.id === questionId ? { ...q, replyText, status: 'answered', repliedAt: 'الآن' } : q));
+        return { success: true, message: data.message };
       }
+      return { success: false, message: data.error || 'فشل إرسال الرد' };
     } catch (err) {
-      console.error('Reply question failed:', err);
+      return { success: false, message: 'خطأ في الاتصال بالخادم.' };
     }
   };
 
-  const recordExamResult = async (quiz, userAnswers) => {
-    if (examAttempts[quiz.id]) {
-      return { resultRecord: examAttempts[quiz.id], waPayload: null, alreadyAttempted: true };
-    }
-
-    let correctCount = 0;
-    quiz.questions.forEach((q, idx) => {
-      if (userAnswers[idx] === q.correctIndex) {
-        correctCount++;
+  const addNotification = async (notifData) => {
+    try {
+      const res = await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(notifData),
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setNotifications(prev => [data.notification, ...prev]);
+        return { success: true, message: data.message };
       }
+      return { success: false, message: data.error || 'فشل إرسال الإشعار' };
+    } catch (err) {
+      return { success: false, message: 'خطأ في الاتصال بالخادم.' };
+    }
+  };
+
+  // WhatsApp & SMS Trigger Generators
+  const getParentFullWhatsAppReport = (std) => {
+    if (!std) return '';
+    return encodeURIComponent(
+      `تقرير ولي أمر الطالب: ${std.name} 🎓\n` +
+      `📌 كود الطالب: ${std.code}\n` +
+      `📚 الصف: ${std.gradeName || 'الصف الثالث الثانوي'}\n` +
+      `💰 رصيد المحفظة: ${std.walletBalance || 0} ج.م\n` +
+      `🌟 النقاط والتفوق: ${std.points || 0} نقطة\n` +
+      `--------------------------------\n` +
+      `منصة عِلم التعليمية تتمنى لنجلكم دوام التفوق والنجاح ✨`
+    );
+  };
+
+  const getWhatsAppMsgText = (msg) => encodeURIComponent(msg);
+
+  const triggerWhatsAppSend = (phone, text) => {
+    const cleanPhone = (phone || '').replace(/[^0-9]/g, '');
+    const url = `https://wa.me/2${cleanPhone}?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  };
+
+  const triggerSmsSend = (phone, text) => {
+    const cleanPhone = (phone || '').replace(/[^0-9]/g, '');
+    const url = `sms:0${cleanPhone}?body=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  };
+
+  const broadcastNewLesson = (lesson) => {
+    const students = studentsDB.filter(s => s.grade === lesson.grade || lesson.grade === 'all');
+    return students.map(st => {
+      const cleanPhone = (st.phone || st.parentPhone || '').replace(/[^0-9]/g, '');
+      const msg = `أهلاً يا ${st.name} 👋\nتم رفع حصة جديدة بعنوان: "${lesson.title}" لمادة ${lesson.subject}.\nادخل الآن وشاهد الحصة على منصة عِلم 🚀\nhttps://elbashmohands.dev/`;
+      return {
+        studentName: st.name,
+        phone: cleanPhone,
+        whatsappUrl: `https://wa.me/2${cleanPhone}?text=${encodeURIComponent(msg)}`
+      };
     });
+  };
 
-    const total = quiz.questions.length;
-    const percentage = Math.round((correctCount / total) * 100);
-    const pointsEarned = percentage >= 80 ? (quiz.rewardPoints || 50) : 25;
-
+  const recordExamResult = async (quiz, answers, correctCount, total, percentage, pointsEarned) => {
+    if (!currentStudent) return { resultRecord: null, waPayload: null };
     try {
       const res = await fetch('/api/exams', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           quizId: quiz.id,
-          lessonId: quiz.lessonId,
           quizTitle: quiz.title,
+          studentName: currentStudent.name,
+          studentPhone: currentStudent.phone,
+          parentPhone: currentStudent.parentPhone,
           score: correctCount,
           total,
           percentage,
           pointsEarned,
-          passed: percentage >= 60,
-          status: percentage >= 80 ? 'ممتاز 🌟' : percentage >= 60 ? 'جيد 👍' : 'يحتاج مراجعة ❌',
-          userAnswers,
-          questions: quiz.questions
+          answers
         }),
         credentials: 'include'
       });
@@ -906,7 +683,6 @@ https://elbashmohands.dev`;
         const nextPoints = (currentStudent.points || 0) + pointsEarned;
         setCurrentStudent(prev => ({ ...prev, points: nextPoints }));
 
-        // Increment student points in Database
         await fetch(`/api/students/${currentStudent.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -951,7 +727,6 @@ https://elbashmohands.dev`;
         const createdObj = await res.json();
         setLessons(prev => [createdObj, ...prev]);
 
-        // Auto-fire in-platform notification when lesson is uploaded
         const gradeLabel = lessonData.grade === '3sec' ? 'ثالثة ثانوي' : lessonData.grade === '2sec' ? 'ثاني ثانوي' : 'أول ثانوي';
         const priceLabel = lessonData.price === 0 ? 'مجاناً 🎁' : `${lessonData.price} ج.م`;
         const subjectTag = (lessonData.subject || '').includes('عربي') ? 'arabic' : 'programming';
@@ -1002,9 +777,220 @@ https://elbashmohands.dev`;
     }
   };
 
+  // ═══ Live Sessions & Virtual Classroom Methods ═══
+  const fetchLiveSessions = async () => {
+    try {
+      const res = await fetch('/api/live');
+      if (res.ok) {
+        const data = await res.json();
+        setLiveSessionsDB(data);
+      }
+    } catch (err) {
+      console.error('Failed to load live sessions:', err);
+    }
+  };
+
+  const refreshLiveSession = async (id) => {
+    try {
+      const res = await fetch(`/api/live/${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setActiveLiveSession(data);
+        setLiveSessionsDB(prev => prev.map(s => s.id === id ? data : s));
+        return data;
+      }
+    } catch (err) {
+      console.error('Failed to refresh live session:', err);
+    }
+    return null;
+  };
+
+  const adminCreateLiveSession = async (sessionData) => {
+    try {
+      const res = await fetch('/api/live', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sessionData),
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setLiveSessionsDB(prev => [data.session, ...prev]);
+        return { success: true, session: data.session, message: data.message };
+      }
+      return { success: false, message: data.error || 'فشلت عملية إنشاء البث' };
+    } catch (err) {
+      return { success: false, message: 'خطأ في الاتصال بالخادم.' };
+    }
+  };
+
+  const adminUpdateLiveStatus = async (sessionId, status, recordingUrl = null, streamUrl = null) => {
+    try {
+      const res = await fetch(`/api/live/${sessionId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, recordingUrl, streamUrl }),
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setLiveSessionsDB(prev => prev.map(s => s.id === sessionId ? { ...s, status, ...(recordingUrl ? { recordingUrl } : {}), ...(streamUrl ? { streamUrl } : {}) } : s));
+        if (activeLiveSession?.id === sessionId) {
+          setActiveLiveSession(prev => ({ ...prev, status, ...(recordingUrl ? { recordingUrl } : {}), ...(streamUrl ? { streamUrl } : {}) }));
+        }
+        return { success: true, message: data.message };
+      }
+      return { success: false, message: data.error || 'فشل تحديث حالة البث' };
+    } catch (err) {
+      return { success: false, message: 'خطأ في الاتصال بالخادم.' };
+    }
+  };
+
+  const adminDeleteLiveSession = async (sessionId) => {
+    try {
+      const res = await fetch(`/api/live/${sessionId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setLiveSessionsDB(prev => prev.filter(s => s.id !== sessionId));
+        if (activeLiveSession?.id === sessionId) setActiveLiveSession(null);
+        return { success: true };
+      }
+      return { success: false, message: data.error || 'فشل حذف البث' };
+    } catch (err) {
+      return { success: false, message: 'خطأ في الاتصال بالخادم.' };
+    }
+  };
+
+  const adminBroadcastLiveAlert = async (sessionId, customMessage) => {
+    try {
+      const res = await fetch(`/api/live/${sessionId}/notify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ customMessage }),
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (data.inAppNotification) {
+          setNotifications(prev => [data.inAppNotification, ...prev]);
+        }
+        return { success: true, message: data.message, whatsappLinks: data.whatsappLinks, studentsCount: data.studentsCount };
+      }
+      return { success: false, message: data.error || 'فشل إرسال الإشعارات' };
+    } catch (err) {
+      return { success: false, message: 'خطأ في الاتصال بالخادم.' };
+    }
+  };
+
+  const sendLiveChatMessage = async (sessionId, text) => {
+    try {
+      const senderName = userRole === 'admin' 
+        ? (adminIdentity === 'mr_sayed' ? 'أ / سيد عبد العاطي 📖' : 'م / نور الدين 💻')
+        : (currentStudent?.name || 'طالب');
+      const senderRole = userRole === 'admin' ? 'teacher' : 'student';
+
+      const res = await fetch(`/api/live/${sessionId}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ senderName, senderRole, text }),
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setActiveLiveSession(prev => {
+          if (!prev || prev.id !== sessionId) return prev;
+          return {
+            ...prev,
+            chatMessages: [...(prev.chatMessages || []), data.message]
+          };
+        });
+        return { success: true, message: data.message };
+      }
+      return { success: false, message: data.error || 'فشل إرسال الرسالة' };
+    } catch (err) {
+      return { success: false, message: 'خطأ في الاتصال بالخادم.' };
+    }
+  };
+
+  const adminLaunchLivePoll = async (sessionId, pollData) => {
+    try {
+      const res = await fetch(`/api/live/${sessionId}/poll`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(pollData),
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setActiveLiveSession(prev => {
+          if (!prev || prev.id !== sessionId) return prev;
+          const polls = (prev.polls || []).map(p => ({ ...p, isActive: false }));
+          return { ...prev, polls: [...polls, data.poll] };
+        });
+        return { success: true, poll: data.poll, message: data.message };
+      }
+      return { success: false, message: data.error || 'فشل إطلاق السؤال' };
+    } catch (err) {
+      return { success: false, message: 'خطأ في الاتصال بالخادم.' };
+    }
+  };
+
+  const submitLivePollVote = async (sessionId, pollId, optionIndex) => {
+    try {
+      const res = await fetch(`/api/live/${sessionId}/poll/vote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pollId, optionIndex, studentId: currentStudent?.id }),
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setActiveLiveSession(prev => {
+          if (!prev || prev.id !== sessionId || !prev.polls) return prev;
+          const polls = prev.polls.map(p => {
+            if (p.id !== pollId) return p;
+            const votes = { ...(p.votes || {}) };
+            votes[optionIndex] = (votes[optionIndex] || 0) + 1;
+            return { ...p, votes, totalVotes: (p.totalVotes || 0) + 1 };
+          });
+          return { ...prev, polls };
+        });
+        return { success: true, message: data.message };
+      }
+      return { success: false, message: data.error || 'فشل تسجيل التصويت' };
+    } catch (err) {
+      return { success: false, message: 'خطأ في الاتصال بالخادم.' };
+    }
+  };
+
+  const sendHandRaiseRequest = async (sessionId) => {
+    try {
+      const res = await fetch(`/api/live/${sessionId}/hand-raise`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentId: currentStudent?.id || 'std_anon',
+          studentName: currentStudent?.name || 'طالب',
+          studentCode: currentStudent?.code || ''
+        }),
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        return { success: true, message: data.message };
+      }
+      return { success: false, message: data.error || 'فشل إرسال الطلب' };
+    } catch (err) {
+      return { success: false, message: 'خطأ في الاتصال بالخادم.' };
+    }
+  };
+
   if (loadingSession) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white font-black text-sm">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-900 dark:text-white font-black text-sm">
         جاري تهيئة منصة عِلم التعليمية... 💡⚙️
       </div>
     );
@@ -1068,7 +1054,21 @@ https://elbashmohands.dev`;
       adminDeleteNotification,
       theme,
       toggleTheme,
-      verifyDeviceOtp
+      verifyDeviceOtp,
+      // Live Broadcast values
+      liveSessionsDB,
+      activeLiveSession,
+      setActiveLiveSession,
+      fetchLiveSessions,
+      refreshLiveSession,
+      adminCreateLiveSession,
+      adminUpdateLiveStatus,
+      adminDeleteLiveSession,
+      adminBroadcastLiveAlert,
+      sendLiveChatMessage,
+      adminLaunchLivePoll,
+      submitLivePollVote,
+      sendHandRaiseRequest
     }}>
       {children}
     </AppContext.Provider>
