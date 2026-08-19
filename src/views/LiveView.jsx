@@ -685,6 +685,21 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
               </div>
             )}
 
+            {/* Teacher Hand-Raise Alert Notification */}
+            {isTeacher && currentSession?.handRaises && currentSession.handRaises.length > 0 && (
+              <div className="absolute top-16 left-4 z-50 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 p-3.5 rounded-2xl shadow-2xl flex items-center gap-3 animate-bounce border-2 border-white">
+                <span className="text-2xl">✋</span>
+                <div>
+                  <div className="text-xs font-black">
+                    {currentSession.handRaises[currentSession.handRaises.length - 1].studentName} يرفع يده!
+                  </div>
+                  <div className="text-[10px] font-bold">
+                    كود: {currentSession.handRaises[currentSession.handRaises.length - 1].studentCode || 'طالب'} • يريد المشاركة بالصوت
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Top Left Subject / Fullscreen Status */}
             <div className="absolute top-4 left-4 z-30 flex items-center gap-2 pointer-events-none">
               <span className="bg-black/60 backdrop-blur-md text-amber-400 px-3 py-1 rounded-full text-xs font-black border border-amber-500/20">
@@ -872,100 +887,53 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                 )
               ) : (
                 /* ====================================================
-                   واجهة الطالب بعد قبول دخوله في البث المباشر (استقبال الفيديو والصوت)
+                   قاعة البث التفاعلية المباشرة المدمجة (فيديو وصوت ثنائي الاتجاه)
                    ==================================================== */
-                <div className="relative w-full h-full min-h-[500px] flex items-center justify-center bg-black overflow-hidden">
-                  <video
-                    ref={remoteVideoRef}
-                    autoPlay
-                    playsInline
-                    className={`w-full h-full object-contain ${hasRemoteVideo ? 'block' : 'hidden'}`}
-                  />
+                (() => {
+                  const roomName = `elm_live_room_${currentSession.id}`;
+                  const pushId = isTeacher ? 'teacher_host' : `std_${studentCode || 'guest'}`;
+                  const userLabel = encodeURIComponent((isTeacher ? '👨‍🏫 ' : '🎓 ') + studentDisplayName);
+                  
+                  // Clean, 100% working WebRTC parameters with 2-way voice & video
+                  const streamSrc = isTeacher
+                    ? `https://vdo.ninja/?room=${roomName}&push=${pushId}&label=${userLabel}&webcam=1&mic=1&screenshare=1&autostart=1&order=1`
+                    : `https://vdo.ninja/?room=${roomName}&push=${pushId}&label=${userLabel}&webcam=1&mic=1&autostart=1&order=2`;
 
-                  {/* If waiting for teacher to start camera / screen */}
-                  {!hasRemoteVideo && (
-                    <div className="relative w-full h-full min-h-[520px] flex flex-col items-center justify-center p-6 md:p-10 text-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white space-y-6 animate-in fade-in">
-                      <div className="w-24 h-24 rounded-3xl bg-emerald-600/20 border-2 border-emerald-500/50 flex items-center justify-center text-5xl shadow-2xl animate-pulse">
-                        📡
-                      </div>
+                  return (
+                    <div className="relative w-full h-full min-h-[520px] flex flex-col bg-slate-950">
+                      <iframe
+                        src={streamSrc}
+                        title="استوديو البث المباشر المدمج"
+                        className="w-full h-full border-0 min-h-[520px]"
+                        allow="camera; microphone; display-capture; autoplay; clipboard-write; fullscreen; speaker; self *"
+                        allowFullScreen
+                      />
 
-                      <div className="space-y-2 max-w-lg">
-                        <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-black px-4 py-1.5 rounded-full">
-                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                          <span>تم قبول دخولك للحصة وأنت متصل الآن بنجاح ✓</span>
+                      {/* Floating In-Room Student Controls */}
+                      {!isTeacher && isAdmitted && (
+                        <div className="absolute top-4 right-4 left-4 z-40 flex items-center justify-between pointer-events-auto">
+                          <button
+                            onClick={onBack}
+                            className="bg-slate-900/90 hover:bg-slate-800 text-white text-xs font-black px-3.5 py-2 rounded-xl border border-slate-700 shadow-xl backdrop-blur-md flex items-center gap-1.5"
+                          >
+                            <ChevronRight className="w-4 h-4 rotate-180" />
+                            <span>مغادرة 🚪</span>
+                          </button>
+
+                          <button
+                            onClick={handleHandRaise}
+                            className={`text-xs font-black px-4 py-2 rounded-xl border shadow-xl backdrop-blur-md flex items-center gap-1.5 transition-all ${
+                              handRaised ? 'bg-amber-500 text-slate-950 border-amber-400 animate-pulse' : 'bg-slate-900/90 text-amber-400 border-amber-500/40 hover:bg-slate-800'
+                            }`}
+                          >
+                            <Hand className="w-4 h-4" />
+                            <span>{handRaised ? 'تم إرسال طلب المداخلة ✋' : 'رفع اليد ✋'}</span>
+                          </button>
                         </div>
-
-                        <h2 className="text-xl md:text-2xl font-black text-white">
-                          {currentSession.title}
-                        </h2>
-
-                        <p className="text-xs text-slate-300 font-bold leading-relaxed">
-                          المحاضر: <span className="text-amber-400 font-black">{currentSession.instructor}</span> • شاشة وكاميرا المعلم ستظهر تلقائياً فور بدء الشرح المباشر.
-                        </p>
-                      </div>
-
-                      <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl max-w-md w-full text-xs font-bold text-slate-300 flex items-center justify-between shadow-inner">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg">🎓</span>
-                          <span>{studentDisplayName}</span>
-                        </div>
-                        <span className="font-mono text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-lg">
-                          كود: {studentCode}
-                        </span>
-                      </div>
+                      )}
                     </div>
-                  )}
-
-                  {/* Floating Audio Unmute Prompt for Mobile/Browser Autoplay */}
-                  {isAudioMutedByBrowser && (
-                    <div className="absolute top-4 left-4 z-40">
-                      <button
-                        onClick={() => {
-                          if (remoteVideoRef.current) {
-                            remoteVideoRef.current.muted = false;
-                            remoteVideoRef.current.play().catch(e => {});
-                            setIsAudioMutedByBrowser(false);
-                          }
-                        }}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 animate-pulse border border-emerald-400"
-                      >
-                        <Volume2 className="w-4 h-4" />
-                        <span>تشغيل صوت المستر 🔊</span>
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Floating Student Bottom Bar */}
-                  <div className="absolute bottom-4 inset-x-4 z-40 flex items-center justify-between pointer-events-auto">
-                    <div className="flex items-center gap-2">
-                      <div className="bg-rose-600 text-white text-[11px] font-black px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg animate-pulse">
-                        <span className="w-2 h-2 rounded-full bg-white" />
-                        <span>بث مباشر حي</span>
-                      </div>
-                      <span className="text-xs font-bold text-white bg-black/60 px-3 py-1.5 rounded-full backdrop-blur-md hidden sm:inline">
-                        المحاضر: {currentSession.instructor}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={handleHandRaise}
-                        className={`text-xs font-black px-4 py-2 rounded-xl shadow-xl transition-all flex items-center gap-1.5 ${
-                          handRaised ? 'bg-amber-500 text-slate-950 animate-pulse' : 'bg-slate-900/90 text-amber-400 border border-amber-500/40 hover:bg-slate-800'
-                        }`}
-                      >
-                        <Hand className="w-4 h-4" />
-                        <span>{handRaised ? 'تم إرسال طلب المداخلة ✋' : 'رفع اليد ✋'}</span>
-                      </button>
-                      <button
-                        onClick={onBack}
-                        className="bg-slate-900/90 hover:bg-slate-800 text-white text-xs font-black px-3.5 py-2 rounded-xl border border-slate-700 shadow-xl flex items-center gap-1"
-                      >
-                        <span>مغادرة 🚪</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                  );
+                })()
               )}
 
               {/* Floating Reaction Animation Emojis */}
