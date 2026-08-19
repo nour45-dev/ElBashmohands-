@@ -182,6 +182,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
           teacherVideoRef.current.srcObject = stream;
         }
       }, 100);
+      broadcastTeacherOffer(stream);
     } catch (e) {
       alert('يرجى السماح بصلاحيات الكاميرا والمايك في المتصفح لبدء البث المباشر!');
     }
@@ -202,6 +203,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
           teacherVideoRef.current.srcObject = stream;
         }
       }, 100);
+      broadcastTeacherOffer(stream);
       stream.getVideoTracks()[0].onended = () => {
         setIsSharingScreen(false);
         setLocalStream(false);
@@ -210,6 +212,97 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
       console.log('Screen share cancelled');
     }
   };
+
+  // Broadcast WebRTC Offer from Teacher to Server
+  const broadcastTeacherOffer = async (stream) => {
+    try {
+      const pc = new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+      });
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+      
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      await fetch(`/api/live/${currentSession?.id}/signal/offer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sdp: offer.sdp, type: offer.type, isStreaming: true })
+      });
+    } catch (err) {
+      console.log('Error broadcasting teacher stream offer', err);
+    }
+  };
+
+  // Student Video & Audio Receiver State
+  const remoteVideoRef = useRef(null);
+  const studentPeerConnection = useRef(null);
+  const [hasRemoteVideo, setHasRemoteVideo] = useState(false);
+  const [isAudioMutedByBrowser, setIsAudioMutedByBrowser] = useState(true);
+
+  // Student WebRTC Receiver Listener
+  useEffect(() => {
+    if (isTeacher || !isAdmitted || !currentSession?.id) return;
+
+    let pc = null;
+    let isConnected = false;
+
+    const connectToTeacherStream = async () => {
+      try {
+        const offerRes = await fetch(`/api/live/${currentSession.id}/signal/offer`);
+        const offerData = await offerRes.json();
+        if (!offerData.success || !offerData.offer?.sdp) return;
+
+        if (isConnected && pc) return;
+
+        pc = new RTCPeerConnection({
+          iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+        });
+        studentPeerConnection.current = pc;
+
+        pc.ontrack = (event) => {
+          if (event.streams && event.streams[0]) {
+            if (remoteVideoRef.current) {
+              remoteVideoRef.current.srcObject = event.streams[0];
+              setHasRemoteVideo(true);
+            }
+          }
+        };
+
+        await pc.setRemoteDescription(new RTCSessionDescription({
+          sdp: offerData.offer.sdp,
+          type: offerData.offer.type
+        }));
+
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+
+        await fetch(`/api/live/${currentSession.id}/signal/answer`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            studentCode: studentCode || 'std_guest',
+            sdp: answer.sdp,
+            type: answer.type
+          })
+        });
+
+        isConnected = true;
+      } catch (err) {
+        console.log('WebRTC connect error', err);
+      }
+    };
+
+    connectToTeacherStream();
+    const interval = setInterval(connectToTeacherStream, 3000);
+
+    return () => {
+      clearInterval(interval);
+      if (pc) {
+        pc.close();
+      }
+    };
+  }, [isTeacher, isAdmitted, currentSession?.id]);
 
   const toggleMic = () => {
     if (activeMediaStream) {
@@ -779,48 +872,98 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                 )
               ) : (
                 /* ====================================================
-                   واجهة الطالب بعد قبول دخوله في البث المباشر
+                   واجهة الطالب بعد قبول دخوله في البث المباشر (استقبال الفيديو والصوت)
                    ==================================================== */
-                <div className="relative w-full h-full min-h-[520px] flex flex-col items-center justify-center p-6 md:p-10 text-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white space-y-6 animate-in fade-in">
-                  <div className="w-24 h-24 rounded-3xl bg-emerald-600/20 border-2 border-emerald-500/50 flex items-center justify-center text-5xl shadow-2xl">
-                    🎓
-                  </div>
+                <div className="relative w-full h-full min-h-[500px] flex items-center justify-center bg-black overflow-hidden">
+                  <video
+                    ref={remoteVideoRef}
+                    autoPlay
+                    playsInline
+                    className={`w-full h-full object-contain ${hasRemoteVideo ? 'block' : 'hidden'}`}
+                  />
 
-                  <div className="space-y-2 max-w-lg">
-                    <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-black px-4 py-1.5 rounded-full">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                      <span>تم قبول دخولك للحصة وأنت متصل الآن بنجاح ✓</span>
+                  {/* If waiting for teacher to start camera / screen */}
+                  {!hasRemoteVideo && (
+                    <div className="relative w-full h-full min-h-[520px] flex flex-col items-center justify-center p-6 md:p-10 text-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white space-y-6 animate-in fade-in">
+                      <div className="w-24 h-24 rounded-3xl bg-emerald-600/20 border-2 border-emerald-500/50 flex items-center justify-center text-5xl shadow-2xl animate-pulse">
+                        📡
+                      </div>
+
+                      <div className="space-y-2 max-w-lg">
+                        <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-black px-4 py-1.5 rounded-full">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                          <span>تم قبول دخولك للحصة وأنت متصل الآن بنجاح ✓</span>
+                        </div>
+
+                        <h2 className="text-xl md:text-2xl font-black text-white">
+                          {currentSession.title}
+                        </h2>
+
+                        <p className="text-xs text-slate-300 font-bold leading-relaxed">
+                          المحاضر: <span className="text-amber-400 font-black">{currentSession.instructor}</span> • شاشة وكاميرا المعلم ستظهر تلقائياً فور بدء الشرح المباشر.
+                        </p>
+                      </div>
+
+                      <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl max-w-md w-full text-xs font-bold text-slate-300 flex items-center justify-between shadow-inner">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">🎓</span>
+                          <span>{studentDisplayName}</span>
+                        </div>
+                        <span className="font-mono text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-lg">
+                          كود: {studentCode}
+                        </span>
+                      </div>
                     </div>
+                  )}
 
-                    <h2 className="text-xl md:text-2xl font-black text-white">
-                      {currentSession.title}
-                    </h2>
+                  {/* Floating Audio Unmute Prompt for Mobile/Browser Autoplay */}
+                  {isAudioMutedByBrowser && (
+                    <div className="absolute top-4 left-4 z-40">
+                      <button
+                        onClick={() => {
+                          if (remoteVideoRef.current) {
+                            remoteVideoRef.current.muted = false;
+                            remoteVideoRef.current.play().catch(e => {});
+                            setIsAudioMutedByBrowser(false);
+                          }
+                        }}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 animate-pulse border border-emerald-400"
+                      >
+                        <Volume2 className="w-4 h-4" />
+                        <span>تشغيل صوت المستر 🔊</span>
+                      </button>
+                    </div>
+                  )}
 
-                    <p className="text-xs text-slate-300 font-bold leading-relaxed">
-                      المحاضر: <span className="text-amber-400 font-black">{currentSession.instructor}</span> • شات الحصة المباشر والأسئلة والتصويت متاحين معك الآن.
-                    </p>
-                  </div>
-
-                  <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl max-w-md w-full text-xs font-bold text-slate-300 flex items-center justify-between shadow-inner">
+                  {/* Floating Student Bottom Bar */}
+                  <div className="absolute bottom-4 inset-x-4 z-40 flex items-center justify-between pointer-events-auto">
                     <div className="flex items-center gap-2">
-                      <span className="text-lg">🎓</span>
-                      <span>{studentDisplayName}</span>
+                      <div className="bg-rose-600 text-white text-[11px] font-black px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg animate-pulse">
+                        <span className="w-2 h-2 rounded-full bg-white" />
+                        <span>بث مباشر حي</span>
+                      </div>
+                      <span className="text-xs font-bold text-white bg-black/60 px-3 py-1.5 rounded-full backdrop-blur-md hidden sm:inline">
+                        المحاضر: {currentSession.instructor}
+                      </span>
                     </div>
-                    <span className="font-mono text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-lg">
-                      كود: {studentCode}
-                    </span>
-                  </div>
 
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={handleHandRaise}
-                      className={`px-6 py-3 rounded-2xl text-xs font-black flex items-center gap-2 shadow-xl transition-all ${
-                        handRaised ? 'bg-amber-500 text-slate-950 animate-pulse' : 'bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/40'
-                      }`}
-                    >
-                      <Hand className="w-4 h-4" />
-                      <span>{handRaised ? 'تم إرسال طلب المداخلة ✋' : 'رفع اليد لطلب إذن المعلم ✋'}</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleHandRaise}
+                        className={`text-xs font-black px-4 py-2 rounded-xl shadow-xl transition-all flex items-center gap-1.5 ${
+                          handRaised ? 'bg-amber-500 text-slate-950 animate-pulse' : 'bg-slate-900/90 text-amber-400 border border-amber-500/40 hover:bg-slate-800'
+                        }`}
+                      >
+                        <Hand className="w-4 h-4" />
+                        <span>{handRaised ? 'تم إرسال طلب المداخلة ✋' : 'رفع اليد ✋'}</span>
+                      </button>
+                      <button
+                        onClick={onBack}
+                        className="bg-slate-900/90 hover:bg-slate-800 text-white text-xs font-black px-3.5 py-2 rounded-xl border border-slate-700 shadow-xl flex items-center gap-1"
+                      >
+                        <span>مغادرة 🚪</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
