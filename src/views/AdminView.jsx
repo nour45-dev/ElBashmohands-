@@ -155,7 +155,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
     });
 
     if (res.success) {
-      setLiveSuccessMsg('تم إنشاء وبدء البث المباشر بنجاح! 🔴 جاري إرسال الإشعارات للطلاب وتجهيز روابط الواتساب...');
+      setLiveSuccessMsg('تم إنشاء وبدء قاعة البث المباشر بنجاح! 🔴 جاري فتح القاعة وإرسال الإشعارات للطلاب...');
       
       // Automatic Instant In-App Notification & WhatsApp Dispatcher
       const notifyRes = await adminBroadcastLiveAlert(res.session.id);
@@ -169,7 +169,12 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
       setNewLiveTitle('');
       setNewLiveDesc('');
       setNewLiveStreamUrl('');
-      setTimeout(() => setLiveSuccessMsg(null), 5000);
+
+      // Auto-navigate Teacher immediately into the Live Video Room (like Zoom)
+      setTimeout(() => {
+        if (setSelectedLiveId) setSelectedLiveId(res.session.id);
+        if (setCurrentTab) setCurrentTab('live');
+      }, 1000);
     } else {
       alert(res.message);
     }
@@ -996,6 +1001,18 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId }) => {
                         {/* Actions Control Buttons */}
                         <div className="flex flex-wrap items-center gap-2">
                           
+                          {/* Direct Enter Live Video Room Button */}
+                          <button
+                            onClick={() => {
+                              if (setSelectedLiveId) setSelectedLiveId(s.id);
+                              if (setCurrentTab) setCurrentTab('live');
+                            }}
+                            className="bg-rose-600 hover:bg-rose-500 text-white text-xs font-black px-4 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-1.5 hover:scale-105"
+                          >
+                            <Radio className="w-3.5 h-3.5" />
+                            <span>دخول قاعة البث (مثل Zoom) 🎥🚀</span>
+                          </button>
+
                           {/* Broadcast to Students Button */}
                           <button
                             onClick={() => handleBroadcastLive(s)}
