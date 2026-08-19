@@ -73,6 +73,74 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
   const [isTheater, setIsTheater] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
+  // In-Browser Native Camera & Screen Share Live Studio State (for Teacher)
+  const [localStream, setLocalStream] = useState(null);
+  const [isStreamingCamera, setIsStreamingCamera] = useState(false);
+  const [isSharingScreen, setIsSharingScreen] = useState(false);
+  const [isMicMuted, setIsMicMuted] = useState(false);
+  const localVideoRef = useRef(null);
+
+  const isTeacher = userRole === 'admin';
+
+  const startCameraStream = async () => {
+    try {
+      if (localStream) {
+        localStream.getTracks().forEach(t => t.stop());
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 }, audio: true });
+      setLocalStream(stream);
+      setIsStreamingCamera(true);
+      setIsSharingScreen(false);
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
+    } catch (e) {
+      alert('يرجى السماح بالوصول للكاميرا والمايك لبدء البث المباشر من المتصفح');
+    }
+  };
+
+  const startScreenShare = async () => {
+    try {
+      if (localStream) {
+        localStream.getTracks().forEach(t => t.stop());
+      }
+      const stream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" }, audio: true });
+      setLocalStream(stream);
+      setIsSharingScreen(true);
+      setIsStreamingCamera(false);
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
+      stream.getVideoTracks()[0].onended = () => {
+        stopLocalStream();
+      };
+    } catch (e) {
+      console.log('Screen share cancelled');
+    }
+  };
+
+  const stopLocalStream = () => {
+    if (localStream) {
+      localStream.getTracks().forEach(t => t.stop());
+      setLocalStream(null);
+    }
+    setIsStreamingCamera(false);
+    setIsSharingScreen(false);
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = null;
+    }
+  };
+
+  const toggleMic = () => {
+    if (localStream) {
+      const audioTrack = localStream.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        setIsMicMuted(!audioTrack.enabled);
+      }
+    }
+  };
+
   // Countdown timer calculation
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
 
@@ -272,14 +340,96 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
             
             {/* 1. Live Stream Active Mode */}
             {currentSession?.status === 'live' && (
-              <div className="w-full h-full relative">
-                <iframe
-                  src={formatVideoEmbedUrl(currentSession.streamUrl || 'https://www.youtube.com/watch?v=jfKfPfyJRdk')}
-                  title={currentSession.title}
-                  className="w-full h-full object-cover border-0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                />
+              <div className="w-full h-full relative flex items-center justify-center bg-slate-950">
+                {/* Check if Native In-Browser Studio or External Stream */}
+                {(currentSession.streamType === 'native' || isStreamingCamera || isSharingScreen) ? (
+                  <div className="w-full h-full relative flex items-center justify-center bg-slate-950">
+                    <video
+                      ref={localVideoRef}
+                      autoPlay
+                      playsInline
+                      muted={isTeacher}
+                      className={`w-full h-full object-contain ${(!localStream && isTeacher) ? 'hidden' : ''}`}
+                    />
+                    
+                    {/* Placeholder when teacher hasn't started camera yet */}
+                    {!localStream && isTeacher && (
+                      <div className="flex flex-col items-center justify-center p-6 text-center space-y-4 text-white">
+                        <div className="w-20 h-20 rounded-3xl bg-rose-600/20 border border-rose-500/40 flex items-center justify-center text-4xl shadow-2xl animate-pulse">
+                          🎥
+                        </div>
+                        <div className="space-y-1 max-w-md">
+                          <h3 className="text-lg font-black">استوديو البث المباشر الخاص بالمنصة 🔴</h3>
+                          <p className="text-xs text-slate-300 font-bold">
+                            اضغط على الزر أدناه لبدء تشغيل الكاميرا والمايك أو مشاركة شاشة كمبيوترك للشرح مباشرة للطلاب.
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                          <button
+                            onClick={startCameraStream}
+                            className="bg-rose-600 hover:bg-rose-500 text-white font-black text-xs px-6 py-3 rounded-2xl shadow-xl transition-all flex items-center gap-2 hover:scale-105"
+                          >
+                            <Radio className="w-4 h-4" />
+                            <span>تشغيل الكاميرا والمايك 📹</span>
+                          </button>
+                          <button
+                            onClick={startScreenShare}
+                            className="bg-blue-600 hover:bg-blue-500 text-white font-black text-xs px-6 py-3 rounded-2xl shadow-xl transition-all flex items-center gap-2 hover:scale-105"
+                          >
+                            <span>مشاركة شاشة الكمبيوتر 🖥️</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Placeholder for student if teacher stream is connecting */}
+                    {!localStream && !isTeacher && (
+                      <div className="flex flex-col items-center justify-center p-6 text-center space-y-3 text-white">
+                        <div className="w-16 h-16 rounded-2xl bg-rose-600/20 text-rose-400 flex items-center justify-center text-3xl animate-bounce">
+                          📡
+                        </div>
+                        <h3 className="text-base font-black">جاري استقبال بث المعلم المباشر... 🔴</h3>
+                        <p className="text-xs text-slate-400 font-bold">المحاضر متواجد بالقاعة، جهز أسئلتك وتفاعل عبر الشات.</p>
+                      </div>
+                    )}
+
+                    {/* Teacher Live In-Stream Controls Bar */}
+                    {isTeacher && localStream && (
+                      <div className="absolute top-4 left-4 z-40 flex items-center gap-2 bg-slate-900/90 backdrop-blur-md p-2 rounded-2xl border border-white/10 shadow-2xl">
+                        <button
+                          onClick={isStreamingCamera ? startScreenShare : startCameraStream}
+                          className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-black transition-all flex items-center gap-1.5"
+                        >
+                          {isStreamingCamera ? '🖥️ تبديل لمشاركة الشاشة' : '📹 تبديل للكاميرا'}
+                        </button>
+
+                        <button
+                          onClick={toggleMic}
+                          className={`px-3 py-1.5 rounded-xl text-[11px] font-black transition-all ${
+                            isMicMuted ? 'bg-rose-600 text-white' : 'bg-slate-800 text-slate-200 hover:bg-slate-700'
+                          }`}
+                        >
+                          {isMicMuted ? '🔇 المايك مكتوم' : '🎙️ المايك شغال'}
+                        </button>
+
+                        <button
+                          onClick={stopLocalStream}
+                          className="px-3 py-1.5 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-white text-[11px] font-black transition-all"
+                        >
+                          ⏹️ إيقاف البث
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <iframe
+                    src={formatVideoEmbedUrl(currentSession.streamUrl || 'https://www.youtube.com/watch?v=jfKfPfyJRdk')}
+                    title={currentSession.title}
+                    className="w-full h-full object-cover border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  />
+                )}
 
                 {/* Floating Anti-Piracy Watermark */}
                 <div 
