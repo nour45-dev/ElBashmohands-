@@ -849,8 +849,25 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
 
               {/* Stream Source Option */}
               <div className="md:col-span-2 space-y-2">
-                <label className="block text-xs font-black text-slate-700 dark:text-slate-300">نوع ومصدر البث المباشر 📡:</label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="block text-xs font-black text-slate-700 dark:text-slate-300">نوع ومصدر قاعة البث المباشر 📡:</label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div
+                    onClick={() => setNewLiveStreamType('google_meet')}
+                    className={`p-4 rounded-2xl border cursor-pointer transition-all space-y-1 ${
+                      newLiveStreamType === 'google_meet'
+                        ? 'bg-blue-500/10 border-blue-500 ring-2 ring-blue-500/20 text-blue-700 dark:text-blue-300'
+                        : 'bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-800 hover:border-slate-400'
+                    }`}
+                  >
+                    <div className="font-black text-xs sm:text-sm flex items-center gap-2">
+                      <Video className="w-4 h-4 text-blue-500" />
+                      <span>قاعة Google Meet 📹 (موصى به)</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed">
+                      رابط اجتماع Google Meet رسمي (كاميرا، مايك للطلاب، ومشاركة شاشة).
+                    </p>
+                  </div>
+
                   <div
                     onClick={() => setNewLiveStreamType('native')}
                     className={`p-4 rounded-2xl border cursor-pointer transition-all space-y-1 ${
@@ -861,10 +878,10 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                   >
                     <div className="font-black text-xs sm:text-sm flex items-center gap-2">
                       <Radio className="w-4 h-4 text-rose-500" />
-                      <span>استوديو المنصة المباشر 🎥 (موصى به)</span>
+                      <span>استوديو المنصة المباشر 🎥</span>
                     </div>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed">
-                      بث مباشر من كاميرا ومايك أو شاشة كمبيوترك بنقرة واحدة داخل المنصة بدون برامج خارجية.
+                      بث فيديو مباشر من متصفحك مباشرة بدون برامج.
                     </p>
                   </div>
 
@@ -872,20 +889,48 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                     onClick={() => setNewLiveStreamType('youtube_live')}
                     className={`p-4 rounded-2xl border cursor-pointer transition-all space-y-1 ${
                       newLiveStreamType === 'youtube_live'
-                        ? 'bg-blue-500/10 border-blue-500 ring-2 ring-blue-500/20 text-blue-700 dark:text-blue-300'
+                        ? 'bg-emerald-500/10 border-emerald-500 ring-2 ring-emerald-500/20 text-emerald-700 dark:text-emerald-300'
                         : 'bg-slate-50 dark:bg-slate-950 border-slate-300 dark:border-slate-800 hover:border-slate-400'
                     }`}
                   >
                     <div className="font-black text-xs sm:text-sm flex items-center gap-2">
-                      <LinkIcon className="w-4 h-4 text-blue-500" />
-                      <span>رابط بث خارجي 🔗 (YouTube Live / Vimeo / Zoom)</span>
+                      <LinkIcon className="w-4 h-4 text-emerald-500" />
+                      <span>رابط يوتيوب لايف / خارجي 🔗</span>
                     </div>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed">
-                      وضع رابط بث يوتيوب لايف أو برنامج OBS / RTMP جاهز مسبقاً.
+                      وضع رابط يوتيوب لايف أو زووم جاهز مسبقاً.
                     </p>
                   </div>
                 </div>
               </div>
+
+              {/* Google Meet Input & 1-Click Generator */}
+              {newLiveStreamType === 'google_meet' && (
+                <div className="md:col-span-2 p-4 rounded-2xl bg-blue-500/10 border border-blue-500/30 space-y-3 animate-in fade-in">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <label className="text-xs font-black text-blue-900 dark:text-blue-200">
+                      رابط اجتماع Google Meet المباشر (مثل meet.google.com/onk-ftnq-wrg):
+                    </label>
+                    <a
+                      href="https://meet.google.com/new"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-black px-3.5 py-1.5 rounded-xl shadow-xs transition-all flex items-center gap-1.5 self-start sm:self-auto"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>+ إنشاء رابط Google Meet جديد الآن 🚀</span>
+                    </a>
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={newLiveStreamUrl}
+                    onChange={(e) => setNewLiveStreamUrl(e.target.value)}
+                    placeholder="https://meet.google.com/onk-ftnq-wrg أو onk-ftnq-wrg"
+                    className="w-full bg-white dark:bg-slate-950 border border-blue-300 dark:border-blue-800 rounded-xl px-4 py-3 text-xs font-mono font-black text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none dir-ltr"
+                  />
+                </div>
+              )}
 
               {newLiveStreamType === 'youtube_live' && (
                 <div className="md:col-span-2 animate-in fade-in">
@@ -1193,6 +1238,109 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+          </div>
+
+          {/* ═══ Recorded Live Sessions Archive & Publishing to Student Cards ═══ */}
+          <div className="bg-white dark:bg-[#162534] p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-md space-y-6">
+            
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div>
+                <h3 className="font-black text-slate-900 dark:text-white text-base md:text-lg flex items-center gap-2">
+                  <span>📼 أرشيف الحصص المباشرة المسجلة ونشرها للطلاب</span>
+                  <span className="text-xs bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-mono px-2.5 py-0.5 rounded-full">
+                    {liveSessionsDB.filter(s => s.status === 'ended' || s.recordingUrl).length} تسجيل
+                  </span>
+                </h3>
+                <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5 font-bold">
+                  تحكم في تسجيلات الحصص بعد انتهائها، عدل روابط التسجيلات (Google Drive / YouTube)، وانشرها لتظهر في كروت الطلاب فوراً!
+                </p>
+              </div>
+            </div>
+
+            {liveSessionsDB.filter(s => s.status === 'ended' || s.recordingUrl).length === 0 ? (
+              <div className="text-center py-10 text-slate-400 space-y-2">
+                <div className="text-3xl">📼</div>
+                <p className="text-xs font-bold">لا توجد حصص منتهية أو مسجلة في الأرشيف حتى الآن.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {liveSessionsDB.filter(s => s.status === 'ended' || s.recordingUrl).map(session => (
+                  <div 
+                    key={session.id} 
+                    className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                        {session.subject} • {session.gradeName}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {session.scheduledAt ? new Date(session.scheduledAt).toLocaleDateString('ar-EG') : 'مسجل'}
+                      </span>
+                    </div>
+
+                    <h4 className="text-sm font-black text-slate-900 dark:text-white">
+                      {session.title}
+                    </h4>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-black text-slate-600 dark:text-slate-400 block">
+                        رابط تسجيل الحصة (Google Drive / YouTube / File):
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="url"
+                          defaultValue={session.recordingUrl || ''}
+                          placeholder="https://drive.google.com/... أو https://youtube.com/..."
+                          onBlur={(e) => {
+                            const newUrl = e.target.value.trim();
+                            if (newUrl !== session.recordingUrl) {
+                              adminUpdateLiveStatus(session.id, session.status, newUrl);
+                            }
+                          }}
+                          className="flex-1 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-slate-900 dark:text-white outline-none dir-ltr"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                      <button
+                        onClick={async () => {
+                          const newLessonObj = {
+                            id: `lesson_live_${session.id}`,
+                            title: `📼 تسجيل: ${session.title}`,
+                            description: session.description || `تسجيل الحصة المباشرة لمادة ${session.subject}`,
+                            videoUrl: session.recordingUrl || 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
+                            grade: session.grade,
+                            subject: session.subject === 'اللغة العربية' ? 'arabic' : 'programming',
+                            duration: '1 ساعة',
+                            price: 0,
+                            isFree: true
+                          };
+                          adminAddLesson(newLessonObj);
+                          alert('تم نشر تسجيل الحصة بنجاح في كروت المواد للطلاب! 🎉');
+                        }}
+                        className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-black px-4 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1.5"
+                      >
+                        <span>📤 نشر التسجيل في كروت الطلاب</span>
+                      </button>
+
+                      {session.recordingUrl && (
+                        <a
+                          href={session.recordingUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 text-slate-800 dark:text-slate-200 text-xs font-black px-3 py-2 rounded-xl transition-all flex items-center gap-1"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>مشاهدة</span>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
 
