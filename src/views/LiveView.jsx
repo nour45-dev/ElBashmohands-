@@ -215,96 +215,159 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
     }
   };
 
-  // Broadcast WebRTC Offer from Teacher to Server
-  const broadcastTeacherOffer = async (stream) => {
-    try {
-      const pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-      });
-      stream.getTracks().forEach(track => pc.addTrack(track, stream));
-      
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
+  // Load PeerJS once for rock-solid cross-device live streaming
+  useEffect(() => {
+    if (window.Peer) return;
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
+    script.async = true;
+    document.body.appendChild(script);
+  }, []);
 
-      await fetch(`/api/live/${currentSession?.id}/signal/offer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sdp: offer.sdp, type: offer.type, isStreaming: true })
+  const teacherPeerRef = useRef(null);
+  const activeStreamRef = useRef(null);
+
+  const startTeacherCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { width: { ideal: 1280 }, height: { ideal: 720 } }, 
+        audio: true 
       });
-    } catch (err) {
-      console.log('Error broadcasting teacher stream offer', err);
+      setActiveMediaStream(stream);
+      activeStreamRef.current = stream;
+      setLocalStream(true);
+      setIsSharingScreen(false);
+      setIsCameraOff(false);
+      setIsMicMuted(false);
+      setTimeout(() => {
+        if (teacherVideoRef.current) {
+          teacherVideoRef.current.srcObject = stream;
+        }
+      }, 100);
+      setupTeacherPeer(stream);
+    } catch (e) {
+      alert('يرجى السماح بصلاحيات الكاميرا والمايك في المتصفح لبدء البث المباشر!');
     }
+  };
+
+  const startTeacherScreen = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({ 
+        video: { cursor: "always" }, 
+        audio: true 
+      });
+      setActiveMediaStream(stream);
+      activeStreamRef.current = stream;
+      setLocalStream(true);
+      setIsSharingScreen(true);
+      setIsCameraOff(false);
+      setTimeout(() => {
+        if (teacherVideoRef.current) {
+          teacherVideoRef.current.srcObject = stream;
+        }
+      }, 100);
+      setupTeacherPeer(stream);
+      stream.getVideoTracks()[0].onended = () => {
+        setIsSharingScreen(false);
+        setLocalStream(false);
+      };
+    } catch (e) {
+      console.log('Screen share cancelled');
+    }
+  };
+
+  // Setup Teacher Live Broadcaster Peer
+  const setupTeacherPeer = (stream) => {
+    if (!window.Peer || !currentSession?.id) return;
+    const peerId = `elm_teacher_${currentSession.id.replace(/[^a-zA-Z0-9]/g, '_')}`;
+    
+    if (teacherPeerRef.current) {
+      teacherPeerRef.current.destroy();
+    }
+
+    const peer = new window.Peer(peerId);
+    teacherPeerRef.current = peer;
+
+    peer.on('open', (id) => {
+      console.log('Teacher live broadcast active on Peer ID:', id);
+    });
+
+    peer.on('call', (incomingCall) => {
+      console.log('Student connecting to live stream...');
+      incomingCall.answer(activeStreamRef.current || stream);
+    });
+
+    peer.on('error', (err) => {
+      console.log('Teacher Peer error (handled):', err);
+    });
   };
 
   // Student Video & Audio Receiver State
   const remoteVideoRef = useRef(null);
-  const studentPeerConnection = useRef(null);
+  const studentPeerRef = useRef(null);
   const [hasRemoteVideo, setHasRemoteVideo] = useState(false);
   const [isAudioMutedByBrowser, setIsAudioMutedByBrowser] = useState(true);
 
-  // Student WebRTC Receiver Listener
+  // Student PeerJS Receiver Listener
   useEffect(() => {
     if (isTeacher || !isAdmitted || !currentSession?.id) return;
 
-    let pc = null;
-    let isConnected = false;
+    let studentPeer = null;
+    let pollInterval = null;
 
-    const connectToTeacherStream = async () => {
-      try {
-        const offerRes = await fetch(`/api/live/${currentSession.id}/signal/offer`);
-        const offerData = await offerRes.json();
-        if (!offerData.success || !offerData.offer?.sdp) return;
+    const connectStudentToTeacher = () => {
+      if (!window.Peer) return;
+      const targetTeacherId = `elm_teacher_${currentSession.id.replace(/[^a-zA-Z0-9]/g, '_')}`;
+      
+      studentPeer = new window.Peer();
+      studentPeerRef.current = studentPeer;
 
-        if (isConnected && pc) return;
+      studentPeer.on('open', () => {
+        try {
+          // Create dummy silent audio track to initiate WebRTC handshake on mobile
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = ctx.createOscillator();
+          const dst = osc.connect(ctx.createMediaStreamDestination());
+          osc.start();
+          const dummyTrack = dst.stream.getAudioTracks()[0];
+          dummyTrack.enabled = false;
+          const dummyStream = new MediaStream([dummyTrack]);
 
-        pc = new RTCPeerConnection({
-          iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-        });
-        studentPeerConnection.current = pc;
-
-        pc.ontrack = (event) => {
-          if (event.streams && event.streams[0]) {
-            if (remoteVideoRef.current) {
-              remoteVideoRef.current.srcObject = event.streams[0];
-              setHasRemoteVideo(true);
-            }
+          const call = studentPeer.call(targetTeacherId, dummyStream);
+          if (call) {
+            call.on('stream', (teacherStream) => {
+              if (remoteVideoRef.current) {
+                remoteVideoRef.current.srcObject = teacherStream;
+                remoteVideoRef.current.play().catch(() => {});
+                setHasRemoteVideo(true);
+              }
+            });
           }
-        };
+        } catch (e) {
+          console.log('Student call init error:', e);
+        }
+      });
 
-        await pc.setRemoteDescription(new RTCSessionDescription({
-          sdp: offerData.offer.sdp,
-          type: offerData.offer.type
-        }));
-
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-
-        await fetch(`/api/live/${currentSession.id}/signal/answer`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            studentCode: studentCode || 'std_guest',
-            sdp: answer.sdp,
-            type: answer.type
-          })
-        });
-
-        isConnected = true;
-      } catch (err) {
-        console.log('WebRTC connect error', err);
-      }
+      studentPeer.on('error', (err) => {
+        console.log('Student peer connecting (will retry):', err.type);
+      });
     };
 
-    connectToTeacherStream();
-    const interval = setInterval(connectToTeacherStream, 3000);
+    const initTimer = setTimeout(connectStudentToTeacher, 1000);
+    pollInterval = setInterval(() => {
+      if (!hasRemoteVideo) {
+        connectStudentToTeacher();
+      }
+    }, 4000);
 
     return () => {
-      clearInterval(interval);
-      if (pc) {
-        pc.close();
+      clearTimeout(initTimer);
+      clearInterval(pollInterval);
+      if (studentPeer) {
+        studentPeer.destroy();
       }
     };
-  }, [isTeacher, isAdmitted, currentSession?.id]);
+  }, [isTeacher, isAdmitted, currentSession?.id, hasRemoteVideo]);
 
   const toggleMic = () => {
     if (activeMediaStream) {
