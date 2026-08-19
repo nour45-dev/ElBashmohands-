@@ -1,29 +1,56 @@
 {
   "students": [
     {
-      "id": "std_101",
-      "code": "ENG-101",
-      "name": "أحمد محمود العبد",
-      "email": "ahmed@bashmohandis.com",
-      "phone": "01012345678",
-      "parentPhone": "01198765432",
+      "id": "std_3003",
+      "code": "3003",
+      "name": "محمد أحمد علي",
+      "email": "student3003@elm.com",
+      "phone": "01040581954",
+      "parentPhone": "01040581954",
       "password": "$2b$10$6RHR0cZASLRzQYF2VoGbkuoM4IVRAw88uvImfCmTb/.UNixkoDWYS",
       "grade": "3sec",
       "gradeName": "الصف الثالث الثانوي (تانوية عامة)",
       "avatar": null,
-      "walletBalance": 0,
+      "walletBalance": 150,
+      "subscriptionStatus": "active",
+      "subscriptionType": "شهري",
+      "monthlyCreditsLeft": 8,
+      "points": 250,
+      "streakDays": 7,
+      "rank": 1,
+      "badges": [
+        {
+          "id": "b1",
+          "name": "عضو متميز 🚀",
+          "icon": "🚀",
+          "desc": "انضم لمنصة عِلم"
+        }
+      ]
+    },
+    {
+      "id": "std_1001",
+      "code": "1001",
+      "name": "أحمد محمود علي",
+      "email": "ahmed@elm.com",
+      "phone": "01002169889",
+      "parentPhone": "01002169889",
+      "password": "$2b$10$6RHR0cZASLRzQYF2VoGbkuoM4IVRAw88uvImfCmTb/.UNixkoDWYS",
+      "grade": "3sec",
+      "gradeName": "الصف الثالث الثانوي (تانوية عامة)",
+      "avatar": null,
+      "walletBalance": 100,
       "subscriptionStatus": "active",
       "subscriptionType": "شهري",
       "monthlyCreditsLeft": 8,
       "points": 120,
       "streakDays": 5,
-      "rank": 1,
+      "rank": 2,
       "badges": [
         {
           "id": "b1",
           "name": "عضو جديد 💻",
           "icon": "💻",
-          "desc": "انضم لمنصة الباشمهندس"
+          "desc": "انضم لمنصة عِلم"
         }
       ]
     }
@@ -31,137 +58,47 @@
   "lessons": [
     {
       "id": "les_demo_1",
-      "title": "مقدمة في لغة Python وكتابة أول برنامج",
+      "title": "مقدمة البرمجة وأساسيات لغة Python",
       "subject": "برمجة وعلوم الحاسب",
       "grade": "3sec",
       "duration": "45 دقيقة",
-      "price": 25,
-      "videoType": "url",
+      "price": 0,
+      "videoType": "youtube",
       "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-      "thumbnail": "https://images.unsplash.com/photo-1526379879527-8559ecfcaec0?auto=format&fit=crop&q=80&w=600",
-      "description": "شرح مبسط وممتع لأساسيات المتغيرات وعمليات الإدخال والإخراج في Python.",
+      "thumbnail": "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=800",
+      "description": "تعلم أساسيات البرمجة، المتغيرات، والجمل الشرطية بطريقة تفاعلية وممتعة مع التطبيق العملي.",
       "attachmentType": "pdf",
-      "attachmentPdf": "مذكرة_Python_الحصة_الأولى.pdf",
-      "attachmentFileUrl": null,
-      "viewsCount": 142,
-      "isUnlocked": false,
-      "attachedQuiz": {
-        "id": "qz_demo_1",
-        "title": "الامتحان الإلكتروني للحصة الأولى - لغة Python",
-        "rewardPoints": 50,
-        "durationMinutes": 20,
-        "questions": [
-          {
-            "id": 1,
-            "question": "أي من الكلمات التالية تستخدم لطباعة مخرجات في لغة Python؟",
-            "options": [
-              "echo",
-              "print()",
-              "Console.WriteLine()",
-              "printf()"
-            ],
-            "correctIndex": 1
-          },
-          {
-            "id": 2,
-            "question": "كيف يتم تعريف المتغير x بقيمة نصية في Python؟",
-            "options": [
-              "int x = \"Hello\"",
-              "x = \"Hello\"",
-              "var x = \"Hello\"",
-              "string x = \"Hello\""
-            ],
-            "correctIndex": 1
-          }
-        ]
-      }
+      "attachmentPdf": "ملخص_بايثون_الدرس_الاول.pdf",
+      "attachmentFileUrl": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
     },
     {
       "id": "les_demo_2",
-      "title": "شرح درس البلاغة - الكناية وأسرار الجمال",
+      "title": "شرح درس كان وأخواتها وكاد وأخواتها بالتفصيل",
       "subject": "اللغة العربية",
       "grade": "3sec",
-      "duration": "40 دقيقة",
+      "duration": "55 دقيقة",
       "price": 25,
-      "videoType": "url",
+      "videoType": "youtube",
       "videoUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-      "thumbnail": "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&q=80&w=600",
-      "description": "شرح تفصيلي لدرس الكناية وأنواعها (عن صفة، عن موصوف، عن نسبة) وتدريبات البلاغة للمرحلة الثانوية.",
+      "thumbnail": "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&q=80&w=800",
+      "description": "شرح مبسط لقواعد الأفعال الناسخة وحالات تقدم الخبر وأهم تكات الامتحان الوزاري.",
       "attachmentType": "pdf",
-      "attachmentPdf": "مذكرة_البلاغة_الكناية.pdf",
-      "attachmentFileUrl": null,
-      "viewsCount": 98,
-      "isUnlocked": false,
-      "attachedQuiz": {
-        "id": "qz_demo_2",
-        "title": "امتحان البلاغة الإلكتروني - درس الكناية",
-        "rewardPoints": 50,
-        "durationMinutes": 15,
-        "questions": [
-          {
-            "id": 1,
-            "question": "قال الشاعر: \"فما جازه جود ولا حل دونه ... ولكن يسير الجود حيث يسير\" — ما نوع الكناية هنا؟",
-            "options": [
-              "كناية عن صفة",
-              "كناية عن موصوف",
-              "كناية عن نسبة",
-              "استعارة تصريحية"
-            ],
-            "correctIndex": 2
-          }
-        ]
-      }
+      "attachmentPdf": "مذكرة_النحو_الافعال_الناسخة.pdf",
+      "attachmentFileUrl": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
     }
   ],
   "coupons": [
     {
-      "id": "coup_1",
-      "code": "BASHMO2026",
-      "type": "percent",
+      "code": "ELM2026",
+      "type": "fixed",
       "value": 50,
       "targetGrade": "all",
       "maxUses": 100,
-      "usedCount": 14,
-      "active": true
-    },
-    {
-      "id": "coup_2",
-      "code": "FREE100",
-      "type": "free",
-      "value": 100,
-      "targetGrade": "3sec",
-      "maxUses": 50,
-      "usedCount": 8,
-      "active": true
+      "usedCount": 0
     }
   ],
-  "payments": [
-    {
-      "id": "req_1001",
-      "studentId": "std_101",
-      "studentName": "أحمد محمود العبد",
-      "studentPhone": "01012345678",
-      "parentPhone": "01198765432",
-      "amount": 150,
-      "method": "instapay",
-      "refNumber": "INSTA-88741259",
-      "proofImage": "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&q=80&w=400",
-      "status": "pending",
-      "requestDate": "١١‏/٨‏/٢٠٢٦"
-    }
-  ],
-  "questions": [
-    {
-      "id": "q_101",
-      "lessonId": "les_demo_1",
-      "studentName": "أحمد محمود العبد",
-      "studentPhone": "01012345678",
-      "questionText": "يا باشمهندس ازاي أفرق بين List و Tuple في لغة Python؟",
-      "replyText": "أهلاً يا أحمد! الـ List قابلة للتعديل (mutable)، بينما الـ Tuple ثابته ولا يمكن تعديل عناصرها بعد إنشائها.",
-      "repliedAt": "منذ ساعتين",
-      "status": "answered"
-    }
-  ],
+  "payments": [],
+  "questions": [],
   "notifications": [
     {
       "id": "n1",
@@ -171,5 +108,92 @@
       "unread": false
     }
   ],
-  "exams": []
+  "exams": [],
+  "liveSessions": [
+    {
+      "id": "live_demo_1",
+      "title": "المراجعة النهائية الشاملة: فرع النحو وأسرار امتحان الثانوية العامة 🔴",
+      "instructor": "أ / سيد عبد العاطي",
+      "instructorId": "mr_sayed",
+      "subject": "اللغة العربية",
+      "grade": "3sec",
+      "gradeName": "الصف الثالث الثانوي (ثانوية عامة)",
+      "status": "live",
+      "scheduledAt": "2026-08-19T20:00:00",
+      "description": "بث مباشر تفاعلي لحل 150 فكرة امتحانية في النحو التراكمي وتدريبات البلاغة مع استقبال أسئلة الطلاب لحظة بلحظة.",
+      "streamType": "youtube_live",
+      "streamUrl": "https://www.youtube.com/watch?v=jfKfPfyJRdk",
+      "thumbnail": "https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&q=80&w=800",
+      "viewersCount": 342,
+      "likesCount": 189,
+      "chatMessages": [
+        {
+          "id": "c1",
+          "senderName": "أ / سيد عبد العاطي",
+          "senderRole": "teacher",
+          "text": "أهلاً بكم يا أبطال دفعة 2026! جهزوا كشكول الملاحظات سنبدأ بحل أصعب شواهد النحو الآن 🚀",
+          "timestamp": "منذ دقيقة",
+          "isPinned": true
+        },
+        {
+          "id": "c2",
+          "senderName": "محمد أحمد علي",
+          "senderRole": "student",
+          "text": "مستعدين يا مستر والصوت والصورة جودتهم ممتازة جداً ما شاء الله 🔥",
+          "timestamp": "منذ دقيقة"
+        },
+        {
+          "id": "c3",
+          "senderName": "أحمد محمود علي",
+          "senderRole": "student",
+          "text": "يا مستر ممكن توضيح الفرق بين لا النافية للجنس ولا العاطفة؟",
+          "timestamp": "الآن"
+        }
+      ],
+      "polls": [
+        {
+          "id": "poll_1",
+          "question": "ما نوع (لا) في جملة: «لا طالبَ علمٍ مهملٌ»؟",
+          "options": ["نافية للجنس عاملة", "نافية مهملة", "عاطفة", "ناهية جازمة"],
+          "correctIndex": 0,
+          "votes": { "0": 24, "1": 3, "2": 1, "3": 0 },
+          "totalVotes": 28,
+          "isActive": true,
+          "createdAt": "منذ 5 دقائق"
+        }
+      ],
+      "handRaises": [
+        {
+          "id": "hr_1",
+          "studentId": "std_3003",
+          "studentName": "محمد أحمد علي",
+          "studentCode": "3003",
+          "requestedAt": "الآن",
+          "status": "pending"
+        }
+      ],
+      "recordingUrl": null
+    },
+    {
+      "id": "live_demo_2",
+      "title": "ورشة عمل مباشرة: بناء تطبيق ذكاء اصطناعي تفاعلي بلغة Python 💻",
+      "instructor": "م / نور الدين",
+      "instructorId": "eng_nour",
+      "subject": "برمجة وعلوم الحاسب",
+      "grade": "3sec",
+      "gradeName": "الصف الثالث الثانوي (ثانوية عامة)",
+      "status": "scheduled",
+      "scheduledAt": "2026-08-20T19:00:00",
+      "description": "بث تدريبي عملي لكتابة كود حقيقي وبناء نموذج ذكاء اصطناعي متكامل خطوة بخطوة وتصحيح الأخطاء مباشرة.",
+      "streamType": "youtube_live",
+      "streamUrl": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      "thumbnail": "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=800",
+      "viewersCount": 0,
+      "likesCount": 95,
+      "chatMessages": [],
+      "polls": [],
+      "handRaises": [],
+      "recordingUrl": null
+    }
+  ]
 }
