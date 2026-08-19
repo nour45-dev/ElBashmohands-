@@ -28,7 +28,11 @@ import {
   ChevronRight,
   Video,
   Eye,
-  BellRing
+  BellRing,
+  Mic,
+  MicOff,
+  VideoOff,
+  Monitor
 } from 'lucide-react';
 
 export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
@@ -159,6 +163,73 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
   const [isCameraOff, setIsCameraOff] = useState(false);
   const [isSharingScreen, setIsSharingScreen] = useState(false);
   const [isUploadingRecording, setIsUploadingRecording] = useState(false);
+  const [activeMediaStream, setActiveMediaStream] = useState(null);
+  const teacherVideoRef = useRef(null);
+
+  const startTeacherCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { width: { ideal: 1280 }, height: { ideal: 720 } }, 
+        audio: true 
+      });
+      setActiveMediaStream(stream);
+      setLocalStream(true);
+      setIsSharingScreen(false);
+      setIsCameraOff(false);
+      setIsMicMuted(false);
+      setTimeout(() => {
+        if (teacherVideoRef.current) {
+          teacherVideoRef.current.srcObject = stream;
+        }
+      }, 100);
+    } catch (e) {
+      alert('يرجى السماح بصلاحيات الكاميرا والمايك في المتصفح لبدء البث المباشر!');
+    }
+  };
+
+  const startTeacherScreen = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({ 
+        video: { cursor: "always" }, 
+        audio: true 
+      });
+      setActiveMediaStream(stream);
+      setLocalStream(true);
+      setIsSharingScreen(true);
+      setIsCameraOff(false);
+      setTimeout(() => {
+        if (teacherVideoRef.current) {
+          teacherVideoRef.current.srcObject = stream;
+        }
+      }, 100);
+      stream.getVideoTracks()[0].onended = () => {
+        setIsSharingScreen(false);
+        setLocalStream(false);
+      };
+    } catch (e) {
+      console.log('Screen share cancelled');
+    }
+  };
+
+  const toggleMic = () => {
+    if (activeMediaStream) {
+      const audioTrack = activeMediaStream.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        setIsMicMuted(!audioTrack.enabled);
+      }
+    }
+  };
+
+  const toggleCamera = () => {
+    if (activeMediaStream) {
+      const videoTrack = activeMediaStream.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.enabled = !videoTrack.enabled;
+        setIsCameraOff(!videoTrack.enabled);
+      }
+    }
+  };
 
   // In-App Live Broadcast Recording Controller
   const [isRecording, setIsRecording] = useState(false);
@@ -187,7 +258,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
 
   const handleStartRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" }, audio: true });
+      const stream = activeMediaStream || await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" }, audio: true });
       recordedChunksRef.current = [];
       const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus' });
 
@@ -204,13 +275,12 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
         const file = new File([blob], `live_record_${currentSession.id}.webm`, { type: 'video/webm' });
 
         try {
-          // Automatic Upload to Server without manual link copying!
           const uploadRes = await uploadVideoFile(file);
           if (uploadRes?.url) {
             setRecordingSavedUrl(uploadRes.url);
             await adminUpdateLiveStatus(currentSession.id, currentSession.status, uploadRes.url);
             await refreshLiveSession(currentSession.id);
-            alert('تم تسجيل ورفع الحصة تلقائياً على السيرفر وحفظ الرابط بنجاح في أرشيف الأدمن! 💾🎉');
+            alert('تم تسجيل ورفع الحصة تلقائياً وحفظها في أرشيف الأدمن بنجاح! 💾🎉');
           } else {
             const videoUrl = URL.createObjectURL(blob);
             setRecordingSavedUrl(videoUrl);
@@ -236,12 +306,16 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
   const handleStopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
-      mediaRecorderRef.current.stream.getTracks().forEach(t => t.stop());
     }
   };
 
   const stopLocalStream = () => {
+    if (activeMediaStream) {
+      activeMediaStream.getTracks().forEach(t => t.stop());
+      setActiveMediaStream(null);
+    }
     setLocalStream(false);
+    setIsSharingScreen(false);
     handleStopRecording();
   };
 
@@ -606,19 +680,116 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
                   allowFullScreen
                 />
+              ) : isTeacher ? (
+                /* ====================================================
+                   استوديو المعلم المباشر المدمج داخل المنصة 100%
+                   ==================================================== */
+                localStream ? (
+                  <div className="relative w-full h-full min-h-[500px] flex items-center justify-center bg-black overflow-hidden">
+                    <video
+                      ref={teacherVideoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="w-full h-full object-contain"
+                    />
+
+                    {/* Floating In-Player Studio Toolbar */}
+                    <div className="absolute bottom-4 inset-x-4 z-40 flex flex-wrap items-center justify-center gap-2.5">
+                      <button
+                        onClick={toggleMic}
+                        className={`px-4 py-2.5 rounded-2xl text-xs font-black flex items-center gap-2 shadow-2xl transition-all ${
+                          isMicMuted ? 'bg-rose-600 text-white' : 'bg-slate-900/90 text-white border border-slate-700 hover:bg-slate-800'
+                        }`}
+                      >
+                        {isMicMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4 text-emerald-400" />}
+                        <span>{isMicMuted ? 'المايك مكتوم 🔇' : 'المايك يعمل 🎙️'}</span>
+                      </button>
+
+                      <button
+                        onClick={toggleCamera}
+                        className={`px-4 py-2.5 rounded-2xl text-xs font-black flex items-center gap-2 shadow-2xl transition-all ${
+                          isCameraOff ? 'bg-rose-600 text-white' : 'bg-slate-900/90 text-white border border-slate-700 hover:bg-slate-800'
+                        }`}
+                      >
+                        {isCameraOff ? <VideoOff className="w-4 h-4" /> : <Video className="w-4 h-4 text-blue-400" />}
+                        <span>{isCameraOff ? 'الكاميرا مغلقة 📷' : 'الكاميرا تعمل 📹'}</span>
+                      </button>
+
+                      <button
+                        onClick={isSharingScreen ? stopLocalStream : startTeacherScreen}
+                        className={`px-4 py-2.5 rounded-2xl text-xs font-black flex items-center gap-2 shadow-2xl transition-all ${
+                          isSharingScreen ? 'bg-indigo-600 text-white animate-pulse' : 'bg-slate-900/90 text-white border border-slate-700 hover:bg-slate-800'
+                        }`}
+                      >
+                        <Monitor className="w-4 h-4 text-indigo-400" />
+                        <span>{isSharingScreen ? 'مشاركة الشاشة تعمل 🖥️' : 'مشاركة الشاشة 🖥️'}</span>
+                      </button>
+
+                      <button
+                        onClick={isRecording ? handleStopRecording : handleStartRecording}
+                        className={`px-4 py-2.5 rounded-2xl text-xs font-black flex items-center gap-2 shadow-2xl transition-all ${
+                          isRecording ? 'bg-rose-600 text-white animate-pulse' : 'bg-slate-900/90 text-white border border-slate-700 hover:bg-slate-800'
+                        }`}
+                      >
+                        <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
+                        <span>{isRecording ? `تسجيل الحصة (${formatRecordingDuration(recordingSeconds)})` : 'تسجيل الحصة ⏺️'}</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="relative w-full h-full min-h-[520px] flex flex-col items-center justify-center p-6 md:p-10 text-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white space-y-6 animate-in fade-in">
+                    <div className="w-24 h-24 rounded-3xl bg-blue-600/20 border-2 border-blue-500/50 flex items-center justify-center text-5xl shadow-2xl animate-pulse">
+                      🎥
+                    </div>
+
+                    <div className="space-y-2 max-w-lg">
+                      <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-black px-4 py-1.5 rounded-full">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                        <span>استوديو البث المباشر المدمج جاهز للانطلاق ✓</span>
+                      </div>
+
+                      <h2 className="text-xl md:text-2xl font-black text-white">
+                        {currentSession.title}
+                      </h2>
+
+                      <p className="text-xs text-slate-300 font-bold leading-relaxed">
+                        المحاضر: <span className="text-amber-400 font-black">{currentSession.instructor}</span> • اختر طريقة البث لبدء الحصة مباشرة من متصفحك داخل المنصة بدون الحاجة لأي مواقع خارجية:
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-md">
+                      <button
+                        onClick={startTeacherCamera}
+                        className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white font-black text-xs md:text-sm py-4 rounded-2xl shadow-xl shadow-blue-600/30 transition-all flex items-center justify-center gap-2 hover:scale-[1.03]"
+                      >
+                        <Video className="w-5 h-5" />
+                        <span>تشغيل الكاميرا والمايك 📹</span>
+                      </button>
+
+                      <button
+                        onClick={startTeacherScreen}
+                        className="w-full bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-600 text-white font-black text-xs md:text-sm py-4 rounded-2xl shadow-xl shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 hover:scale-[1.03]"
+                      >
+                        <Monitor className="w-5 h-5" />
+                        <span>مشاركة الشاشة والشرح 🖥️</span>
+                      </button>
+                    </div>
+                  </div>
+                )
               ) : (
                 /* ====================================================
-                   قاعة Google Meet الرسمية الذكية المعتمدة 100%
+                   واجهة الطالب بعد قبول دخوله في البث المباشر
                    ==================================================== */
                 <div className="relative w-full h-full min-h-[520px] flex flex-col items-center justify-center p-6 md:p-10 text-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white space-y-6 animate-in fade-in">
-                  <div className="w-24 h-24 rounded-3xl bg-blue-600/20 border-2 border-blue-500/50 flex items-center justify-center text-5xl shadow-2xl animate-pulse">
-                    📹
+                  <div className="w-24 h-24 rounded-3xl bg-emerald-600/20 border-2 border-emerald-500/50 flex items-center justify-center text-5xl shadow-2xl">
+                    🎓
                   </div>
 
                   <div className="space-y-2 max-w-lg">
                     <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-black px-4 py-1.5 rounded-full">
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                      <span>قاعة Google Meet المباشرة مفعلة ومتاحة ✓</span>
+                      <span>تم قبول دخولك للحصة وأنت متصل الآن بنجاح ✓</span>
                     </div>
 
                     <h2 className="text-xl md:text-2xl font-black text-white">
@@ -626,7 +797,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                     </h2>
 
                     <p className="text-xs text-slate-300 font-bold leading-relaxed">
-                      المحاضر: <span className="text-amber-400 font-black">{currentSession.instructor}</span> • ادخل الآن إلى اجتماع Google Meet للتفاعل بالصوت والصورة ومشاركة الشاشة بأعلى جودة وبدون أي وقت محدد.
+                      المحاضر: <span className="text-amber-400 font-black">{currentSession.instructor}</span> • شات الحصة المباشر والأسئلة والتصويت متاحين معك الآن.
                     </p>
                   </div>
 
@@ -640,21 +811,17 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                     </span>
                   </div>
 
-                  <div className="flex flex-col items-center gap-3 w-full max-w-md">
-                    <a
-                      href={currentSession.streamUrl && currentSession.streamUrl.startsWith('http') ? currentSession.streamUrl : currentSession.streamUrl ? `https://${currentSession.streamUrl}` : 'https://meet.google.com/new'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white font-black text-sm py-4 rounded-2xl shadow-xl shadow-blue-600/30 transition-all flex items-center justify-center gap-2 hover:scale-[1.03] active:scale-95"
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleHandRaise}
+                      className={`px-6 py-3 rounded-2xl text-xs font-black flex items-center gap-2 shadow-xl transition-all ${
+                        handRaised ? 'bg-amber-500 text-slate-950 animate-pulse' : 'bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/40'
+                      }`}
                     >
-                      <Video className="w-5 h-5" />
-                      <span>{isTeacher ? 'فتح وبدء قاعة Google Meet كمعلم 👨‍🏫' : 'دخول Google Meet الآن 🚀'}</span>
-                    </a>
+                      <Hand className="w-4 h-4" />
+                      <span>{handRaised ? 'تم إرسال طلب المداخلة ✋' : 'رفع اليد لطلب إذن المعلم ✋'}</span>
+                    </button>
                   </div>
-
-                  <p className="text-[11px] text-slate-400 font-bold">
-                    💡 شات المنصة والأسئلة المباشرة والتصويت متاحين ومسجلين على حسابك تلقائياً.
-                  </p>
                 </div>
               )}
 
