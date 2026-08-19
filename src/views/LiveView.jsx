@@ -37,6 +37,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
     activeLiveSession, 
     setActiveLiveSession, 
     refreshLiveSession, 
+    adminUpdateLiveStatus,
     sendLiveChatMessage, 
     submitLivePollVote, 
     sendHandRaiseRequest, 
@@ -48,6 +49,20 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
 
   // Find target session or use first available
   const [currentSessionId, setCurrentSessionId] = useState(selectedLiveId || liveSessionsDB[0]?.id || 'live_demo_1');
+
+  useEffect(() => {
+    if (selectedLiveId) {
+      setCurrentSessionId(selectedLiveId);
+    } else if (liveSessionsDB.length > 0) {
+      const activeLive = liveSessionsDB.find(s => s.status === 'live');
+      if (activeLive) {
+        setCurrentSessionId(activeLive.id);
+      } else {
+        setCurrentSessionId(liveSessionsDB[0].id);
+      }
+    }
+  }, [selectedLiveId, liveSessionsDB]);
+
   const currentSession = liveSessionsDB.find(s => s.id === currentSessionId) || activeLiveSession || liveSessionsDB[0];
 
   // Tab: 'chat' | 'qa' | 'archive'
@@ -494,15 +509,25 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 pt-2">
-                  <a
-                    href="https://wa.me/201002169889"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 shadow-lg"
-                  >
-                    <span>طلب تذكير على الواتساب 📲</span>
-                  </a>
+                <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                  {isTeacher ? (
+                    <button
+                      onClick={() => adminUpdateLiveStatus(currentSession.id, 'live')}
+                      className="bg-rose-600 hover:bg-rose-500 text-white font-black text-xs px-6 py-3 rounded-2xl shadow-xl transition-all flex items-center gap-2 hover:scale-105 animate-pulse"
+                    >
+                      <Radio className="w-4 h-4" />
+                      <span>بدء وفتح قاعة الفيديو (مثل Zoom) الآن 🔴</span>
+                    </button>
+                  ) : (
+                    <a
+                      href="https://wa.me/201002169889"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 shadow-lg"
+                    >
+                      <span>طلب تذكير على الواتساب 📲</span>
+                    </a>
+                  )}
                 </div>
 
               </div>
