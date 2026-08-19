@@ -14,7 +14,8 @@ import {
   X,
   Code,
   Zap,
-  PhoneCall
+  PhoneCall,
+  Radio
 } from 'lucide-react';
 
 export const Navbar = ({ currentTab, setCurrentTab }) => {
@@ -29,13 +30,15 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
     currentGrade, 
     switchGrade,
     theme,
-    toggleTheme
+    toggleTheme,
+    liveSessionsDB = []
   } = useApp();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
   const unreadCount = notifications.filter(n => n.unread).length;
+  const isLiveActive = liveSessionsDB.some(s => s.status === 'live');
 
   return (
     <header className="sticky top-0 z-50 bg-white/95 dark:bg-[#0D1B2A]/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shadow-xs transition-colors">
@@ -62,6 +65,23 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
               >
                 <BookOpen className="w-4 h-4" />
                 الرئيسية
+              </button>
+
+              <button 
+                onClick={() => setCurrentTab('live')}
+                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${
+                  currentTab === 'live' 
+                    ? 'bg-rose-600 text-white shadow-md' 
+                    : isLiveActive 
+                      ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 animate-pulse font-black' 
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/60 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800/80'
+                }`}
+              >
+                <Radio className={`w-4 h-4 ${isLiveActive ? 'text-rose-500' : ''}`} />
+                <span>البث المباشر</span>
+                {isLiveActive && (
+                  <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                )}
               </button>
 
               <button 
@@ -169,124 +189,75 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
 
             {/* Notification Dropdown Panel */}
             {showNotifications && (
-              <div
-                className="absolute left-0 top-full mt-2 w-80 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-2xl z-50 overflow-hidden"
-                dir="rtl"
-              >
-                {/* Panel Header */}
-                <div className="bg-gradient-to-l from-amber-500 to-amber-400 px-4 py-3 flex items-center justify-between">
+              <div className="absolute left-0 mt-3 w-80 sm:w-96 bg-white dark:bg-[#162534] rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-700 py-3 z-50 animate-in fade-in zoom-in-95 duration-150">
+                <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-700/60 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Bell className="w-4 h-4 text-white" />
-                    <span className="text-white font-black text-sm">الإشعارات</span>
+                    <Bell className="w-4 h-4 text-amber-500" />
+                    <span className="text-xs font-black text-slate-800 dark:text-white">الإشعارات والتنبيهات</span>
                     {unreadCount > 0 && (
-                      <span className="bg-white/30 text-white text-[10px] font-black px-2 py-0.5 rounded-full">
+                      <span className="bg-red-500/10 text-red-600 text-[10px] font-black px-2 py-0.5 rounded-full">
                         {unreadCount} جديد
                       </span>
                     )}
                   </div>
-                  <button
-                    onClick={() => setShowNotifications(false)}
-                    className="text-white/70 hover:text-white text-lg font-black leading-none"
-                  >
-                    ×
-                  </button>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={markAllNotificationsAsRead}
+                      className="text-[11px] font-black text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      تحديد الكل كمقروء
+                    </button>
+                  )}
                 </div>
 
-                {/* Notifications List */}
-                <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 custom-scrollbar">
                   {notifications.length === 0 ? (
-                    <div className="py-8 text-center">
-                      <div className="text-2xl mb-2">🔔</div>
-                      <p className="text-slate-400 text-xs font-bold">لا توجد إشعارات حالياً</p>
+                    <div className="p-6 text-center text-slate-400 text-xs font-bold">
+                      لا توجد إشعارات حالياً 📭
                     </div>
                   ) : (
-                    notifications.map((n) => (
+                    notifications.map(n => (
                       <div
                         key={n.id}
                         onClick={() => markNotificationAsRead(n.id)}
-                        className={`px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/80 cursor-pointer transition-all ${n.unread ? 'bg-amber-50/60 dark:bg-amber-500/10' : ''}`}
+                        className={`p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer text-right ${n.unread ? 'bg-amber-500/5 dark:bg-amber-500/10' : ''}`}
                       >
-                        <div className="flex items-start gap-2.5">
-                          {/* Subject Badge */}
-                          <div className={`mt-0.5 w-8 h-8 rounded-xl flex items-center justify-center text-sm flex-shrink-0 ${
-                            n.subject === 'programming' ? 'bg-blue-100 text-blue-700' :
-                            n.subject === 'arabic' ? 'bg-amber-100 text-amber-700' :
-                            'bg-slate-100 text-slate-600'
-                          }`}>
-                            {n.subject === 'programming' ? '💻' : n.subject === 'arabic' ? '📖' : '📢'}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              {n.unread && <div className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />}
-                              <p className="font-black text-slate-900 text-xs leading-snug">{n.title}</p>
-                            </div>
-                            {n.body && <p className="text-slate-500 text-[11px] mt-0.5 leading-snug">{n.body}</p>}
-                            <div className="flex items-center gap-2 mt-1">
-                              {n.subject && (
-                                <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md ${
-                                  n.subject === 'programming' ? 'bg-blue-100 text-blue-700' :
-                                  n.subject === 'arabic' ? 'bg-amber-100 text-amber-700' :
-                                  'bg-slate-100 text-slate-500'
-                                }`}>
-                                  {n.subject === 'programming' ? '💻 البرمجة' : n.subject === 'arabic' ? '📖 العربي' : '📢 عام'}
-                                </span>
-                              )}
-                              <span className="text-[10px] text-slate-400">{n.time}</span>
-                            </div>
-                          </div>
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="font-black text-xs text-slate-800 dark:text-white flex items-center gap-1.5">
+                            {n.unread && <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />}
+                            {n.title}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-mono whitespace-nowrap">{n.time || 'الآن'}</span>
                         </div>
+                        <p className="text-[11px] text-slate-600 dark:text-slate-300 font-medium mt-1 leading-relaxed">
+                          {n.body}
+                        </p>
                       </div>
                     ))
                   )}
                 </div>
-
-                {/* Mark All Read */}
-                {unreadCount > 0 && (
-                  <div className="border-t border-slate-100 dark:border-slate-800 px-4 py-2.5">
-                    <button
-                      onClick={() => {
-                        markAllNotificationsAsRead();
-                        setShowNotifications(false);
-                      }}
-                      className="w-full text-center text-xs text-amber-600 font-black hover:text-amber-800 transition-all"
-                    >
-                      تعليم الكل كمقروء ✓
-                    </button>
-                  </div>
-                )}
               </div>
             )}
           </div>
 
-          {/* User Profile Neutral Avatar */}
-          <div className="flex items-center gap-2.5 bg-slate-100/90 dark:bg-[#162534] p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
-            <div className="w-8 h-8 rounded-xl bg-slate-900 dark:bg-amber-500 text-amber-400 dark:text-slate-950 flex items-center justify-center font-black text-xs shadow-xs">
-              {userRole === 'admin' ? '👨‍💻' : (student?.name?.[0] || '👤')}
-            </div>
-            <div className="hidden md:block text-right pr-1">
-              <div className="text-xs font-black text-slate-900 dark:text-white leading-none">
-                {userRole === 'admin' ? 'المعلم (الأدمن)' : (student?.name || 'جاري التحميل...')}
-              </div>
-              <div className="text-[10px] text-amber-600 dark:text-amber-400 font-mono font-bold mt-0.5">
-                {userRole === 'admin' ? 'الإدارة المركزية' : `كود: ${student?.code || '...'}`}
-              </div>
-            </div>
+          {/* Theme Toggle (Light / Dark Mode) */}
+          <button
+            onClick={toggleTheme}
+            className="p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all text-xs font-black flex items-center gap-1 shadow-2xs"
+            title="تبديل الوضع الليلي / النهاري"
+          >
+            {theme === 'light' ? '🌙' : '☀️'}
+          </button>
 
-            {/* Theme Toggle Button */}
-            <button 
-              onClick={toggleTheme}
-              title={theme === 'light' ? 'الوضع الداكن 🌙' : 'الوضع المضيء ☀️'}
-              className="p-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-amber-300 transition-all ml-1 text-sm leading-none border border-slate-200/80 dark:border-slate-700 shadow-2xs"
-            >
-              {theme === 'light' ? '🌙' : '☀️'}
-            </button>
-
-            <button 
+          {/* User Profile / Logout Button */}
+          <div className="flex items-center gap-2">
+            <button
               onClick={logoutUser}
+              className="p-2.5 rounded-xl border border-rose-200 dark:border-rose-900/40 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-all text-xs font-black flex items-center gap-1 shadow-2xs"
               title="تسجيل الخروج"
-              className="p-1.5 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-400 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-all mr-1"
             >
               <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">خروج</span>
             </button>
           </div>
 
@@ -302,7 +273,6 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
 
       </div>
 
-
       {/* Mobile Drawer Navigation Menu */}
       {mobileMenuOpen && (
         <div className="lg:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0D1B2A] p-4 space-y-2 animate-in slide-in-from-top duration-200">
@@ -314,6 +284,21 @@ export const Navbar = ({ currentTab, setCurrentTab }) => {
               >
                 <BookOpen className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 الرئيسية
+              </button>
+
+              <button 
+                onClick={() => { setCurrentTab('live'); setMobileMenuOpen(false); }}
+                className="w-full text-right px-4 py-3 rounded-xl text-xs font-extrabold bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-between border border-rose-500/30"
+              >
+                <div className="flex items-center gap-2">
+                  <Radio className="w-4 h-4 text-rose-500" />
+                  <span>البث المباشر</span>
+                </div>
+                {isLiveActive && (
+                  <span className="text-[10px] bg-rose-600 text-white px-2 py-0.5 rounded-full font-black animate-pulse">
+                    مباشر الآن 🔴
+                  </span>
+                )}
               </button>
 
               <button 
