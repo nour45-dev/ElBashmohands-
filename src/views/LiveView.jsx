@@ -597,7 +597,57 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                     </>
                   )}
                 </div>
-              ) : currentSession.streamType === 'youtube_live' && currentSession.streamUrl && !currentSession.streamUrl.includes('platform_native') && !currentSession.streamUrl.includes('meet.google') ? (
+              ) : (currentSession.streamType === 'google_meet' || (currentSession.streamUrl && currentSession.streamUrl.includes('meet.google.com'))) ? (
+                /* ====================================================
+                   قاعة Google Meet الرسمية الذكية المدمجة
+                   ==================================================== */
+                <div className="relative w-full h-full min-h-[520px] flex flex-col items-center justify-center p-6 md:p-10 text-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white space-y-6 animate-in fade-in">
+                  <div className="w-24 h-24 rounded-3xl bg-blue-600/20 border-2 border-blue-500/50 flex items-center justify-center text-5xl shadow-2xl animate-pulse">
+                    📹
+                  </div>
+
+                  <div className="space-y-2 max-w-lg">
+                    <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-black px-4 py-1.5 rounded-full">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                      <span>قاعة Google Meet المباشرة جاهزة ومفعلة ✓</span>
+                    </div>
+
+                    <h2 className="text-xl md:text-2xl font-black text-white">
+                      {currentSession.title}
+                    </h2>
+
+                    <p className="text-xs text-slate-300 font-bold leading-relaxed">
+                      المحاضر: <span className="text-amber-400 font-black">{currentSession.instructor}</span> • يمكنك الآن الانضمام للاجتماع والتحدث مع المدرس وفتح الكاميرا ومشاركة الشاشة بجودة فائقة بدون أي انقطاع.
+                    </p>
+                  </div>
+
+                  <div className="bg-slate-900/90 border border-slate-800 p-4 rounded-2xl max-w-md w-full text-xs font-bold text-slate-300 flex items-center justify-between shadow-inner">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">🎓</span>
+                      <span>{studentDisplayName}</span>
+                    </div>
+                    <span className="font-mono text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-lg">
+                      كود: {studentCode}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-md">
+                    <a
+                      href={currentSession.streamUrl && currentSession.streamUrl.startsWith('http') ? currentSession.streamUrl : `https://${currentSession.streamUrl || 'meet.google.com/new'}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white font-black text-sm py-4 rounded-2xl shadow-xl shadow-blue-600/30 transition-all flex items-center justify-center gap-2 hover:scale-[1.03] active:scale-95"
+                    >
+                      <Video className="w-5 h-5" />
+                      <span>{isTeacher ? 'فتح وبدء قاعة Google Meet كمعلم 👨‍🏫' : 'دخول Google Meet الآن 🚀'}</span>
+                    </a>
+                  </div>
+
+                  <p className="text-[11px] text-slate-400 font-bold">
+                    💡 شات المنصة والأسئلة المباشرة والتصويت متاحين بجانبك ومسجلين على حسابك تلقائياً.
+                  </p>
+                </div>
+              ) : currentSession.streamType === 'youtube_live' && currentSession.streamUrl && !currentSession.streamUrl.includes('platform_native') ? (
                 /* External YouTube / Stream if selected */
                 <iframe
                   src={formatVideoEmbedUrl(currentSession.streamUrl)}
@@ -607,19 +657,12 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                   allowFullScreen
                 />
               ) : (() => {
-                  const roomName = 'elm_live_' + currentSession.id;
-                  const pushId = isTeacher ? 'teacher_host' : ('std_' + (studentCode || 'guest'));
-                  const userLabel = encodeURIComponent((isTeacher ? '👨‍🏫 ' : '🎓 ') + studentDisplayName);
-                  
-                  // Unlimited 100% Free Room URL (No 5-minute limits, No accounts needed)
-                  const liveRoomUrl = isTeacher
-                    ? `https://vdo.ninja/?room=${roomName}&push=${pushId}&label=${userLabel}&webcam=1&mic=1&screenshare=1&autostart=1&order=1&vd=0`
-                    : `https://vdo.ninja/?room=${roomName}&push=${pushId}&label=${userLabel}&webcam=1&mic=1&autostart=1&order=2&vd=0`;
+                  const freeJitsiUrl = `https://meet.ffrn.de/elm-live-${currentSession.id}#config.prejoinPageEnabled=false&config.disableDeepLinking=true&config.startWithVideoMuted=false&config.startWithAudioMuted=false&config.subject=${encodeURIComponent(currentSession.title || 'حصة مباشرة')}&userInfo.displayName=${encodeURIComponent((isTeacher ? '👨‍🏫 ' : '🎓 ') + studentDisplayName)}`;
 
                   return (
                     <div className="relative w-full h-full flex flex-col bg-slate-950">
                       <iframe
-                        src={liveRoomUrl}
+                        src={freeJitsiUrl}
                         title="قاعة البث المباشر المجانية"
                         className="w-full h-full border-0 min-h-[540px]"
                         allow="camera; microphone; display-capture; autoplay; clipboard-write; fullscreen; speaker; self *"
