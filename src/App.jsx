@@ -12,6 +12,7 @@ import { WalletView } from './views/WalletView';
 import { GamificationView } from './views/GamificationView';
 import { AdminView } from './views/AdminView';
 import { ParentView } from './views/ParentView';
+import { LiveView } from './views/LiveView';
 import { NotificationBanner } from './components/NotificationBanner';
 
 // Error Boundary to prevent crashes
@@ -61,6 +62,21 @@ const MainContent = () => {
   const { isAuthenticated, userRole } = useApp();
   const [currentTab, setCurrentTab] = useState(userRole === 'parent' ? 'parent-view' : 'home');
   const [selectedLessonId, setSelectedLessonId] = useState('');
+  const [selectedLiveId, setSelectedLiveId] = useState('');
+
+  // Check URL params for direct live link entry (?live=...)
+  React.useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const liveParam = params.get('live');
+      if (liveParam) {
+        setSelectedLiveId(liveParam);
+        setCurrentTab('live');
+      }
+    } catch (e) {
+      console.error('URL param parse error:', e);
+    }
+  }, []);
 
   React.useEffect(() => {
     if (userRole === 'parent' && currentTab !== 'parent-view') {
@@ -88,7 +104,16 @@ const MainContent = () => {
         {currentTab === 'home' && (
           <HomeView 
             setCurrentTab={setCurrentTab} 
-            setSelectedLessonId={setSelectedLessonId} 
+            setSelectedLessonId={setSelectedLessonId}
+            setSelectedLiveId={setSelectedLiveId}
+          />
+        )}
+
+        {currentTab === 'live' && (
+          <LiveView
+            selectedLiveId={selectedLiveId}
+            onBack={() => setCurrentTab('home')}
+            onSelectLive={(id) => setSelectedLiveId(id)}
           />
         )}
 
@@ -120,6 +145,7 @@ const MainContent = () => {
           <AdminView 
             setCurrentTab={setCurrentTab} 
             setSelectedLessonId={setSelectedLessonId} 
+            setSelectedLiveId={setSelectedLiveId}
           />
         )}
 
@@ -139,7 +165,7 @@ const MainContent = () => {
 };
 
 export default function App() {
-  return ( 
+  return (
     <ErrorBoundary>
       <AppProvider>
         <MainContent />
