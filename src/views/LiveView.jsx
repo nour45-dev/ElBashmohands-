@@ -597,9 +597,18 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                     </>
                   )}
                 </div>
-              ) : (currentSession.streamType === 'google_meet' || (currentSession.streamUrl && currentSession.streamUrl.includes('meet.google.com'))) ? (
+              ) : (currentSession.streamType === 'youtube_live' && currentSession.streamUrl && (currentSession.streamUrl.includes('youtube.com') || currentSession.streamUrl.includes('youtu.be') || currentSession.streamUrl.includes('vimeo.com'))) ? (
+                /* External YouTube / Stream if selected */
+                <iframe
+                  src={formatVideoEmbedUrl(currentSession.streamUrl)}
+                  title={currentSession.title}
+                  className="w-full h-full object-cover border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+                  allowFullScreen
+                />
+              ) : (
                 /* ====================================================
-                   قاعة Google Meet الرسمية الذكية المدمجة
+                   قاعة Google Meet الرسمية الذكية المعتمدة 100%
                    ==================================================== */
                 <div className="relative w-full h-full min-h-[520px] flex flex-col items-center justify-center p-6 md:p-10 text-center bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white space-y-6 animate-in fade-in">
                   <div className="w-24 h-24 rounded-3xl bg-blue-600/20 border-2 border-blue-500/50 flex items-center justify-center text-5xl shadow-2xl animate-pulse">
@@ -609,7 +618,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                   <div className="space-y-2 max-w-lg">
                     <div className="inline-flex items-center gap-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-black px-4 py-1.5 rounded-full">
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                      <span>قاعة Google Meet المباشرة جاهزة ومفعلة ✓</span>
+                      <span>قاعة Google Meet المباشرة مفعلة ومتاحة ✓</span>
                     </div>
 
                     <h2 className="text-xl md:text-2xl font-black text-white">
@@ -617,7 +626,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                     </h2>
 
                     <p className="text-xs text-slate-300 font-bold leading-relaxed">
-                      المحاضر: <span className="text-amber-400 font-black">{currentSession.instructor}</span> • يمكنك الآن الانضمام للاجتماع والتحدث مع المدرس وفتح الكاميرا ومشاركة الشاشة بجودة فائقة بدون أي انقطاع.
+                      المحاضر: <span className="text-amber-400 font-black">{currentSession.instructor}</span> • ادخل الآن إلى اجتماع Google Meet للتفاعل بالصوت والصورة ومشاركة الشاشة بأعلى جودة وبدون أي وقت محدد.
                     </p>
                   </div>
 
@@ -631,9 +640,9 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                     </span>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-md">
+                  <div className="flex flex-col items-center gap-3 w-full max-w-md">
                     <a
-                      href={currentSession.streamUrl && currentSession.streamUrl.startsWith('http') ? currentSession.streamUrl : `https://${currentSession.streamUrl || 'meet.google.com/new'}`}
+                      href={currentSession.streamUrl && currentSession.streamUrl.startsWith('http') ? currentSession.streamUrl : currentSession.streamUrl ? `https://${currentSession.streamUrl}` : 'https://meet.google.com/new'}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-600 text-white font-black text-sm py-4 rounded-2xl shadow-xl shadow-blue-600/30 transition-all flex items-center justify-center gap-2 hover:scale-[1.03] active:scale-95"
@@ -644,51 +653,10 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                   </div>
 
                   <p className="text-[11px] text-slate-400 font-bold">
-                    💡 شات المنصة والأسئلة المباشرة والتصويت متاحين بجانبك ومسجلين على حسابك تلقائياً.
+                    💡 شات المنصة والأسئلة المباشرة والتصويت متاحين ومسجلين على حسابك تلقائياً.
                   </p>
                 </div>
-              ) : currentSession.streamType === 'youtube_live' && currentSession.streamUrl && !currentSession.streamUrl.includes('platform_native') ? (
-                /* External YouTube / Stream if selected */
-                <iframe
-                  src={formatVideoEmbedUrl(currentSession.streamUrl)}
-                  title={currentSession.title}
-                  className="w-full h-full object-cover border-0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
-                  allowFullScreen
-                />
-              ) : (() => {
-                  const freeJitsiUrl = `https://meet.ffrn.de/elm-live-${currentSession.id}#config.prejoinPageEnabled=false&config.disableDeepLinking=true&config.startWithVideoMuted=false&config.startWithAudioMuted=false&config.subject=${encodeURIComponent(currentSession.title || 'حصة مباشرة')}&userInfo.displayName=${encodeURIComponent((isTeacher ? '👨‍🏫 ' : '🎓 ') + studentDisplayName)}`;
-
-                  return (
-                    <div className="relative w-full h-full flex flex-col bg-slate-950">
-                      <iframe
-                        src={freeJitsiUrl}
-                        title="قاعة البث المباشر المجانية"
-                        className="w-full h-full border-0 min-h-[540px]"
-                        allow="camera; microphone; display-capture; autoplay; clipboard-write; fullscreen; speaker; self *"
-                        allowFullScreen
-                      />
-                      {!isTeacher && isAdmitted && (
-                        <div className="absolute top-4 right-4 left-4 z-40 flex items-center justify-between pointer-events-auto">
-                          <button
-                            onClick={onBack}
-                            className="bg-slate-900/90 hover:bg-slate-800 text-white text-xs font-black px-3.5 py-2 rounded-xl border border-slate-700 shadow-xl backdrop-blur-md flex items-center gap-1.5"
-                          >
-                            <ChevronRight className="w-4 h-4 rotate-180" />
-                            <span>مغادرة القاعة 🚪</span>
-                          </button>
-                          <button
-                            onClick={handleHandRaise}
-                            className={`text-xs font-black px-3.5 py-2 rounded-xl border shadow-xl backdrop-blur-md flex items-center gap-1.5 ${handRaised ? 'bg-amber-500 text-slate-950 border-amber-400 animate-pulse' : 'bg-slate-900/90 text-amber-400 border-amber-500/40'}`}
-                          >
-                            <Hand className="w-4 h-4" />
-                            <span>{handRaised ? 'تم رفع يدك ✋' : 'رفع اليد ✋'}</span>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
+              )}
 
               {/* Floating Reaction Animation Emojis */}
               <div className="absolute inset-0 pointer-events-none z-30 overflow-hidden">
