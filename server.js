@@ -2106,6 +2106,156 @@ app.post('/api/live/:id/hand-raise', async (req, res) => {
   }
 });
 
+// Active viewers memory map: sessionId -> Map(userCode -> lastPingTime)
+const livePresenceMap = new Map();
+
+// Student ask to join (Google Meet Waiting Room)
+app.post('/api/live/:id/join-request', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { studentId, studentName, studentCode, studentPhone } = req.body;
+
+    const requestObj = {
+      id: `req_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      studentId: studentId || 'std_anon',
+      studentName: studentName || 'طالب',
+      studentCode: studentCode || '3001',
+      studentPhone: studentPhone || '',
+      status: 'pending', // 'pending' | 'admitted' | 'rejected'
+      requestedAt: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })
+    };
+
+    if (dbType === 'mongodb') {
+      const session = await db.collection('liveSessions').findOne({ id });
+      const existing = session?.joinRequests?.find(r => r.studentCode === studentCode);
+      if (existing) {
+        return res.json({ success: true, request: existing });
+      }
+      await db.collection('liveSessions').updateOne({ id }, { $push: { joinRequests: requestObj } });
+    } else {
+      const data = getLocalData();
+      if (!data.liveSessions) data.liveSessions = [];
+      const idx = data.liveSessions.findIndex(s => s.id === id);
+      if (idx !== -1) {
+        if (!data.liveSessions[idx].joinRequests) data.liveSessions[idx].joinRequests = [];
+        const existing = data.liveSessions[idx].joinRequests.find(r => r.studentCode === studentCode);
+        if (existing) {
+          return res.json({ success: true, request: existing });
+        }
+        data.liveSessions[idx].joinRequests.push(requestObj);
+        writeLocalData(data);
+      }
+    }
+
+    return res.json({ success: true, request: requestObj, message: 'تم إرسال طلب الانضمام للمعلم بنجاح! ⏳' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Teacher admit or reject student join request
+app.post('/api/live/:id/admit', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { requestId, allow } = req.body;
+    const newStatus = allow ? 'admitted' : 'rejected';
+
+    if (dbType === 'mongodb') {
+      await db.collection('liveSessions').updateOne(
+        { id, "joinRequests.id": requestId },
+        { $set: { "joinRequests.$.status": newStatus } }
+      );
+    } else {
+      const data = getLocalData();
+      if (!data.liveSessions) data.liveSessions = [];
+      const sIdx = data.liveSessions.findIndex(s => s.id === id);
+      if (sIdx !== -1 && data.liveSessions[sIdx].joinRequests) {
+        const rIdx = data.liveSessions[sIdx].joinRequests.findIndex(r => r.id === requestId);
+        if (rIdx !== -1) {
+          data.liveSessions[sIdx].joinRequests[rIdx].status = newStatus;
+          writeLocalData(data);
+        }
+      }
+    }
+
+    return res.json({ success: true, status: newStatus, message: allow ? 'تم السماح للطالب بالدخول ✅' : 'تم رفض طلب الدخول ❌' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Teacher admit all pending students at once
+app.post('/api/live/:id/admit-all', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (dbType === 'mongodb') {
+      await db.collection('liveSessions').updateOne(
+        { id },
+        { $set: { "joinRequests.$[elem].status": 'admitted' } },
+        { arrayFilters: [{ "elem.status": 'pending' }] }
+      );
+    } else {
+      const data = getLocalData();
+      if (!data.liveSessions) data.liveSessions = [];
+      const sIdx = data.liveSessions.findIndex(s => s.id === id);
+      if (sIdx !== -1 && data.liveSessions[sIdx].joinRequests) {
+        data.liveSessions[sIdx].joinRequests.forEach(r => {
+          if (r.status === 'pending') r.status = 'admitted';
+        });
+        writeLocalData(data);
+      }
+    }
+
+    return res.json({ success: true, message: 'تم السماح لجميع الطلاب بالدخول بنجاح! 🚀' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Heartbeat & Real-time Live Presence Tracking (Counts exact actual viewers online)
+app.post('/api/live/:id/heartbeat', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userKey, userName, userRole } = req.body;
+    const key = userKey || req.ip || 'anon';
+
+    if (!livePresenceMap.has(id)) {
+      livePresenceMap.set(id, new Map());
+    }
+    const sessionPresence = livePresenceMap.get(id);
+    const now = Date.now();
+    sessionPresence.set(key, { time: now, name: userName, role: userRole });
+
+    // Clean up viewers inactive for > 25 seconds
+    for (const [k, val] of sessionPresence.entries()) {
+      if (now - val.time > 25000) {
+        sessionPresence.delete(k);
+      }
+    }
+
+    const actualCount = sessionPresence.size;
+
+    // Update in DB/file so active viewer count is 100% real
+    if (dbType === 'mongodb') {
+      await db.collection('liveSessions').updateOne({ id }, { $set: { viewersCount: actualCount } });
+    } else {
+      const data = getLocalData();
+      if (data.liveSessions) {
+        const s = data.liveSessions.find(x => x.id === id);
+        if (s) {
+          s.viewersCount = actualCount;
+          writeLocalData(data);
+        }
+      }
+    }
+
+    return res.json({ success: true, viewersCount: actualCount });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // Serve static files from dist folder
 app.use(express.static(path.join(__dirname, 'dist')));
 
