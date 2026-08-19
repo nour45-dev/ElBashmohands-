@@ -30,9 +30,8 @@ export const NotificationBanner = () => {
   const unreadCount = relevantNotifs.length;
 
   useEffect(() => {
-    // Check permanent localStorage flag to ensure welcome/onboarding notification is shown only once
-    const hasSeenWelcome = localStorage.getItem(`has_seen_welcome_${studentKey}`);
-    if (unreadCount > 0 && userRole === 'student' && !hasSeenWelcome) {
+    // Show banner if there's any unread notification (especially live broadcasts)
+    if (unreadCount > 0 && userRole === 'student') {
       setVisible(true);
       setCurrentIdx(0);
     }
@@ -135,6 +134,19 @@ export const NotificationBanner = () => {
             <ChevronRight className="w-4 h-4" />
             السابق
           </button>
+
+          {/* Live Action Button if Live Alert */}
+          {(current.actionTab === 'live' || current.title?.includes('بث') || current.title?.includes('🔴')) && (
+            <button
+              onClick={() => {
+                markAllRead();
+                window.location.href = `/?live=${current.actionId || ''}`;
+              }}
+              className="bg-rose-600 hover:bg-rose-500 text-white font-black text-xs px-4 py-2 rounded-xl shadow-md transition-all flex items-center gap-1 animate-pulse"
+            >
+              <span>دخول البث الآن 🚀</span>
+            </button>
+          )}
 
           {currentIdx < relevantNotifs.length - 1 ? (
             <button
