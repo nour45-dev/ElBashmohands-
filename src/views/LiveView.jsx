@@ -278,20 +278,35 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
 
       studentPeer.on('open', () => {
         try {
-          // Create dummy silent audio track to initiate WebRTC handshake on mobile
+          // Create dummy audio and video tracks to force WebRTC to negotiate BOTH video & audio
           const ctx = new (window.AudioContext || window.webkitAudioContext)();
           const osc = ctx.createOscillator();
           const dst = osc.connect(ctx.createMediaStreamDestination());
           osc.start();
-          const dummyTrack = dst.stream.getAudioTracks()[0];
-          dummyTrack.enabled = false;
-          const dummyStream = new MediaStream([dummyTrack]);
+          const dummyAudioTrack = dst.stream.getAudioTracks()[0];
+          dummyAudioTrack.enabled = false;
+
+          const canvas = document.createElement('canvas');
+          canvas.width = 640;
+          canvas.height = 360;
+          const ctx2d = canvas.getContext('2d');
+          ctx2d.fillStyle = '#181a1b';
+          ctx2d.fillRect(0, 0, 640, 360);
+          const canvasStream = canvas.captureStream(15);
+          const dummyVideoTrack = canvasStream.getVideoTracks()[0];
+          dummyVideoTrack.enabled = false;
+
+          const dummyStream = new MediaStream([dummyAudioTrack, dummyVideoTrack]);
 
           const call = studentPeer.call(targetTeacherId, dummyStream);
           if (call) {
             call.on('stream', (teacherStream) => {
+              console.log('Teacher stream received with tracks:', teacherStream.getTracks().map(t => t.kind));
               if (remoteVideoRef.current) {
                 remoteVideoRef.current.srcObject = teacherStream;
+                remoteVideoRef.current.onloadedmetadata = () => {
+                  remoteVideoRef.current.play().catch(e => console.log('Autoplay play error', e));
+                };
                 remoteVideoRef.current.play().catch(() => {});
                 setHasRemoteVideo(true);
               }
