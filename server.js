@@ -1972,6 +1972,30 @@ app.delete('/api/live/:id', requireAdmin, async (req, res) => {
   }
 });
 
+// ═══ WhatsApp Business Cloud API Configuration ═══
+// Set these env vars on Railway to enable FULLY AUTOMATIC WhatsApp sending:
+//   WHATSAPP_TOKEN    = your Meta permanent access token
+//   WHATSAPP_PHONE_ID = your WhatsApp Business phone number ID
+const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN || '';
+const WHATSAPP_PHONE_ID = process.env.WHATSAPP_PHONE_ID || '';
+
+async function sendWhatsAppMessage(toPhone, messageText) {
+  if (!WHATSAPP_TOKEN || !WHATSAPP_PHONE_ID) return { sent: false, reason: 'not_configured' };
+  let intlPhone = String(toPhone).replace(/[^0-9]/g, '');
+  if (intlPhone.startsWith('0')) intlPhone = '2' + intlPhone;
+  if (!intlPhone.startsWith('20')) intlPhone = '20' + intlPhone;
+  try {
+    const resp = await fetch(`https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_ID}/messages`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messaging_product: 'whatsapp', to: intlPhone, type: 'text', text: { body: messageText } })
+    });
+    const data = await resp.json();
+    if (data.messages && data.messages.length > 0) return { sent: true, messageId: data.messages[0].id };
+    return { sent: false, reason: data.error?.message || 'unknown' };
+  } catch (err) { return { sent: false, reason: err.message }; }
+}
+
 // Admin broadcast WhatsApp & in-app notification to all registered students
 app.post('/api/live/:id/notify', requireAdmin, async (req, res) => {
   try {
@@ -2023,7 +2047,33 @@ app.post('/api/live/:id/notify', requireAdmin, async (req, res) => {
     const senderName = isSayed ? 'أ / سيد عبد العاطي' : 'م / نور الدين';
     const senderPhone = isSayed ? '01094273996' : '01002169889';
 
-    // 3. Generate customized WhatsApp links for every registered student
+    // 3. AUTOMATIC WhatsApp sending via Cloud API (if configured)
+    const isWhatsAppConfigured = !!(WHATSAPP_TOKEN && WHATSAPP_PHONE_ID);
+    let sentCount = 0;
+    let failedCount = 0;
+
+    if (isWhatsAppConfigured) {
+      console.log(`[WhatsApp Auto-Send] Sending to ${students.length} students...`);
+      for (const st of students) {
+        const phone = st.phone || st.parentPhone;
+        if (!phone) { failedCount++; continue; }
+        const cleanPhone = normalizePhone(phone);
+        const studentName = st.name || 'طالبنا العزيز';
+        const joinUrl = `https://elbashmohands.dev/?live=${session.id}`;
+        const msgText =
+          `أهلاً يا ${studentName} 👋\n\n` +
+          `🔴 *حصة بث مباشر هامة الآن على منصة عِلم*\n` +
+          `📖 *العنوان:* ${session.title}\n` +
+          `👨‍🏫 *المحاضر:* ${senderName}\n` +
+          `📚 *المادة:* ${session.subject}\n\n` +
+          `🚀 *ادخل فوراً:* ${joinUrl}\n\nبالتوفيق! ✨`;
+        const result = await sendWhatsAppMessage(cleanPhone, msgText);
+        if (result.sent) sentCount++; else failedCount++;
+      }
+      console.log(`[WhatsApp Auto-Send] Done: ${sentCount} sent, ${failedCount} failed`);
+    }
+
+    // 4. Generate manual WhatsApp links as fallback
     const whatsappLinks = students.map(st => {
       const studentName = st.name || 'طالبنا العزيز';
       const phone = st.phone || st.parentPhone;
@@ -2050,9 +2100,16 @@ app.post('/api/live/:id/notify', requireAdmin, async (req, res) => {
       };
     });
 
+    const autoMsg = isWhatsAppConfigured
+      ? `✅ تم إرسال ${sentCount} رسالة واتساب أوتوماتيك بنجاح من السيرفر مباشرة إلى الطلاب (فشل: ${failedCount}) من رقم ${senderName} (${senderPhone})! 🚀📱`
+      : `📲 تم إرسال إشعار داخل المنصة لجميع الطلاب (${students.length} طالب). لتفعيل الإرسال الأوتوماتيك عبر واتساب بدون تدخل، أضف WHATSAPP_TOKEN و WHATSAPP_PHONE_ID في إعدادات Railway.`;
+
     return res.json({
       success: true,
-      message: `تم إرسال إشعار وتنبيه البث المباشر بنجاح إلى جميع الطلاب (${students.length} طالب مسجل) من رقم ${senderName} (${senderPhone})! 🚀📱`,
+      message: autoMsg,
+      isWhatsAppAutoSent: isWhatsAppConfigured,
+      autoSentCount: sentCount,
+      autoFailedCount: failedCount,
       inAppNotification: newNotif,
       studentsCount: students.length,
       senderName,
