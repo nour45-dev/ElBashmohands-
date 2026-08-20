@@ -81,6 +81,8 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
   // Broadcast Modal State
   const [broadcastModal, setBroadcastModal] = useState(null); // { lessonTitle, links: [{studentName, phone, whatsappUrl}] }
   const [smsModal, setSmsModal] = useState(null); // { phone, msgText, whatsappFallbackUrl }
+  const [isAutoSending, setIsAutoSending] = useState(false);
+  const [autoSendProgress, setAutoSendProgress] = useState(0);
 
   const [adminTab, setAdminTab] = useState('videos');
   const [searchTerm, setSearchTerm] = useState('');
@@ -2635,14 +2637,14 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
       {/* ═══ Broadcast Modal (WhatsApp to All Students) ═══ */}
       {broadcastModal && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-lg w-full space-y-4 shadow-2xl border border-slate-200 animate-in zoom-in-95">
+          <div className="bg-white rounded-3xl p-6 max-w-lg w-full space-y-4 shadow-2xl border border-slate-200 animate-in zoom-in-95" dir="rtl">
             <div className="flex items-center justify-between border-b pb-3">
               <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-black">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center text-xl font-black">
                   💬
                 </div>
                 <div>
-                  <h4 className="font-black text-sm text-slate-900">إرسال إشعار الحصة الجديدة للطلاب 📲</h4>
+                  <h4 className="font-black text-sm text-slate-900">إرسال وتوجيه تنبيه البث للطلاب 📲</h4>
                   <p className="text-[10px] text-slate-500 font-bold">{broadcastModal.lessonTitle}</p>
                 </div>
               </div>
@@ -2651,41 +2653,106 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
               </button>
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 p-3 rounded-2xl text-xs text-blue-900 font-bold flex items-start gap-2">
-              <span className="text-base">📱</span>
-              <span>تأكد إنك بتبعت من رقم المنصة: <strong dir="ltr">01002169889</strong> — افتح كل رابط من موبايلك وابعت الرسالة</span>
+            {/* Dynamic Instructor Identity Info */}
+            <div className="bg-blue-50 border border-blue-200 p-3 rounded-2xl text-xs text-blue-900 font-bold flex items-center gap-2.5 shadow-2xs">
+              <span className="text-xl">📱</span>
+              <div>
+                <div>المرسل: <strong className="text-blue-700">{isSayedAdmin ? 'أ / سيد عبد العاطي' : 'م / نور الدين'}</strong></div>
+                <div className="text-[11px] text-blue-600 font-mono">رقم الواتساب: {isSayedAdmin ? '01094273996' : '01002169889'}</div>
+              </div>
             </div>
 
-            <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl text-xs text-emerald-800 font-medium">
-              تم تجهيز روابط إرسال الواتساب لـ <strong>{broadcastModal.links.length} طالب</strong> مسجل بالسيستم! اضغط على زر الإرسال لكل طالب:
-            </div>
+            {/* ⚡ ONE-CLICK AUTO-DISPATCH ALL BUTTON */}
+            <div className="space-y-2">
+              <button
+                onClick={() => {
+                  if (broadcastModal.links.length === 0) return;
+                  setIsAutoSending(true);
+                  setAutoSendProgress(0);
+                  
+                  broadcastModal.links.forEach((item, index) => {
+                    setTimeout(() => {
+                      window.open(item.whatsappUrl, '_blank');
+                      setAutoSendProgress(index + 1);
+                      if (index === broadcastModal.links.length - 1) {
+                        setTimeout(() => {
+                          setIsAutoSending(false);
+                          alert(`✅ تم فتح وإرسال روابط الواتساب بنجاح لجميع الطلاب (${broadcastModal.links.length} طالب)!`);
+                        }, 500);
+                      }
+                    }, index * 800);
+                  });
+                }}
+                disabled={isAutoSending}
+                className="w-full bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-500 hover:to-emerald-600 text-white font-black text-xs py-3.5 px-4 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+              >
+                <Send className="w-4 h-4" />
+                <span>
+                  {isAutoSending 
+                    ? `جاري الإرسال التلقائي: ${autoSendProgress} / ${broadcastModal.links.length}...`
+                    : `⚡ إرسال تلقائي فوري لجميع الطلاب (${broadcastModal.links.length} طالب) دفعة واحدة 🚀`}
+                </span>
+              </button>
 
-            <div className="max-h-60 overflow-y-auto space-y-2">
-              {broadcastModal.links.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between bg-slate-50 border border-slate-200 p-2.5 rounded-xl text-xs">
-                  <div>
-                    <div className="font-black text-slate-900">{item.studentName}</div>
-                    <div className="text-[10px] text-slate-500 font-mono">{item.phone}</div>
-                  </div>
-                  <a
-                    href={item.whatsappUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-black px-3 py-1.5 rounded-xl text-[11px] flex items-center gap-1 shadow-sm transition-all"
-                  >
-                    <span>إرسال واتساب</span>
-                    <Send className="w-3 h-3" />
-                  </a>
+              {/* Progress bar if auto-sending */}
+              {isAutoSending && (
+                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                  <div 
+                    className="bg-emerald-500 h-2 transition-all duration-300 rounded-full"
+                    style={{ width: `${(autoSendProgress / broadcastModal.links.length) * 100}%` }}
+                  />
                 </div>
-              ))}
+              )}
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
+            {/* 📢 ONE-CLICK GROUP BROADCAST BUTTON */}
+            <a
+              href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
+                `🔴 *تنبيه هام وعاجل من منصة عِلم التعليمية*\n\n` +
+                `📖 *الحصة:* ${broadcastModal.lessonTitle}\n` +
+                `👨‍🏫 *المحاضر:* ${isSayedAdmin ? 'أ / سيد عبد العاطي' : 'م / نور الدين'}\n` +
+                `📞 *رقم التواصل:* ${isSayedAdmin ? '01094273996' : '01002169889'}\n\n` +
+                `🚀 *اضغط على الرابط التالي للدخول فوراً لحصة البث المباشر:*\n` +
+                `https://elbashmohands.dev\n\n` +
+                `بالتوفيق لجميع أبطالنا الطلاب! ✨`
+              )}`}
+              target="_blank"
+              rel="noreferrer"
+              className="w-full bg-slate-900 hover:bg-slate-800 text-amber-400 border border-amber-500/30 font-black text-xs py-2.5 px-4 rounded-2xl transition-all flex items-center justify-center gap-2 shadow-sm"
+            >
+              <span>📢 نشر الرسالة في جروب واتساب الطلاب العام بضغطة واحدة</span>
+            </a>
+
+            {/* Individual Student Links List (Optional Manual Fallback) */}
+            <div className="border-t pt-3 space-y-1.5">
+              <div className="text-[11px] font-bold text-slate-500">أو يمكنك الإرسال الفردي لكل طالب يدوياً:</div>
+              <div className="max-h-44 overflow-y-auto space-y-1.5 custom-scrollbar">
+                {broadcastModal.links.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between bg-slate-50 border border-slate-200 p-2 rounded-xl text-xs">
+                    <div>
+                      <div className="font-black text-slate-900 text-[11px]">{item.studentName}</div>
+                      <div className="text-[10px] text-slate-500 font-mono">{item.phone}</div>
+                    </div>
+                    <a
+                      href={item.whatsappUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1 rounded-lg text-[10px] flex items-center gap-1 shadow-2xs transition-all"
+                    >
+                      <span>إرسال</span>
+                      <Send className="w-2.5 h-2.5" />
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-1 border-t">
               <button
                 onClick={() => setBroadcastModal(null)}
                 className="btn-primary text-xs font-black py-2.5 px-6 rounded-xl"
               >
-                تم الإرسال / إغلاق
+                إغلاق النافذة ✓
               </button>
             </div>
           </div>
