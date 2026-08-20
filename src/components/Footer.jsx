@@ -4,7 +4,7 @@ import { ElmLogo } from './ElmLogo';
 
 export const Footer = ({ setCurrentTab }) => {
   return (
-    <footer className="bg-slate-900 text-slate-300 pt-14 pb-8 border-t border-slate-800">
+    <footer className="bg-slate-950 text-slate-300 pt-14 pb-8 border-t border-slate-800 dark">
       <div className="container">
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 pb-10 border-b border-slate-800">
