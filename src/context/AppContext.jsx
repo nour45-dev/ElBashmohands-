@@ -153,6 +153,32 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // Real-time automatic background synchronization for live broadcasts & notifications
+  useEffect(() => {
+    const liveSyncInterval = setInterval(async () => {
+      try {
+        const [resLive, resNotif] = await Promise.all([
+          fetch('/api/live'),
+          fetch('/api/notifications')
+        ]);
+        if (resLive.ok) {
+          const liveData = await resLive.json();
+          setLiveSessionsDB(liveData);
+        }
+        if (resNotif.ok) {
+          const notifData = await resNotif.json();
+          const readIds = JSON.parse(localStorage.getItem('read_notif_ids') || '[]');
+          setNotifications(notifData.map(n => ({
+            ...n,
+            unread: readIds.includes(n.id) ? false : (n.unread ?? false)
+          })));
+        }
+      } catch (e) {}
+    }, 3500);
+
+    return () => clearInterval(liveSyncInterval);
+  }, []);
+
   const markNotificationAsRead = (id) => {
     try {
       const readIds = JSON.parse(localStorage.getItem('read_notif_ids') || '[]');
@@ -1321,6 +1347,40 @@ https://elbashmohands.dev`;
     }
   };
 
+  const uploadVideoFile = async (file, onProgress) => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/upload-stream');
+      xhr.setRequestHeader('x-filename', encodeURIComponent(file.name));
+      xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+
+      if (xhr.upload && onProgress) {
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            const percent = Math.round((e.loaded / e.total) * 100);
+            onProgress(percent);
+          }
+        };
+      }
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const data = JSON.parse(xhr.responseText);
+            resolve(data);
+          } catch (e) {
+            resolve({ success: true, url: xhr.responseText });
+          }
+        } else {
+          reject(new Error('Upload failed'));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error('Network error during upload'));
+      xhr.send(file);
+    });
+  };
+
   if (loadingSession) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-900 dark:text-white font-black text-sm">
@@ -1388,6 +1448,7 @@ https://elbashmohands.dev`;
       theme,
       toggleTheme,
       verifyDeviceOtp,
+      uploadVideoFile,
       // Live Broadcast values
       liveSessionsDB,
       activeLiveSession,
