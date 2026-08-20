@@ -84,6 +84,8 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
 
   const [adminTab, setAdminTab] = useState('videos');
   const [searchTerm, setSearchTerm] = useState('');
+  const [studentGradeFilter, setStudentGradeFilter] = useState('all');
+  const [lessonGradeFilter, setLessonGradeFilter] = useState('all');
 
   // Live Studio States
   const [newLiveTitle, setNewLiveTitle] = useState('');
@@ -1957,7 +1959,30 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
 
           {/* Lessons List CRUD Table */}
           <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-md space-y-4">
-            <h3 className="font-black text-slate-900 text-base">قائمة الفيديوهات المرفوعة (تعديل السعر والاسم ومسح الحصة)</h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+              <h3 className="font-black text-slate-900 text-base">قائمة الفيديوهات المرفوعة (تعديل السعر والاسم ومسح الحصة)</h3>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-xs font-bold text-slate-500">تصفية الصف:</span>
+                {[
+                  { id: 'all', label: '🌟 كل الصفوف' },
+                  { id: '3sec', label: '🎓 ثالثة ثانوي' },
+                  { id: '2sec', label: '📘 ثانية ثانوي' },
+                  { id: '1sec', label: '📗 أولى ثانوي' }
+                ].map(g => (
+                  <button
+                    key={g.id}
+                    onClick={() => setLessonGradeFilter(g.id)}
+                    className={`px-3 py-1 rounded-xl text-xs font-black transition-all ${
+                      lessonGradeFilter === g.id
+                        ? 'bg-slate-900 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {g.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             
             <div className="overflow-x-auto">
               <table className="w-full text-right text-xs">
@@ -1966,7 +1991,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                     <th className="p-3">عنوان الحصة</th>
                     <th className="p-3">الصف الدراسي</th>
                     <th className="p-3">السعر الحالي</th>
-                    <th className="p-3">المحاذات</th>
+                    <th className="p-3">المشاهدات</th>
                     <th className="p-3 text-center">إجراءات التعديل والحذف ✏️ 🗑️</th>
                   </tr>
                 </thead>
@@ -1974,7 +1999,9 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                   {lessons
                     .filter(les => {
                       const isArabic = les.subject === 'اللغة العربية' || les.subject?.includes('عرب');
-                      return isSayedAdmin ? isArabic : !isArabic;
+                      const matchesSubject = isSayedAdmin ? isArabic : !isArabic;
+                      const matchesGrade = lessonGradeFilter === 'all' || les.grade === lessonGradeFilter || les.grade === 'all';
+                      return matchesSubject && matchesGrade;
                     })
                     .map(les => (
                       <tr key={les.id} className="hover:bg-slate-50">
@@ -2271,18 +2298,45 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
       {/* Tab 5: Student DB */}
       {adminTab === 'students' && (
         <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-md space-y-4 animate-in fade-in">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <h3 className="font-black text-slate-900 text-base">بيانات حسابات الطلاب وتعديل ومسح الحسابات</h3>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-3">
+            <div>
+              <h3 className="font-black text-slate-900 text-base">بيانات حسابات الطلاب وتعديل ومسح الحسابات</h3>
+              <p className="text-xs text-slate-500 font-bold">إدارة شاملة لجميع الصفوف الدراسية (أولى، ثانية، ثالثة ثانوي)</p>
+            </div>
             
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="بحث باسم أو رقم الطالب..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-slate-50 border border-slate-300 rounded-xl pr-9 pl-4 py-2 text-xs font-bold w-64 outline-none"
-              />
-              <Search className="w-4 h-4 text-slate-400 absolute right-3 top-2.5" />
+            <div className="flex items-center gap-3 flex-wrap">
+              {/* Grade Filter */}
+              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+                {[
+                  { id: 'all', label: 'الكل' },
+                  { id: '3sec', label: '3 ثانوي' },
+                  { id: '2sec', label: '2 ثانوي' },
+                  { id: '1sec', label: '1 ثانوي' }
+                ].map(g => (
+                  <button
+                    key={g.id}
+                    onClick={() => setStudentGradeFilter(g.id)}
+                    className={`px-3 py-1 rounded-lg text-xs font-black transition-all ${
+                      studentGradeFilter === g.id
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {g.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="بحث باسم أو رقم الطالب..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="bg-slate-50 border border-slate-300 rounded-xl pr-9 pl-4 py-2 text-xs font-bold w-56 outline-none"
+                />
+                <Search className="w-4 h-4 text-slate-400 absolute right-3 top-2.5" />
+              </div>
             </div>
           </div>
 
@@ -2292,6 +2346,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                 <tr>
                   <th className="p-3">كود الطالب</th>
                   <th className="p-3">اسم الطالب</th>
+                  <th className="p-3">الصف الدراسي</th>
                   <th className="p-3">موبايل الطالب</th>
                   <th className="p-3">موبايل ولي الأمر</th>
                   <th className="p-3">الرصيد</th>
@@ -2300,11 +2355,18 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
                 {studentsDB
-                  .filter(s => s.name.includes(searchTerm) || s.code.includes(searchTerm) || s.phone.includes(searchTerm))
+                  .filter(s => {
+                    const matchesSearch = s.name.includes(searchTerm) || s.code.includes(searchTerm) || s.phone.includes(searchTerm) || (s.email && s.email.includes(searchTerm));
+                    const matchesGrade = studentGradeFilter === 'all' || s.grade === studentGradeFilter;
+                    return matchesSearch && matchesGrade;
+                  })
                   .map(st => (
                     <tr key={st.id} className="hover:bg-slate-50">
                       <td className="p-3 font-mono font-black text-amber-600">{st.code}</td>
                       <td className="p-3 font-bold text-slate-900">{st.name}</td>
+                      <td className="p-3 font-bold text-blue-600">
+                        {st.grade === '3sec' ? '🎓 3 ثانوي' : st.grade === '2sec' ? '📘 2 ثانوي' : '📗 1 ثانوي'}
+                      </td>
                       <td className="p-3 text-slate-700 font-mono dir-ltr">{st.phone}</td>
                       <td className="p-3 text-slate-700 font-mono dir-ltr">{st.parentPhone}</td>
                       <td className="p-3 font-black text-emerald-600">{st.walletBalance} ج.م</td>
