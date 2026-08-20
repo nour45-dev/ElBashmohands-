@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Bell, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
-export const NotificationBanner = () => {
+export const NotificationBanner = ({ setCurrentTab, setSelectedLiveId }) => {
   const { notifications, setNotifications, student, currentGrade, userRole } = useApp();
   const [visible, setVisible] = useState(false);
   const [currentIdx, setCurrentIdx] = useState(0);
@@ -139,8 +139,9 @@ export const NotificationBanner = () => {
           {(current.actionTab === 'live' || current.title?.includes('بث') || current.title?.includes('🔴')) && (
             <button
               onClick={() => {
+                if (setSelectedLiveId && current.actionId) setSelectedLiveId(current.actionId);
+                if (setCurrentTab) setCurrentTab('live');
                 markAllRead();
-                window.location.href = `/?live=${current.actionId || ''}`;
               }}
               className="bg-rose-600 hover:bg-rose-500 text-white font-black text-xs px-4 py-2 rounded-xl shadow-md transition-all flex items-center gap-1 animate-pulse"
             >
