@@ -57,23 +57,44 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
     currentGrade 
   } = useApp();
 
-  // Find target session or use first available
-  const [currentSessionId, setCurrentSessionId] = useState(selectedLiveId || liveSessionsDB[0]?.id || 'live_demo_1');
-
-  useEffect(() => {
-    if (selectedLiveId) {
-      setCurrentSessionId(selectedLiveId);
-    } else if (liveSessionsDB.length > 0) {
-      const activeLive = liveSessionsDB.find(s => s.status === 'live');
-      if (activeLive) {
-        setCurrentSessionId(activeLive.id);
-      } else {
-        setCurrentSessionId(liveSessionsDB[0].id);
+  // Strict Subject & Instructor Isolation for Teachers
+  const filteredSessions = (liveSessionsDB || []).filter(s => {
+    if (userRole === 'admin') {
+      if (adminIdentity === 'mr_sayed') {
+        return s.subject === 'اللغة العربية' || s.subject?.includes('عرب') || s.subject === 'arabic' || s.instructor?.includes('سيد') || s.instructorId === 'mr_sayed';
+      } else if (adminIdentity === 'eng_nour') {
+        return s.subject === 'برمجة وعلوم الحاسب' || s.subject?.includes('برمج') || s.subject === 'programming' || s.instructor?.includes('نور') || s.instructorId === 'eng_nour';
       }
     }
-  }, [selectedLiveId, liveSessionsDB]);
+    return true;
+  });
 
-  const currentSession = liveSessionsDB.find(s => s.id === currentSessionId) || activeLiveSession || liveSessionsDB[0];
+  // Find target session or use first available from filteredSessions
+  const [currentSessionId, setCurrentSessionId] = useState(() => {
+    if (selectedLiveId && filteredSessions.some(s => s.id === selectedLiveId)) return selectedLiveId;
+    const active = filteredSessions.find(s => s.status === 'live');
+    return active ? active.id : (filteredSessions[0]?.id || null);
+  });
+
+  useEffect(() => {
+    if (selectedLiveId && filteredSessions.some(s => s.id === selectedLiveId)) {
+      setCurrentSessionId(selectedLiveId);
+    } else if (filteredSessions.length > 0) {
+      const activeLive = filteredSessions.find(s => s.status === 'live');
+      if (activeLive) {
+        setCurrentSessionId(activeLive.id);
+      } else if (!currentSessionId || !filteredSessions.some(s => s.id === currentSessionId)) {
+        setCurrentSessionId(filteredSessions[0].id);
+      }
+    } else {
+      setCurrentSessionId(null);
+    }
+  }, [selectedLiveId, liveSessionsDB, userRole, adminIdentity]);
+
+  const currentSession = filteredSessions.find(s => s.id === currentSessionId) || 
+                         filteredSessions.find(s => s.status === 'live') || 
+                         filteredSessions[0] || 
+                         null;
 
   const studentCode = student?.code || (userRole === 'admin' ? 'ADM-2026' : '3001');
   const studentDisplayName = userRole === 'admin' 
@@ -129,6 +150,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
   // Hand raise status
   const [handRaised, setHandRaised] = useState(false);
   const [handRaiseSuccessMsg, setHandRaiseSuccessMsg] = useState(null);
+  const [activeHandRaiseToast, setActiveHandRaiseToast] = useState(null);
 
   // Selected option for active poll
   const [selectedPollOption, setSelectedPollOption] = useState(null);
@@ -628,16 +650,34 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
     await submitLivePollVote(currentSession.id, pollId, optIdx);
   };
 
-  // Handle Hand Raise
+  // Handle Hand Raise (Google Meet Style: 6s auto-duration)
   const handleHandRaise = async () => {
-    if (handRaised) return;
+    if (handRaised) {
+      setHandRaised(false);
+      return;
+    }
     setHandRaised(true);
-    const res = await sendHandRaiseRequest(currentSession.id);
-    if (res.success) {
-      setHandRaiseSuccessMsg('تم إرسال طلب المداخلة للمعلم بنجاح! سيتم إتاحة المداخلة لك قريباً.');
+    const res = await sendHandRaiseRequest(currentSession?.id);
+    if (res?.success) {
+      setHandRaiseSuccessMsg('تم رفع يدك وطلب التحدث بنجاح! ✋');
       setTimeout(() => setHandRaiseSuccessMsg(null), 5000);
+      // Auto lower student hand after 6 seconds
+      setTimeout(() => setHandRaised(false), 6000);
     }
   };
+
+  // Auto-dismiss teacher hand-raise alert toast after 6 seconds (Google Meet style)
+  useEffect(() => {
+    if (!isTeacher || !currentSession?.handRaises || currentSession.handRaises.length === 0) return;
+    const latestRaise = currentSession.handRaises[currentSession.handRaises.length - 1];
+    if (latestRaise && (!activeHandRaiseToast || activeHandRaiseToast.id !== latestRaise.id)) {
+      setActiveHandRaiseToast(latestRaise);
+      const timer = setTimeout(() => {
+        setActiveHandRaiseToast(null);
+      }, 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [currentSession?.handRaises, isTeacher]);
 
   const handleShareLink = () => {
     const url = window.location.origin + `/?live=${currentSession?.id}`;
@@ -648,6 +688,45 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
 
   // Active Poll
   const activePoll = currentSession?.polls?.find(p => p.isActive);
+
+  if (!currentSession) {
+    return (
+      <div className="min-h-[500px] flex flex-col items-center justify-center text-center p-8 bg-white dark:bg-[#162534] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-md space-y-4 my-8" dir="rtl">
+        <div className="w-20 h-20 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center text-4xl shadow-inner">
+          <Radio className="w-10 h-10" />
+        </div>
+        <div className="space-y-2 max-w-md">
+          <h2 className="text-xl font-black text-slate-900 dark:text-white">
+            {isTeacher 
+              ? (adminIdentity === 'mr_sayed' ? 'لا توجد حصص بث مباشر لمادة اللغة العربية حتى الآن' : 'لا توجد حصص بث مباشر لمادة البرمجة حتى الآن')
+              : 'لا توجد حصص بث مباشر جارية في الوقت الحالي'}
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-bold leading-relaxed">
+            {isTeacher 
+              ? 'يمكنك إنشاء وبدء قاعة بث مباشر جديدة خاصة بمادتك من لوحة تحكم الأدمن وبث التنبيه للطلاب فوراً.'
+              : 'سيتم إشعارك فور قيام المعلم ببدء حصة البث المباشر القادمة.'}
+          </p>
+        </div>
+        <div className="flex items-center gap-3 pt-2">
+          {isTeacher && (
+            <button
+              onClick={() => onBack ? onBack() : window.history.back()}
+              className="bg-rose-600 hover:bg-rose-500 text-white text-xs font-black px-6 py-3 rounded-xl shadow-lg flex items-center gap-2"
+            >
+              <Radio className="w-4 h-4" />
+              <span>الذهاب للأدمن لإنشاء بث 🔴</span>
+            </button>
+          )}
+          <button
+            onClick={onBack}
+            className="px-6 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-black text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            العودة للصفحة الرئيسية
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in pb-12">
@@ -816,18 +895,27 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
               </div>
             )}
 
-            {/* Teacher Hand-Raise Alert Notification */}
-            {isTeacher && currentSession?.handRaises && currentSession.handRaises.length > 0 && (
-              <div className="absolute top-16 left-4 z-50 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 p-3.5 rounded-2xl shadow-2xl flex items-center gap-3 animate-bounce border-2 border-white">
-                <span className="text-2xl">✋</span>
-                <div>
-                  <div className="text-xs font-black">
-                    {currentSession.handRaises[currentSession.handRaises.length - 1].studentName} يرفع يده!
+            {/* Teacher Hand-Raise Alert Toast (Google Meet Style: 6s auto-dismiss) */}
+            {isTeacher && activeHandRaiseToast && (
+              <div className="absolute top-16 left-4 z-50 bg-[#202124]/95 backdrop-blur-md text-white border border-amber-500/50 p-3.5 rounded-2xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-300">
+                <div className="w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl flex-shrink-0 animate-bounce">
+                  ✋
+                </div>
+                <div className="text-right">
+                  <div className="text-xs font-black text-white">
+                    {activeHandRaiseToast.studentName} يرفع يده الآن
                   </div>
-                  <div className="text-[10px] font-bold">
-                    كود: {currentSession.handRaises[currentSession.handRaises.length - 1].studentCode || 'طالب'} • يريد المشاركة بالصوت
+                  <div className="text-[10px] text-amber-400 font-bold">
+                    كود: {activeHandRaiseToast.studentCode || 'طالب'} • طلب التحدث بالمايك
                   </div>
                 </div>
+                <button
+                  onClick={() => setActiveHandRaiseToast(null)}
+                  className="p-1.5 hover:bg-white/10 rounded-xl text-slate-400 hover:text-white transition-all text-xs font-bold mr-1"
+                  title="إغلاق التنبيه"
+                >
+                  ✕
+                </button>
               </div>
             )}
 
@@ -1506,7 +1594,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                 }`}
               >
                 <Radio className="w-3.5 h-3.5" />
-                <span>كل البثوث ({liveSessionsDB.length})</span>
+                <span>كل البثوث ({filteredSessions.length})</span>
               </button>
             </div>
 
@@ -1584,16 +1672,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                   جدول البثوث المباشرة لمادتك:
                 </div>
 
-                {liveSessionsDB.filter(s => {
-                  if (isTeacher) {
-                    if (adminIdentity === 'mr_sayed') {
-                      return s.subject === 'اللغة العربية' || s.subject?.includes('عربي') || s.subject === 'arabic' || s.instructor?.includes('سيد');
-                    } else if (adminIdentity === 'eng_nour') {
-                      return s.subject === 'برمجة وعلوم الحاسب' || s.subject?.includes('برمج') || s.subject === 'programming' || s.instructor?.includes('نور');
-                    }
-                  }
-                  return true;
-                }).map(s => {
+                {filteredSessions.map(s => {
                   const isCurrent = s.id === currentSession.id;
                   return (
                     <div
