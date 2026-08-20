@@ -2728,7 +2728,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                   `👨‍🏫 *المحاضر:* ${isSayedAdmin ? 'أ / سيد عبد العاطي' : 'م / نور الدين'}\n` +
                   `📞 *رقم التواصل:* ${isSayedAdmin ? '01094273996' : '01002169889'}\n\n` +
                   `🚀 *اضغط على الرابط التالي للدخول فوراً لحصة البث المباشر:*\n` +
-                  `https://elbashmohands.dev\n\n` +
+                  `https://elm.up.railway.app\n\n` +
                   `بالتوفيق لجميع أبطالنا الطلاب! ✨`
                 )}`}
                 target="_blank"
@@ -2742,7 +2742,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
               {/* 💬 BULK SMS BUTTON */}
               <a
                 href={`sms:${broadcastModal.links.map(l => l.phone).filter(Boolean).join(',')}?body=${encodeURIComponent(
-                  `تنبيه من منصة عِلم: تم بدء ${broadcastModal.lessonTitle} مع ${isSayedAdmin ? 'أ / سيد عبد العاطي' : 'م / نور الدين'}. الرابط: https://elbashmohands.dev`
+                  `تنبيه من منصة عِلم: تم بدء ${broadcastModal.lessonTitle} مع ${isSayedAdmin ? 'أ / سيد عبد العاطي' : 'م / نور الدين'}. الرابط: https://elm.up.railway.app`
                 )}`}
                 className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black text-xs py-2.5 px-4 rounded-2xl shadow-sm transition-all flex items-center justify-center gap-2 hover:scale-[1.01]"
               >
@@ -2752,7 +2752,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
               {/* 📋 COPY TEXT BUTTON */}
               <button
                 onClick={() => {
-                  const text = `🔴 *تنبيه هام وعاجل من منصة عِلم التعليمية*\n\n📖 *الحصة:* ${broadcastModal.lessonTitle}\n👨‍🏫 *المحاضر:* ${isSayedAdmin ? 'أ / سيد عبد العاطي' : 'م / نور الدين'}\n📞 *رقم التواصل:* ${isSayedAdmin ? '01094273996' : '01002169889'}\n\n🚀 *اضغط على الرابط التالي للدخول فوراً لحصة البث المباشر:*\nhttps://elbashmohands.dev`;
+                  const text = `🔴 *تنبيه هام وعاجل من منصة عِلم التعليمية*\n\n📖 *الحصة:* ${broadcastModal.lessonTitle}\n👨‍🏫 *المحاضر:* ${isSayedAdmin ? 'أ / سيد عبد العاطي' : 'م / نور الدين'}\n📞 *رقم التواصل:* ${isSayedAdmin ? '01094273996' : '01002169889'}\n\n🚀 *اضغط على الرابط التالي للدخول فوراً لحصة البث المباشر:*\nhttps://elm.up.railway.app`;
                   navigator.clipboard?.writeText(text);
                   alert('✅ تم نسخ نص الرسالة بالكامل إلى الحافظة! يمكنك لصقها في أي جروب واتساب أو تليجرام.');
                 }}
