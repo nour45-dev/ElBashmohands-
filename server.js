@@ -841,11 +841,22 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     let matched = null;
+    const cleanEmail = loginSearch.toLowerCase();
     if (dbType === 'mongodb') {
-      matched = await db.collection('students').findOne({ $or: [{ code: loginSearch }, { phone: cleanIdentifier }] });
+      matched = await db.collection('students').findOne({ 
+        $or: [
+          { code: loginSearch }, 
+          { phone: cleanIdentifier },
+          { email: cleanEmail }
+        ] 
+      });
     } else {
       const data = getLocalData();
-      matched = (data.students || []).find(s => s.code === loginSearch || normalizePhone(s.phone) === cleanIdentifier);
+      matched = (data.students || []).find(s => 
+        s.code === loginSearch || 
+        normalizePhone(s.phone) === cleanIdentifier ||
+        (s.email && s.email.toLowerCase() === cleanEmail)
+      );
     }
 
     if (!matched) {
@@ -1896,12 +1907,42 @@ app.patch('/api/live/:id/status', requireAdmin, async (req, res) => {
 
     if (dbType === 'mongodb') {
       await db.collection('liveSessions').updateOne({ id }, { $set: updateFields });
+      if (status === 'live') {
+        const sessionDoc = await db.collection('liveSessions').findOne({ id });
+        if (sessionDoc) {
+          const liveNotif = {
+            id: `n_${Date.now()}`,
+            title: `🔴 بث مباشر بدأ الآن: ${sessionDoc.title}`,
+            body: `المستر بدأ حصة البث المباشر الآن! اضغط هنا للانضمام فوراً وتفاعل مع الشرح.`,
+            time: 'الآن',
+            unread: true,
+            actionTab: 'live',
+            actionId: sessionDoc.id,
+            targetGrade: sessionDoc.grade || 'all'
+          };
+          await db.collection('notifications').insertOne(liveNotif);
+        }
+      }
     } else {
       const data = getLocalData();
       if (!data.liveSessions) data.liveSessions = [];
       const idx = data.liveSessions.findIndex(s => s.id === id);
       if (idx !== -1) {
         data.liveSessions[idx] = { ...data.liveSessions[idx], ...updateFields };
+        if (status === 'live') {
+          const sessionItem = data.liveSessions[idx];
+          if (!data.notifications) data.notifications = [];
+          data.notifications.unshift({
+            id: `n_${Date.now()}`,
+            title: `🔴 بث مباشر بدأ الآن: ${sessionItem.title}`,
+            body: `المستر بدأ حصة البث المباشر الآن! اضغط هنا للانضمام فوراً وتفاعل مع الشرح.`,
+            time: 'الآن',
+            unread: true,
+            actionTab: 'live',
+            actionId: sessionItem.id,
+            targetGrade: sessionItem.grade || 'all'
+          });
+        }
         writeLocalData(data);
       }
     }
