@@ -162,6 +162,15 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const videoContainerRef = useRef(null);
 
+  const dismissedHandRaiseIdsRef = useRef(new Set());
+  const allCreatedStreamsRef = useRef([]);
+
+  const registerStream = (s) => {
+    if (s && !allCreatedStreamsRef.current.includes(s)) {
+      allCreatedStreamsRef.current.push(s);
+    }
+  };
+
   const toggleFullscreen = () => {
     if (!videoContainerRef.current) return;
     if (!document.fullscreenElement) {
@@ -210,6 +219,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
         video: { width: { ideal: 1280 }, height: { ideal: 720 } }, 
         audio: true 
       });
+      registerStream(stream);
       setActiveMediaStream(stream);
       activeStreamRef.current = stream;
       setLocalStream(true);
@@ -253,18 +263,21 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
         video: { cursor: "always" }, 
         audio: true 
       });
+      registerStream(screenStream);
 
       // Preserve teacher mic audio track along with screen video
       let audioTracks = activeMediaStream ? activeMediaStream.getAudioTracks() : [];
       if (audioTracks.length === 0) {
         try {
           const mic = await navigator.mediaDevices.getUserMedia({ audio: true });
+          registerStream(mic);
           audioTracks = mic.getAudioTracks();
         } catch (e) {}
       }
 
       const screenVideoTrack = screenStream.getVideoTracks()[0];
       const combinedStream = new MediaStream([screenVideoTrack, ...audioTracks]);
+      registerStream(combinedStream);
 
       setActiveMediaStream(combinedStream);
       activeStreamRef.current = combinedStream;
@@ -597,6 +610,16 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
 
   const stopLocalStream = () => {
     try {
+      allCreatedStreamsRef.current.forEach(stream => {
+        try {
+          stream.getTracks().forEach(t => {
+            t.stop();
+            t.enabled = false;
+          });
+        } catch (e) {}
+      });
+      allCreatedStreamsRef.current = [];
+
       if (activeMediaStream) {
         activeMediaStream.getTracks().forEach(t => {
           t.stop();
@@ -751,9 +774,18 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
   useEffect(() => {
     if (!isTeacher || !currentSession?.handRaises || currentSession.handRaises.length === 0) return;
     const latestRaise = currentSession.handRaises[currentSession.handRaises.length - 1];
-    if (latestRaise && (!activeHandRaiseToast || activeHandRaiseToast.id !== latestRaise.id)) {
+    if (!latestRaise) return;
+
+    const raiseKey = latestRaise.id || `${latestRaise.studentCode}_${latestRaise.requestedAt}`;
+    if (dismissedHandRaiseIdsRef.current.has(raiseKey)) return;
+
+    const reqTime = latestRaise.requestedAt ? new Date(latestRaise.requestedAt).getTime() : Date.now();
+    const isRecent = (Date.now() - reqTime) < 9000;
+
+    if (isRecent && (!activeHandRaiseToast || activeHandRaiseToast.id !== latestRaise.id)) {
       setActiveHandRaiseToast(latestRaise);
       const timer = setTimeout(() => {
+        dismissedHandRaiseIdsRef.current.add(raiseKey);
         setActiveHandRaiseToast(null);
       }, 6000);
       return () => clearTimeout(timer);
@@ -991,7 +1023,13 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                   </div>
                 </div>
                 <button
-                  onClick={() => setActiveHandRaiseToast(null)}
+                  onClick={() => {
+                    if (activeHandRaiseToast) {
+                      const raiseKey = activeHandRaiseToast.id || `${activeHandRaiseToast.studentCode}_${activeHandRaiseToast.requestedAt}`;
+                      dismissedHandRaiseIdsRef.current.add(raiseKey);
+                    }
+                    setActiveHandRaiseToast(null);
+                  }}
                   className="p-1.5 hover:bg-white/10 rounded-xl text-slate-400 hover:text-white transition-all text-xs font-bold mr-1"
                   title="إغلاق التنبيه"
                 >
