@@ -2690,8 +2690,8 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
             <div className="bg-blue-50 border border-blue-200 p-3 rounded-2xl text-xs text-blue-900 font-bold flex items-center gap-2.5 shadow-2xs">
               <span className="text-xl">📱</span>
               <div>
-                <div>المرسل: <strong className="text-blue-700">{isSayedAdmin ? 'أ / سيد عبد العاطي' : 'م / نور الدين'}</strong></div>
-                <div className="text-[11px] text-blue-600 font-mono">رقم الواتساب: {isSayedAdmin ? '01094273996' : '01002169889'}</div>
+                <div>رقم واتساب المنصة المعتمد للإرسال: <strong className="text-emerald-700 font-mono" dir="ltr">01017973649</strong></div>
+                <div className="text-[11px] text-blue-600 font-bold">المحاضر: {isSayedAdmin ? 'أ / سيد عبد العاطي (01094273996)' : 'م / نور الدين (01002169889)'}</div>
               </div>
             </div>
 
