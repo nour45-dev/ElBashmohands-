@@ -368,14 +368,14 @@ export const LoginView = () => {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">رقم الهاتف أو كود الطالب:</label>
+                      <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">رقم الهاتف أو البريد الإلكتروني أو كود الطالب:</label>
                       <div className="relative">
                         <input
                           type="text"
                           required
                           value={phoneInput}
                           onChange={(e) => setPhoneInput(e.target.value)}
-                          placeholder="مثال: 01002169889 أو 3003"
+                          placeholder="010xxxxxxxx أو student@example.com أو 3003"
                           className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl pr-10 pl-4 py-3 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
                         />
                         <User className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute right-3.5 top-3.5" />
@@ -446,6 +446,21 @@ export const LoginView = () => {
                         className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl pr-10 pl-4 py-2.5 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
                       />
                       <User className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute right-3.5 top-3" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">البريد الإلكتروني (Email):</label>
+                    <div className="relative">
+                      <input
+                        type="email"
+                        required
+                        value={signupEmail}
+                        onChange={(e) => setSignupEmail(e.target.value)}
+                        placeholder="student@example.com"
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-xl pr-10 pl-4 py-2.5 text-xs font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none dir-ltr"
+                      />
+                      <Mail className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute right-3.5 top-3" />
                     </div>
                   </div>
 
@@ -835,6 +850,21 @@ export const LoginView = () => {
               </div>
             </div>
 
+          </div>
+
+          {/* Prominent CTA below the 4 steps */}
+          <div className="mt-8 text-center bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 p-6 md:p-8 rounded-3xl text-white shadow-xl shadow-blue-600/20 space-y-4">
+            <h3 className="text-xl md:text-2xl font-black">جاهز للبدء في تحقيق أعلى الدرجات؟ 🚀</h3>
+            <p className="text-xs md:text-sm text-blue-100 font-bold max-w-xl mx-auto">
+              سجل حسابك الآن في أقل من دقيقة وابدأ في مشاهدة الحصص والامتحانات التفاعلية مباشرة.
+            </p>
+            <button
+              onClick={() => { setActiveTab('student-signup'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-black px-8 py-3.5 rounded-2xl text-xs md:text-sm transition-all shadow-lg hover:scale-105 inline-flex items-center gap-2"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>ابدأ رحلتك التعليمية وسجل حساب جديد الآن 🎯</span>
+            </button>
           </div>
 
         </section>
