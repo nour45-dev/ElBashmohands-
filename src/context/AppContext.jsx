@@ -702,7 +702,7 @@ export const AppProvider = ({ children }) => {
 💡 *ملاحظة المعلم:* الطالب متميز جداً وملتزم بكورسات وتطبيقات البرمجة العملية.
 
 🔗 لمتابعة المحتوى والدروس على منصة المعلم:
-https://elbashmohands.dev`;
+https://elm.up.railway.app`;
   };
 
   const getWhatsAppMsgText = (payload, recipient = 'parent') => {
@@ -715,7 +715,7 @@ https://elbashmohands.dev`;
 🎓 *الصف:* ${payload.gradeName || currentStudent?.gradeName}
 📝 *الموضوع:* ${payload.examTitle || payload.title || 'تقرير البرمجة الموثق'}
 
-🔗 https://elbashmohands.dev`;
+🔗 https://elm.up.railway.app`;
   };
 
   const triggerWhatsAppSend = (payload, targetRecipient = 'parent') => {
