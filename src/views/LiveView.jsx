@@ -190,6 +190,20 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
     }
   };
 
+  const handleExitLive = () => {
+    stopLocalStream();
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => {});
+    }
+    setIsFullscreen(false);
+    setIsTheater(false);
+    if (onBack) {
+      onBack();
+    } else {
+      window.location.href = '/';
+    }
+  };
+
   // In-Browser Native Camera & Screen Share Live Studio State (for Teacher)
   const [localStream, setLocalStream] = useState(false);
   const [isMicMuted, setIsMicMuted] = useState(false);
@@ -198,6 +212,17 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
   const [isUploadingRecording, setIsUploadingRecording] = useState(false);
   const [activeMediaStream, setActiveMediaStream] = useState(null);
   const teacherVideoRef = useRef(null);
+
+  // Re-attach video stream automatically whenever camera is toggled back ON
+  useEffect(() => {
+    if (!isCameraOff && teacherVideoRef.current) {
+      const stream = activeStreamRef.current || activeMediaStream;
+      if (stream) {
+        teacherVideoRef.current.srcObject = stream;
+        teacherVideoRef.current.play().catch(() => {});
+      }
+    }
+  }, [isCameraOff, activeMediaStream]);
 
 
   // Load PeerJS once for rock-solid cross-device live streaming
@@ -770,26 +795,23 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
     }
   };
 
-  // Auto-dismiss teacher hand-raise alert toast after 6 seconds (Google Meet style)
+  const seenHandRaiseIdsRef = useRef(new Set());
+
+  // Auto-dismiss teacher hand-raise alert toast after 7 seconds (Google Meet style)
   useEffect(() => {
     if (!isTeacher || !currentSession?.handRaises || currentSession.handRaises.length === 0) return;
     const latestRaise = currentSession.handRaises[currentSession.handRaises.length - 1];
-    if (!latestRaise) return;
+    if (!latestRaise || !latestRaise.id) return;
 
-    const raiseKey = latestRaise.id || `${latestRaise.studentCode}_${latestRaise.requestedAt}`;
-    if (dismissedHandRaiseIdsRef.current.has(raiseKey)) return;
+    const raiseKey = latestRaise.id || `${latestRaise.studentCode}_${latestRaise.timestamp || latestRaise.requestedAt}`;
+    if (seenHandRaiseIdsRef.current.has(raiseKey)) return;
 
-    const reqTime = latestRaise.requestedAt ? new Date(latestRaise.requestedAt).getTime() : Date.now();
-    const isRecent = (Date.now() - reqTime) < 9000;
-
-    if (isRecent && (!activeHandRaiseToast || activeHandRaiseToast.id !== latestRaise.id)) {
-      setActiveHandRaiseToast(latestRaise);
-      const timer = setTimeout(() => {
-        dismissedHandRaiseIdsRef.current.add(raiseKey);
-        setActiveHandRaiseToast(null);
-      }, 6000);
-      return () => clearTimeout(timer);
-    }
+    seenHandRaiseIdsRef.current.add(raiseKey);
+    setActiveHandRaiseToast(latestRaise);
+    const timer = setTimeout(() => {
+      setActiveHandRaiseToast(null);
+    }, 7000);
+    return () => clearTimeout(timer);
   }, [currentSession?.handRaises, isTeacher]);
 
   const handleShareLink = () => {
@@ -831,7 +853,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
             </button>
           )}
           <button
-            onClick={onBack}
+            onClick={handleExitLive}
             className="px-6 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-black text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
           >
             العودة للصفحة الرئيسية
@@ -849,7 +871,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
         
         <div className="flex items-center gap-3">
           <button
-            onClick={onBack}
+            onClick={handleExitLive}
             className="p-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all font-black flex items-center gap-1.5 text-xs shadow-xs"
           >
             <ChevronRight className="w-4 h-4" />
@@ -1393,7 +1415,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
 
                       {/* Leave Meeting Button */}
                       <button
-                        onClick={onBack}
+                        onClick={handleExitLive}
                         title="مغادرة الاجتماع"
                         className="px-5 h-11 rounded-full bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center gap-1.5 transition-all shadow-lg text-xs font-black"
                       >
@@ -1602,10 +1624,17 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                     allowFullScreen
                   />
                 ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center space-y-3 bg-slate-950 text-white">
+                  <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center space-y-4 bg-slate-950 text-white min-h-[300px]">
                     <div className="text-4xl">📼</div>
                     <h3 className="text-base font-black">انتهى البث المباشر</h3>
                     <p className="text-xs text-slate-400 font-bold">جاري معالجة تسجيل الحصة لتكون متاحة بجودة عالية في الأرشيف قريباً.</p>
+                    <button
+                      onClick={handleExitLive}
+                      className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-6 py-2.5 rounded-2xl shadow-xl transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                      <span>العودة للصفحة الرئيسية 🏠</span>
+                    </button>
                   </div>
                 )}
               </div>
