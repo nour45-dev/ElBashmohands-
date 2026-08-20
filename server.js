@@ -2196,11 +2196,12 @@ app.post('/api/live/:id/hand-raise', async (req, res) => {
     const { studentId, studentName, studentCode } = req.body;
 
     const hr = {
-      id: `hr_${Date.now()}`,
+      id: `hr_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       studentId: studentId || 'std_anon',
       studentName: studentName || 'طالب',
       studentCode: studentCode || '',
-      requestedAt: 'الآن',
+      requestedAt: new Date().toISOString(),
+      timestamp: Date.now(),
       status: 'pending'
     };
 
