@@ -632,7 +632,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
       .map(std => {
         const targetPhone = std.parentPhone || std.phone;
         const gradeLabel = std.grade === '3sec' ? 'ثالثة ثانوي' : std.grade === '2sec' ? 'ثاني ثانوي' : 'أول ثانوي';
-        const msg = `📌 *تقرير متابعة من منصة عِلم التعليمية*\n\nالطالب/ة: *${std.name}*\nالصف: ${gradeLabel}\nالرصيد: ${std.walletBalance || 0} ج.م\n\n🔗 تابع تقدم ابنك على منصتنا الآن: https://elm.up.railway.app`;
+        const msg = `📌 *تقرير متابعة من منصة المعلم*\n\nالطالب/ة: *${std.name}*\nالصف: ${gradeLabel}\nالرصيد: ${std.walletBalance || 0} ج.م\n\n🔗 تابع تقدم ابنك على منصتنا الآن: https://elm.up.railway.app`;
         const formatted = (targetPhone || '').replace(/\s/g, '').startsWith('0') ? '2' + (targetPhone || '').replace(/\s/g, '') : (targetPhone || '').replace(/\s/g, '');
         return {
           studentName: std.name,
@@ -647,7 +647,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: '📊 تقرير متابعة لجميع الطلاب',
-          messageBody: '📌 *تقرير متابعة من منصة عِلم التعليمية*\n\nالطالب/ة: *{name}*\n\n🔗 تابع تقدم ابنك على منصتنا الآن: https://elm.up.railway.app'
+          messageBody: '📌 *تقرير متابعة من منصة المعلم*\n\nالطالب/ة: *{name}*\n\n🔗 تابع تقدم ابنك على منصتنا الآن: https://elm.up.railway.app'
         })
       });
       const data = await resp.json();
@@ -2022,7 +2022,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
             
             <div className="overflow-x-auto">
               <table className="w-full text-right text-xs">
-                <thead className="bg-slate-100 text-slate-700 font-black border-b border-slate-200">
+                <thead className="bg-slate-100 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 font-black border-b border-slate-200 dark:border-slate-700">
                   <tr>
                     <th className="p-3">عنوان الحصة</th>
                     <th className="p-3">الصف الدراسي</th>
@@ -2031,7 +2031,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                     <th className="p-3 text-center">إجراءات التعديل والحذف ✏️ 🗑️</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 font-medium">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
                   {lessons
                     .filter(les => {
                       const isArabic = les.subject === 'اللغة العربية' || les.subject?.includes('عرب');
@@ -2040,11 +2040,11 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                       return matchesSubject && matchesGrade;
                     })
                     .map(les => (
-                      <tr key={les.id} className="hover:bg-slate-50">
-                        <td className="p-3 font-bold text-slate-900">{les.title}</td>
-                        <td className="p-3 text-slate-600">{les.grade === '3sec' ? 'ثانوية عامة' : les.grade}</td>
-                        <td className="p-3 font-black text-emerald-600 text-sm">{les.price === 0 ? 'مجاني 🎁' : `${les.price} ج.م`}</td>
-                        <td className="p-3 text-slate-700 font-mono">{les.viewsCount || 0}</td>
+                      <tr key={les.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                        <td className="p-3 font-bold text-slate-900 dark:text-white">{les.title}</td>
+                        <td className="p-3 text-slate-600 dark:text-slate-400">{les.grade === '3sec' ? 'ثانوية عامة' : les.grade}</td>
+                        <td className="p-3 font-black text-emerald-600 dark:text-emerald-400 text-sm">{les.price === 0 ? 'مجاني 🎁' : `${les.price} ج.م`}</td>
+                        <td className="p-3 text-slate-700 dark:text-slate-300 font-mono">{les.viewsCount || 0}</td>
                         <td className="p-3 flex items-center justify-center gap-2">
                           <button
                             onClick={() => handleOpenEditLessonModal(les)}
@@ -2080,29 +2080,29 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
       {adminTab === 'coupons' && (
         <div className="space-y-8 animate-in fade-in">
           
-          <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200/80 shadow-md space-y-6 max-w-2xl mx-auto">
-            <h3 className="font-black text-slate-900 text-lg flex items-center gap-2">
+          <div className="bg-white dark:bg-[#162534] p-6 md:p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-md space-y-6 max-w-2xl mx-auto">
+            <h3 className="font-black text-slate-900 dark:text-white text-lg flex items-center gap-2">
               <Ticket className="w-5 h-5 text-amber-500" />
               إنشاء وتفعيل كود كوبون جديد للطلاب
             </h3>
 
             <form onSubmit={handleCreateCoupon} className="space-y-4">
               <div>
-                <label className="block text-xs font-black text-slate-700 mb-1">كود الكوبون (مثال: FREE100):</label>
+                <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">كود الكوبون (مثال: FREE100):</label>
                 <input
                   type="text"
                   required
                   value={couponCode}
                   onChange={(e) => setCouponCode(e.target.value)}
                   placeholder="BASHMO2026"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs font-mono font-black text-amber-600 outline-none dir-ltr uppercase"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs font-mono font-black text-amber-600 dark:text-amber-400 outline-none dir-ltr uppercase"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-black text-slate-700 mb-1">نوع الخصم:</label>
-                  <select value={couponType} onChange={(e) => setCouponType(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-bold">
+                  <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">نوع الخصم:</label>
+                  <select value={couponType} onChange={(e) => setCouponType(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl p-2.5 text-xs font-bold">
                     <option value="percent">نسبة مئوية (%)</option>
                     <option value="fixed">قيمة ثابتة (جنيه)</option>
                     <option value="free">مجاني 100% 🎁</option>
@@ -2110,13 +2110,13 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                 </div>
 
                 <div>
-                  <label className="block text-xs font-black text-slate-700 mb-1">القيمة الخصمية:</label>
-                  <input type="number" value={couponValue} onChange={(e) => setCouponValue(e.target.value)} disabled={couponType === 'free'} className="w-full bg-slate-50 border rounded-xl p-2.5 text-xs font-bold" />
+                  <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1">القيمة الخصمية:</label>
+                  <input type="number" value={couponValue} onChange={(e) => setCouponValue(e.target.value)} disabled={couponType === 'free'} className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl p-2.5 text-xs font-bold" />
                 </div>
               </div>
 
               {couponSuccess && (
-                <div className="bg-emerald-50 text-emerald-800 p-3 rounded-xl border border-emerald-200 text-xs font-bold">
+                <div className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 p-3 rounded-xl border border-emerald-200 dark:border-emerald-800 text-xs font-bold">
                   تم إنشاء وتفعيل الكوبون بنجاح! 🎟️
                 </div>
               )}
@@ -2128,12 +2128,12 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
           </div>
 
           {/* Active Coupons List Table */}
-          <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-md space-y-4">
-            <h3 className="font-black text-slate-900 text-base">جدول الكوبونات الفعالة حالياً بالمنصة</h3>
+          <div className="bg-white dark:bg-[#162534] p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-md space-y-4">
+            <h3 className="font-black text-slate-900 dark:text-white text-base">جدول الكوبونات الفعالة حالياً بالمنصة</h3>
             
             <div className="overflow-x-auto">
               <table className="w-full text-right text-xs">
-                <thead className="bg-slate-100 text-slate-700 font-black border-b border-slate-200">
+                <thead className="bg-slate-100 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 font-black border-b border-slate-200 dark:border-slate-700">
                   <tr>
                     <th className="p-3">كود الكوبون</th>
                     <th className="p-3">نوع الخصم</th>
@@ -2142,14 +2142,14 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                     <th className="p-3 text-center">حذف الكوبون 🗑️</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 font-medium">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
                   {couponsDB.map(coup => (
-                    <tr key={coup.id} className="hover:bg-slate-50">
-                      <td className="p-3 font-mono font-black text-amber-600 text-sm">{coup.code}</td>
-                      <td className="p-3 font-bold text-slate-900">
+                    <tr key={coup.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                      <td className="p-3 font-mono font-black text-amber-600 dark:text-amber-400 text-sm">{coup.code}</td>
+                      <td className="p-3 font-bold text-slate-900 dark:text-white">
                         {coup.type === 'free' ? 'مجاني 100% 🎁' : coup.type === 'percent' ? `خصم ${coup.value}%` : `خصم ${coup.value} ج.م`}
                       </td>
-                      <td className="p-3 font-mono font-bold text-slate-700">{coup.usedCount} من {coup.maxUses}</td>
+                      <td className="p-3 font-mono font-bold text-slate-700 dark:text-slate-300">{coup.usedCount} من {coup.maxUses}</td>
                       <td className="p-3">
                         <span className="badge badge-green">مفعل ⚡</span>
                       </td>
@@ -2177,17 +2177,17 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
 
       {/* Tab 3: Payments Review */}
       {adminTab === 'payments' && (
-        <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-md space-y-6 animate-in fade-in">
-          <div className="border-b border-slate-100 pb-4">
-            <h3 className="font-black text-slate-900 text-lg flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-purple-600" />
+        <div className="bg-white dark:bg-[#162534] p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-md space-y-6 animate-in fade-in">
+          <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+            <h3 className="font-black text-slate-900 dark:text-white text-lg flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               مراجعة إيصالات تحويلات الطلاب (InstaPay / فودافون كاش / فيزا / فوري)
             </h3>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-right text-xs">
-              <thead className="bg-slate-100 text-slate-700 font-black border-b border-slate-200">
+              <thead className="bg-slate-100 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 font-black border-b border-slate-200 dark:border-slate-700">
                 <tr>
                   <th className="p-3">الطالب</th>
                   <th className="p-3">طريقة التحويل</th>
@@ -2198,16 +2198,16 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                   <th className="p-3 text-center">قرار الأدمن 🛡️</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
                 {paymentRequestsDB.map(req => (
-                  <tr key={req.id} className="hover:bg-slate-50">
-                    <td className="p-3 font-bold text-slate-900">
+                  <tr key={req.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                    <td className="p-3 font-bold text-slate-900 dark:text-white">
                       <div>{req.studentName}</div>
-                      <div className="text-[10px] text-slate-500 font-mono">{req.studentPhone}</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">{req.studentPhone}</div>
                     </td>
-                    <td className="p-3 font-bold uppercase text-purple-700">{req.method}</td>
-                    <td className="p-3 font-black text-emerald-600 text-sm">{req.amount} ج.م</td>
-                    <td className="p-3 font-mono font-bold text-slate-800 dir-ltr">{req.refNumber}</td>
+                    <td className="p-3 font-bold uppercase text-purple-700 dark:text-purple-400">{req.method}</td>
+                    <td className="p-3 font-black text-emerald-600 dark:text-emerald-400 text-sm">{req.amount} ج.م</td>
+                    <td className="p-3 font-mono font-bold text-slate-800 dark:text-slate-200 dir-ltr">{req.refNumber}</td>
                     <td className="p-3">
                       <button
                         onClick={() => setPreviewProofImage(req.proofImage)}
@@ -2255,13 +2255,13 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
 
       {/* Tab 4: Q&A Student Questions Management */}
       {adminTab === 'qa' && (
-        <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-md space-y-6 animate-in fade-in">
-          <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
-            <h3 className="font-black text-slate-900 text-lg flex items-center gap-2">
-              <MessageSquare className="w-5 h-5 text-blue-600" />
+        <div className="bg-white dark:bg-[#162534] p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-md space-y-6 animate-in fade-in">
+          <div className="border-b border-slate-100 dark:border-slate-800 pb-4 flex items-center justify-between">
+            <h3 className="font-black text-slate-900 dark:text-white text-lg flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               أسئلة واستفسارات الطلاب البرمجية على الفيديوهات ({videoQuestions.length})
             </h3>
-            <span className="text-xs font-bold text-slate-500">الرد يصل للطالب فوراً على صفحته</span>
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">الرد يصل للطالب فوراً على صفحته</span>
           </div>
 
           <div className="space-y-4">
@@ -2279,32 +2279,32 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                 const isArabic = les.subject === 'اللغة العربية' || les.subject?.includes('عرب');
                 return isSayedAdmin ? isArabic : !isArabic;
               }).map(q => (
-                <div key={q.id} className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-3 text-right">
+                <div key={q.id} className="bg-slate-50 dark:bg-slate-900/90 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3 text-right">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="font-black text-slate-900 text-sm">{q.studentName}</span>
-                      <span className="text-[10px] text-slate-500 font-mono">({q.studentPhone})</span>
+                      <span className="font-black text-slate-900 dark:text-white text-sm">{q.studentName}</span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">({q.studentPhone})</span>
                     </div>
 
                     {q.status === 'pending' ? (
-                      <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                      <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
                         في انتظار الرد ⏳
                       </span>
                     ) : (
-                      <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                      <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
                         تم الرد ✅
                       </span>
                     )}
                   </div>
 
-                  <p className="text-xs text-slate-800 font-bold bg-white p-3 rounded-xl border border-slate-200">
+                  <p className="text-xs text-slate-800 dark:text-slate-200 font-bold bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
                     ❓ {q.questionText}
                   </p>
 
                   {q.replyText ? (
-                    <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-200 text-xs font-bold text-emerald-900 space-y-1">
+                    <div className="bg-emerald-50 dark:bg-emerald-950/40 p-3 rounded-xl border border-emerald-200 dark:border-emerald-800 text-xs font-bold text-emerald-900 dark:text-emerald-300 space-y-1">
                       <div>💬 رد المعلم: {q.replyText}</div>
-                      <div className="text-[10px] text-emerald-700 font-medium">تاريخ الرد: {q.repliedAt}</div>
+                      <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-medium">تاريخ الرد: {q.repliedAt}</div>
                     </div>
                   ) : (
                     <div className="flex gap-2 pt-1">
@@ -2313,7 +2313,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                         placeholder="اكتب رد المعلم هنا..."
                         value={replyTexts[q.id] || ''}
                         onChange={(e) => setReplyTexts(prev => ({ ...prev, [q.id]: e.target.value }))}
-                        className="flex-1 bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold outline-none"
+                        className="flex-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-3 py-2 text-xs font-bold outline-none"
                       />
                       <button
                         onClick={() => handleReplySubmit(q.id)}
@@ -2332,17 +2332,18 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
       )}
 
       {/* Tab 5: Student DB */}
+      {/* Tab 5: Student DB */}
       {adminTab === 'students' && (
-        <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-md space-y-4 animate-in fade-in">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-3">
+        <div className="bg-white dark:bg-[#162534] p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-md space-y-4 animate-in fade-in">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-3">
             <div>
-              <h3 className="font-black text-slate-900 text-base">بيانات حسابات الطلاب وتعديل ومسح الحسابات</h3>
-              <p className="text-xs text-slate-500 font-bold">إدارة شاملة لجميع الصفوف الدراسية (أولى، ثانية، ثالثة ثانوي)</p>
+              <h3 className="font-black text-slate-900 dark:text-white text-base">بيانات حسابات الطلاب وتعديل ومسح الحسابات</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-bold">إدارة شاملة لجميع الصفوف الدراسية (أولى، ثانية، ثالثة ثانوي)</p>
             </div>
             
             <div className="flex items-center gap-3 flex-wrap">
               {/* Grade Filter */}
-              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+              <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl">
                 {[
                   { id: 'all', label: 'الكل' },
                   { id: '3sec', label: '3 ثانوي' },
@@ -2355,7 +2356,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                     className={`px-3 py-1 rounded-lg text-xs font-black transition-all ${
                       studentGradeFilter === g.id
                         ? 'bg-blue-600 text-white shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
+                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     {g.label}
@@ -2369,7 +2370,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                   placeholder="بحث باسم أو رقم الطالب..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="bg-slate-50 border border-slate-300 rounded-xl pr-9 pl-4 py-2 text-xs font-bold w-56 outline-none"
+                  className="bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 rounded-xl pr-9 pl-4 py-2 text-xs font-bold w-56 outline-none"
                 />
                 <Search className="w-4 h-4 text-slate-400 absolute right-3 top-2.5" />
               </div>
@@ -2378,7 +2379,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
 
           <div className="overflow-x-auto">
             <table className="w-full text-right text-xs">
-              <thead className="bg-slate-100 text-slate-700 font-black border-b border-slate-200">
+              <thead className="bg-slate-100 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 font-black border-b border-slate-200 dark:border-slate-700">
                 <tr>
                   <th className="p-3">كود الطالب</th>
                   <th className="p-3">اسم الطالب</th>
@@ -2389,7 +2390,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                   <th className="p-3 text-center">إجراءات التعديل والمسح 🛠️</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
                 {studentsDB
                   .filter(s => {
                     const matchesSearch = s.name.includes(searchTerm) || s.code.includes(searchTerm) || s.phone.includes(searchTerm) || (s.email && s.email.includes(searchTerm));
@@ -2397,19 +2398,19 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                     return matchesSearch && matchesGrade;
                   })
                   .map(st => (
-                    <tr key={st.id} className="hover:bg-slate-50">
-                      <td className="p-3 font-mono font-black text-amber-600">{st.code}</td>
-                      <td className="p-3 font-bold text-slate-900">{st.name}</td>
-                      <td className="p-3 font-bold text-blue-600">
+                    <tr key={st.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                      <td className="p-3 font-mono font-black text-amber-600 dark:text-amber-400">{st.code}</td>
+                      <td className="p-3 font-bold text-slate-900 dark:text-white">{st.name}</td>
+                      <td className="p-3 font-bold text-blue-600 dark:text-blue-400">
                         {st.grade === '3sec' ? '🎓 3 ثانوي' : st.grade === '2sec' ? '📘 2 ثانوي' : '📗 1 ثانوي'}
                       </td>
-                      <td className="p-3 text-slate-700 font-mono dir-ltr">{st.phone}</td>
-                      <td className="p-3 text-slate-700 font-mono dir-ltr">{st.parentPhone}</td>
-                      <td className="p-3 font-black text-emerald-600">{st.walletBalance} ج.م</td>
+                      <td className="p-3 text-slate-700 dark:text-slate-300 font-mono dir-ltr">{st.phone}</td>
+                      <td className="p-3 text-slate-700 dark:text-slate-300 font-mono dir-ltr">{st.parentPhone}</td>
+                      <td className="p-3 font-black text-emerald-600 dark:text-emerald-400">{st.walletBalance} ج.م</td>
                       <td className="p-3 flex items-center justify-center gap-2 flex-wrap max-w-[320px]">
                         <button
                           onClick={() => setStudentPerfModal(st)}
-                          className="px-2.5 py-1.5 rounded-xl bg-purple-100 text-purple-700 font-bold hover:bg-purple-200 transition-all flex items-center gap-1"
+                          className="px-2.5 py-1.5 rounded-xl bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-bold hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-all flex items-center gap-1"
                           title="متابعة درجات الطالب"
                         >
                           <BarChart2 className="w-3.5 h-3.5" />
@@ -2418,7 +2419,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
 
                         <button
                           onClick={() => handleOpenEditStudentModal(st)}
-                          className="px-2.5 py-1.5 rounded-xl bg-blue-100 text-blue-700 font-bold hover:bg-blue-200 transition-all flex items-center gap-1"
+                          className="px-2.5 py-1.5 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-bold hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-all flex items-center gap-1"
                           title="تعديل بيانات الطالب"
                         >
                           <Edit className="w-3.5 h-3.5" />
@@ -2432,18 +2433,18 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                                 handleResetDevice(st.id);
                               }
                             }}
-                            className="px-2.5 py-1.5 rounded-xl bg-amber-100 text-amber-800 font-bold hover:bg-amber-200 transition-all flex items-center gap-1"
+                            className="px-2.5 py-1.5 rounded-xl bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 font-bold hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-all flex items-center gap-1"
                             title="إعادة تعيين قفل الجهاز المتعدد"
                           >
                             🔓 فك الجهاز
                           </button>
                         ) : (
-                          <span className="text-[10px] text-slate-400 font-bold px-2 py-1 bg-slate-100 rounded-xl">غير مقفل</span>
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-xl">غير مقفل</span>
                         )}
 
                         <button
                           onClick={() => handleGenerateOtp(st)}
-                          className="px-2.5 py-1.5 rounded-xl bg-teal-100 text-teal-800 font-bold hover:bg-teal-200 transition-all flex items-center gap-1"
+                          className="px-2.5 py-1.5 rounded-xl bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-300 font-bold hover:bg-teal-200 dark:hover:bg-teal-900/50 transition-all flex items-center gap-1"
                           title="توليد رمز OTP لتسجيل جهاز جديد"
                         >
                           🔑 OTP
@@ -2455,7 +2456,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                               adminDeleteStudent(st.id);
                             }
                           }}
-                          className="px-2.5 py-1.5 rounded-xl bg-rose-600 text-white font-bold hover:bg-rose-700 shadow-sm"
+                          className="px-2.5 py-1.5 rounded-xl bg-rose-600 text-white font-bold hover:bg-rose-700 shadow-sm transition-all"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                           <span>مسح 🗑️</span>
