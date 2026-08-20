@@ -2009,6 +2009,19 @@ async function sendWhatsAppMessage(toPhone, messageText) {
   }
 }
 
+// Diagnostic & Direct WhatsApp Test Endpoint
+app.get('/api/admin/test-whatsapp', requireAdmin, async (req, res) => {
+  const testPhone = req.query.phone || '01002169889';
+  const testMsg = req.query.msg || 'اختبار إرسال رسالة من منصة عِلم التعليمية 🚀';
+  const result = await sendWhatsAppMessage(testPhone, testMsg);
+  return res.json({
+    phoneId: WHATSAPP_PHONE_ID,
+    tokenPrefix: WHATSAPP_TOKEN.substring(0, 15) + '...',
+    testPhone,
+    result
+  });
+});
+
 // Global General WhatsApp Broadcast API (For Lessons, Progress Reports, Live)
 app.post('/api/admin/broadcast-whatsapp', requireAdmin, async (req, res) => {
   try {
@@ -2029,6 +2042,7 @@ app.post('/api/admin/broadcast-whatsapp', requireAdmin, async (req, res) => {
     const isWhatsAppConfigured = !!(WHATSAPP_TOKEN && WHATSAPP_PHONE_ID);
     let sentCount = 0;
     let failedCount = 0;
+    const errors = [];
 
     for (const st of students) {
       const phone = st.phone || st.parentPhone;
@@ -2039,20 +2053,28 @@ app.post('/api/admin/broadcast-whatsapp', requireAdmin, async (req, res) => {
 
       if (isWhatsAppConfigured) {
         const result = await sendWhatsAppMessage(cleanPhone, text);
-        if (result.sent) sentCount++; else failedCount++;
+        if (result.sent) {
+          sentCount++;
+        } else {
+          failedCount++;
+          errors.push({ student: studentName, phone: cleanPhone, error: result.reason });
+        }
       }
     }
 
     const reportMsg = isWhatsAppConfigured
-      ? `✅ تم إرسال رسائل واتساب أوتوماتيك بنجاح لـ ${sentCount} طالب (فشل: ${failedCount}) بدون أي تدخل منك! 🚀📱`
+      ? (sentCount > 0 
+          ? `✅ تم إرسال رسائل واتساب بنجاح لـ ${sentCount} طالب من أصل ${students.length} طالب!`
+          : `⚠️ لم يتم التسليم إلى الواتساب (فشل: ${failedCount}). سبب رفض Meta: ${errors[0]?.error || 'تأكد من إضافة الأرقام في Meta Developers'}`)
       : `تم تجهيز الروابط لـ ${students.length} طالب.`;
 
     return res.json({
-      success: true,
+      success: sentCount > 0,
       message: reportMsg,
       isWhatsAppAutoSent: isWhatsAppConfigured,
       autoSentCount: sentCount,
       autoFailedCount: failedCount,
+      errors,
       studentsCount: students.length
     });
   } catch (err) {
