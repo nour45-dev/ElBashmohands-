@@ -2662,71 +2662,56 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
               </div>
             </div>
 
-            {/* ⚡ ONE-CLICK AUTO-DISPATCH ALL BUTTON */}
+            {/* 📢 ONE-CLICK GROUP BROADCAST BUTTON (PRIMARY RECOMMENDED) */}
             <div className="space-y-2">
-              <button
-                onClick={() => {
-                  if (broadcastModal.links.length === 0) return;
-                  setIsAutoSending(true);
-                  setAutoSendProgress(0);
-                  
-                  broadcastModal.links.forEach((item, index) => {
-                    setTimeout(() => {
-                      window.open(item.whatsappUrl, '_blank');
-                      setAutoSendProgress(index + 1);
-                      if (index === broadcastModal.links.length - 1) {
-                        setTimeout(() => {
-                          setIsAutoSending(false);
-                          alert(`✅ تم فتح وإرسال روابط الواتساب بنجاح لجميع الطلاب (${broadcastModal.links.length} طالب)!`);
-                        }, 500);
-                      }
-                    }, index * 800);
-                  });
-                }}
-                disabled={isAutoSending}
-                className="w-full bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-500 hover:to-emerald-600 text-white font-black text-xs py-3.5 px-4 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+              <a
+                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
+                  `🔴 *تنبيه هام وعاجل من منصة عِلم التعليمية*\n\n` +
+                  `📖 *الحصة:* ${broadcastModal.lessonTitle}\n` +
+                  `👨‍🏫 *المحاضر:* ${isSayedAdmin ? 'أ / سيد عبد العاطي' : 'م / نور الدين'}\n` +
+                  `📞 *رقم التواصل:* ${isSayedAdmin ? '01094273996' : '01002169889'}\n\n` +
+                  `🚀 *اضغط على الرابط التالي للدخول فوراً لحصة البث المباشر:*\n` +
+                  `https://elbashmohands.dev\n\n` +
+                  `بالتوفيق لجميع أبطالنا الطلاب! ✨`
+                )}`}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:from-emerald-500 hover:to-emerald-600 text-white font-black text-xs py-3.5 px-4 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95"
               >
                 <Send className="w-4 h-4" />
-                <span>
-                  {isAutoSending 
-                    ? `جاري الإرسال التلقائي: ${autoSendProgress} / ${broadcastModal.links.length}...`
-                    : `⚡ إرسال تلقائي فوري لجميع الطلاب (${broadcastModal.links.length} طالب) دفعة واحدة 🚀`}
-                </span>
-              </button>
+                <span>📢 نشر التنبيه في جروب واتساب الطلاب العام بضغطة واحدة 🚀</span>
+              </a>
 
-              {/* Progress bar if auto-sending */}
-              {isAutoSending && (
-                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                  <div 
-                    className="bg-emerald-500 h-2 transition-all duration-300 rounded-full"
-                    style={{ width: `${(autoSendProgress / broadcastModal.links.length) * 100}%` }}
-                  />
-                </div>
-              )}
+              {/* 💬 BULK SMS BUTTON */}
+              <a
+                href={`sms:${broadcastModal.links.map(l => l.phone).filter(Boolean).join(',')}?body=${encodeURIComponent(
+                  `تنبيه من منصة عِلم: تم بدء ${broadcastModal.lessonTitle} مع ${isSayedAdmin ? 'أ / سيد عبد العاطي' : 'م / نور الدين'}. الرابط: https://elbashmohands.dev`
+                )}`}
+                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black text-xs py-2.5 px-4 rounded-2xl shadow-sm transition-all flex items-center justify-center gap-2 hover:scale-[1.01]"
+              >
+                <span>💬 إرسال SMS لجميع أرقام الطلاب ({broadcastModal.links.length} طالب) دفعة واحدة</span>
+              </a>
+
+              {/* 📋 COPY TEXT BUTTON */}
+              <button
+                onClick={() => {
+                  const text = `🔴 *تنبيه هام وعاجل من منصة عِلم التعليمية*\n\n📖 *الحصة:* ${broadcastModal.lessonTitle}\n👨‍🏫 *المحاضر:* ${isSayedAdmin ? 'أ / سيد عبد العاطي' : 'م / نور الدين'}\n📞 *رقم التواصل:* ${isSayedAdmin ? '01094273996' : '01002169889'}\n\n🚀 *اضغط على الرابط التالي للدخول فوراً لحصة البث المباشر:*\nhttps://elbashmohands.dev`;
+                  navigator.clipboard?.writeText(text);
+                  alert('✅ تم نسخ نص الرسالة بالكامل إلى الحافظة! يمكنك لصقها في أي جروب واتساب أو تليجرام.');
+                }}
+                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-xs py-2 rounded-xl transition-all flex items-center justify-center gap-1.5"
+              >
+                <span>📋 نسخ نص الرسالة بالكامل لنشرها في أي مكان</span>
+              </button>
             </div>
 
-            {/* 📢 ONE-CLICK GROUP BROADCAST BUTTON */}
-            <a
-              href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
-                `🔴 *تنبيه هام وعاجل من منصة عِلم التعليمية*\n\n` +
-                `📖 *الحصة:* ${broadcastModal.lessonTitle}\n` +
-                `👨‍🏫 *المحاضر:* ${isSayedAdmin ? 'أ / سيد عبد العاطي' : 'م / نور الدين'}\n` +
-                `📞 *رقم التواصل:* ${isSayedAdmin ? '01094273996' : '01002169889'}\n\n` +
-                `🚀 *اضغط على الرابط التالي للدخول فوراً لحصة البث المباشر:*\n` +
-                `https://elbashmohands.dev\n\n` +
-                `بالتوفيق لجميع أبطالنا الطلاب! ✨`
-              )}`}
-              target="_blank"
-              rel="noreferrer"
-              className="w-full bg-slate-900 hover:bg-slate-800 text-amber-400 border border-amber-500/30 font-black text-xs py-2.5 px-4 rounded-2xl transition-all flex items-center justify-center gap-2 shadow-sm"
-            >
-              <span>📢 نشر الرسالة في جروب واتساب الطلاب العام بضغطة واحدة</span>
-            </a>
-
-            {/* Individual Student Links List (Optional Manual Fallback) */}
+            {/* Individual Student Links List */}
             <div className="border-t pt-3 space-y-1.5">
-              <div className="text-[11px] font-bold text-slate-500">أو يمكنك الإرسال الفردي لكل طالب يدوياً:</div>
-              <div className="max-h-44 overflow-y-auto space-y-1.5 custom-scrollbar">
+              <div className="flex items-center justify-between">
+                <div className="text-[11px] font-black text-slate-700">قائمة إرسال واتساب للطلاب ({broadcastModal.links.length} طالب):</div>
+                <span className="text-[10px] text-slate-400 font-bold">اضغط إرسال بجانب كل طالب</span>
+              </div>
+              <div className="max-h-40 overflow-y-auto space-y-1.5 custom-scrollbar">
                 {broadcastModal.links.map((item, idx) => (
                   <div key={idx} className="flex items-center justify-between bg-slate-50 border border-slate-200 p-2 rounded-xl text-xs">
                     <div>
@@ -2737,9 +2722,9 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                       href={item.whatsappUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1 rounded-lg text-[10px] flex items-center gap-1 shadow-2xs transition-all"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1 rounded-lg text-[10px] flex items-center gap-1 shadow-2xs transition-all hover:scale-105"
                     >
-                      <span>إرسال</span>
+                      <span>إرسال واتساب</span>
                       <Send className="w-2.5 h-2.5" />
                     </a>
                   </div>
