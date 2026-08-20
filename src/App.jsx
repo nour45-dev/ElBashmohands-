@@ -93,7 +93,10 @@ const MainContent = () => {
     <div className="min-h-screen flex flex-col justify-between bg-[#F8FAFC] dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans transition-colors">
       
       {/* In-App Notification Popup for Students */}
-      <NotificationBanner />
+      <NotificationBanner 
+        setCurrentTab={setCurrentTab} 
+        setSelectedLiveId={setSelectedLiveId} 
+      />
 
       {/* Top Header Navigation */}
       <Navbar 
