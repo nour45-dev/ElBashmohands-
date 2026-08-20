@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { ElmLogo } from '../components/ElmLogo';
 import { 
@@ -39,8 +39,23 @@ import {
 export const LoginView = () => {
   const { loginUser, registerStudent, verifyDeviceOtp, theme, toggleTheme } = useApp();
 
+  const authCardRef = useRef(null);
+
   // Active Tab: 'student-login' | 'student-signup' | 'parent-login' | 'admin-login'
   const [activeTab, setActiveTab] = useState('student-login');
+
+  const goToSignup = () => {
+    setActiveTab('student-signup');
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    setTimeout(() => {
+      if (authCardRef.current) {
+        authCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }, 50);
+  };
 
   // Secret admin unlock (click logo 5 times rapidly)
   const [logoClickCount, setLogoClickCount] = useState(0);
@@ -200,8 +215,8 @@ export const LoginView = () => {
 
             {/* Start CTA */}
             <button
-              onClick={() => { setActiveTab('student-signup'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-              className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-4 py-2 rounded-xl text-xs font-black transition-all shadow-md flex items-center gap-1.5"
+              onClick={goToSignup}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-4 py-2 rounded-xl text-xs font-black transition-all shadow-md flex items-center gap-1.5 hover:scale-105"
             >
               <Sparkles className="w-3.5 h-3.5" />
               <span>ابدأ رحلتك الآن</span>
@@ -217,7 +232,7 @@ export const LoginView = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           
           {/* Right Side (7 Cols on Desktop): The Auth Card */}
-          <div className="lg:col-span-7 space-y-6 order-2 lg:order-1">
+          <div ref={authCardRef} className="lg:col-span-7 space-y-6 order-2 lg:order-1 scroll-mt-24">
             
             {/* Top Motto Badge */}
             <div className="space-y-3">
@@ -859,7 +874,7 @@ export const LoginView = () => {
               سجل حسابك الآن في أقل من دقيقة وابدأ في مشاهدة الحصص والامتحانات التفاعلية مباشرة.
             </p>
             <button
-              onClick={() => { setActiveTab('student-signup'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              onClick={goToSignup}
               className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-black px-8 py-3.5 rounded-2xl text-xs md:text-sm transition-all shadow-lg hover:scale-105 inline-flex items-center gap-2"
             >
               <Sparkles className="w-4 h-4" />
