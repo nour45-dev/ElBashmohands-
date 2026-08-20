@@ -658,11 +658,27 @@ html.light-mode .text-\[\#d4a017\] {
 }
 
 /* SVG ElmLogo text fill overrides for light and dark modes */
-html:not(.light-mode) .elm-logo-text {
+html:not(.light-mode) .elm-logo-text,
+html.dark .elm-logo-text {
   fill: #FFFFFF !important;
 }
-html.light-mode .elm-logo-text {
+html.light-mode .elm-logo-text,
+html:not(.dark) .elm-logo-text {
   fill: #0D1B2A !important;
 }
+
+html.light-mode .elm-logo-cap-inner {
+  fill: #E2E8F0 !important;
+}
+html.dark .elm-logo-cap-inner {
+  fill: #0D1B2A !important;
+}
+
+/* Light mode global header & card contrast polish */
+html.light-mode header {
+  background-color: rgba(255, 255, 255, 0.98) !important;
+  border-color: rgba(226, 232, 240, 0.9) !important;
+}
+
 
 
