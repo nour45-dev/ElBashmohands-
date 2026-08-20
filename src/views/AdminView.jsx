@@ -632,7 +632,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
       .map(std => {
         const targetPhone = std.parentPhone || std.phone;
         const gradeLabel = std.grade === '3sec' ? 'ثالثة ثانوي' : std.grade === '2sec' ? 'ثاني ثانوي' : 'أول ثانوي';
-        const msg = `📌 *تقرير متابعة من منصة المعلم*\n\nالطالب/ة: *${std.name}*\nالصف: ${gradeLabel}\nالرصيد: ${std.walletBalance || 0} ج.م\n\n🔗 تابع تقدم ابنك على منصتنا الآن: https://elm.up.railway.app`;
+        const msg = `📌 *تقرير متابعة من منصة عِلم التعليمية*\n\nالطالب/ة: *${std.name}*\nالصف: ${gradeLabel}\nالرصيد: ${std.walletBalance || 0} ج.م\n\n🔗 تابع تقدم ابنك على منصتنا الآن: https://elm.up.railway.app`;
         const formatted = (targetPhone || '').replace(/\s/g, '').startsWith('0') ? '2' + (targetPhone || '').replace(/\s/g, '') : (targetPhone || '').replace(/\s/g, '');
         return {
           studentName: std.name,
@@ -647,7 +647,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: '📊 تقرير متابعة لجميع الطلاب',
-          messageBody: '📌 *تقرير متابعة من منصة المعلم*\n\nالطالب/ة: *{name}*\n\n🔗 تابع تقدم ابنك على منصتنا الآن: https://elm.up.railway.app'
+          messageBody: '📌 *تقرير متابعة من منصة عِلم التعليمية*\n\nالطالب/ة: *{name}*\n\n🔗 تابع تقدم ابنك على منصتنا الآن: https://elm.up.railway.app'
         })
       });
       const data = await resp.json();
