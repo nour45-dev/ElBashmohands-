@@ -140,11 +140,13 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
 
     const isStartingNow = !newLiveDate || new Date(scheduledIso) <= new Date(Date.now() + 10 * 60 * 1000);
 
+    const forcedSubject = isSayedAdmin ? 'اللغة العربية' : 'برمجة وعلوم الحاسب';
+
     const res = await adminCreateLiveSession({
       title: newLiveTitle.trim(),
       instructor: isSayedAdmin ? 'أ / سيد عبد العاطي' : 'م / نور الدين',
       instructorId: adminIdentity,
-      subject: newLiveSubject,
+      subject: forcedSubject,
       grade: newLiveGrade,
       status: isStartingNow ? 'live' : 'scheduled',
       scheduledAt: scheduledIso,
@@ -152,7 +154,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
       streamUrl: newLiveStreamType === 'native' 
         ? `platform_native_${Date.now()}` 
         : (newLiveStreamUrl.trim() || 'https://www.youtube.com/watch?v=jfKfPfyJRdk'),
-      description: newLiveDesc.trim() || `حصة بث مباشر تفاعلية لمادة ${newLiveSubject}`
+      description: newLiveDesc.trim() || `حصة بث مباشر تفاعلية لمادة ${forcedSubject}`
     });
 
     if (res.success) {
@@ -1101,7 +1103,10 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                           {/* Status Actions */}
                           {s.status !== 'live' && (
                             <button
-                              onClick={() => adminUpdateLiveStatus(s.id, 'live')}
+                              onClick={async () => {
+                                await adminUpdateLiveStatus(s.id, 'live');
+                                handleBroadcastLive(s);
+                              }}
                               className="bg-rose-600 hover:bg-rose-500 text-white text-xs font-black px-4 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-1.5"
                             >
                               <Radio className="w-3.5 h-3.5" />
