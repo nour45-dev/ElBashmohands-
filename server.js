@@ -1973,11 +1973,11 @@ app.delete('/api/live/:id', requireAdmin, async (req, res) => {
 });
 
 // ═══ WhatsApp Business Cloud API Configuration ═══
-// Set these env vars on Railway to enable FULLY AUTOMATIC WhatsApp sending:
-//   WHATSAPP_TOKEN    = your Meta permanent access token
-//   WHATSAPP_PHONE_ID = your WhatsApp Business phone number ID
-const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN || '';
-const WHATSAPP_PHONE_ID = process.env.WHATSAPP_PHONE_ID || '';
+const RAW_TOKEN = process.env.WHATSAPP_TOKEN || 'EAANsSrEvKIQBR4pv5uiy5S9r9nM7ljFfdzWCSNSDCIdTQ9h0z4JdG5HxdnfEOfewiSsb6ASWEkaruYI10QKfZADNkfMRXMZCNZABEgJFZCHeCIoo0gmTzq7kZAMS19OUny61HzkaJJ4lVJKtzUcDo6iPhxoZBXu8Xp7LOxYYbVYiaJJjXGSekKTHaqyO5nCE91rwHLPF8WiLIbmIOv8hOWCLrTqRzVGUnuIHV2';
+const RAW_PHONE_ID = process.env.WHATSAPP_PHONE_ID || '978529235354693';
+
+const WHATSAPP_TOKEN = String(RAW_TOKEN).trim().replace(/^["']|["']$/g, '');
+const WHATSAPP_PHONE_ID = String(RAW_PHONE_ID).trim().replace(/^["']|["']$/g, '');
 
 async function sendWhatsAppMessage(toPhone, messageText) {
   if (!WHATSAPP_TOKEN || !WHATSAPP_PHONE_ID) return { sent: false, reason: 'not_configured' };
@@ -1987,14 +1987,78 @@ async function sendWhatsAppMessage(toPhone, messageText) {
   try {
     const resp = await fetch(`https://graph.facebook.com/v21.0/${WHATSAPP_PHONE_ID}/messages`, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${WHATSAPP_TOKEN}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messaging_product: 'whatsapp', to: intlPhone, type: 'text', text: { body: messageText } })
+      headers: { 
+        'Authorization': `Bearer ${WHATSAPP_TOKEN}`, 
+        'Content-Type': 'application/json' 
+      },
+      body: JSON.stringify({ 
+        messaging_product: 'whatsapp', 
+        recipient_type: 'individual',
+        to: intlPhone, 
+        type: 'text', 
+        text: { preview_url: true, body: messageText } 
+      })
     });
     const data = await resp.json();
-    if (data.messages && data.messages.length > 0) return { sent: true, messageId: data.messages[0].id };
-    return { sent: false, reason: data.error?.message || 'unknown' };
-  } catch (err) { return { sent: false, reason: err.message }; }
+    if (data.messages && data.messages.length > 0) return { sent: true, messageId: data.messages[0].id, data };
+    console.log('[WhatsApp API Error Response]:', JSON.stringify(data));
+    return { sent: false, reason: data.error?.message || JSON.stringify(data.error) || 'unknown', data };
+  } catch (err) { 
+    console.log('[WhatsApp API Network Error]:', err.message);
+    return { sent: false, reason: err.message }; 
+  }
 }
+
+// Global General WhatsApp Broadcast API (For Lessons, Progress Reports, Live)
+app.post('/api/admin/broadcast-whatsapp', requireAdmin, async (req, res) => {
+  try {
+    const { title, messageBody, grade } = req.body;
+    let students = [];
+
+    if (dbType === 'mongodb') {
+      const query = grade && grade !== 'all' ? { grade } : {};
+      students = await db.collection('students').find(query).toArray();
+    } else {
+      const data = getLocalData();
+      students = (data.students || []).filter(st => {
+        if (!grade || grade === 'all') return true;
+        return st.grade === grade;
+      });
+    }
+
+    const isWhatsAppConfigured = !!(WHATSAPP_TOKEN && WHATSAPP_PHONE_ID);
+    let sentCount = 0;
+    let failedCount = 0;
+
+    for (const st of students) {
+      const phone = st.phone || st.parentPhone;
+      if (!phone) { failedCount++; continue; }
+      const cleanPhone = normalizePhone(phone);
+      const studentName = st.name || 'طالبنا العزيز';
+      const text = messageBody ? messageBody.replace('{name}', studentName) : `أهلاً يا ${studentName} 👋\n\n📌 *${title || 'تنبيه من منصة عِلم التعليمية'}*\n\n🔗 ادخل للمنصة الآن: https://elbashmohands.dev`;
+
+      if (isWhatsAppConfigured) {
+        const result = await sendWhatsAppMessage(cleanPhone, text);
+        if (result.sent) sentCount++; else failedCount++;
+      }
+    }
+
+    const reportMsg = isWhatsAppConfigured
+      ? `✅ تم إرسال رسائل واتساب أوتوماتيك بنجاح لـ ${sentCount} طالب (فشل: ${failedCount}) بدون أي تدخل منك! 🚀📱`
+      : `تم تجهيز الروابط لـ ${students.length} طالب.`;
+
+    return res.json({
+      success: true,
+      message: reportMsg,
+      isWhatsAppAutoSent: isWhatsAppConfigured,
+      autoSentCount: sentCount,
+      autoFailedCount: failedCount,
+      studentsCount: students.length
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
 
 // Admin broadcast WhatsApp & in-app notification to all registered students
 app.post('/api/live/:id/notify', requireAdmin, async (req, res) => {
