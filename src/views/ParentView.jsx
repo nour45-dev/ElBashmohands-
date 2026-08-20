@@ -46,13 +46,14 @@ export const ParentView = () => {
   // Filter student exams
   const studentExams = examHistory.filter(e => e.studentId === currentTargetStudent.id || !e.studentId);
   
-  // Calculate average exam score & overall percentage
+  // 100% Real Average Exam Score & Overall Percentage (NO fake benchmarks)
   const totalExamsCount = studentExams.length;
   const avgPercentage = totalExamsCount > 0 
     ? Math.round(studentExams.reduce((acc, curr) => acc + (Number(curr.percentage) || (curr.total ? (curr.score / curr.total) * 100 : 0)), 0) / totalExamsCount)
-    : 95; // Default encouraging benchmark if no exams taken yet
+    : null;
 
   const getOverallGradeLabel = (pct) => {
+    if (pct === null) return { label: 'في انتظار حل الامتحانات ⏳', color: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700' };
     if (pct >= 90) return { label: 'ممتاز جداً 🌟', color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/30' };
     if (pct >= 80) return { label: 'جيد جداً ⚡', color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-500/10 border-blue-500/30' };
     if (pct >= 65) return { label: 'جيد 👍', color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500/10 border-amber-500/30' };
@@ -61,16 +62,19 @@ export const ParentView = () => {
 
   const gradeInfo = getOverallGradeLabel(avgPercentage);
 
-  // Calculate lessons progress
+  // 100% Real Lessons progress
   const targetGradeLessons = lessons.filter(l => l.grade === currentTargetStudent.grade || l.grade === 'all' || !l.grade);
-  const completedLessonsCount = (currentTargetStudent.completedLessons?.length) || (currentTargetStudent.unlockedLessons?.length) || (targetGradeLessons.length > 0 ? Math.min(targetGradeLessons.length, 2) : 0);
+  const completedLessonsCount = (currentTargetStudent.completedLessons?.length) || (currentTargetStudent.unlockedLessons?.length) || 0;
   const lessonsProgressPct = targetGradeLessons.length > 0 
     ? Math.min(100, Math.round((completedLessonsCount / targetGradeLessons.length) * 100))
-    : 100;
+    : 0;
 
-  // Calculate Live Broadcast Attendance
+  // 100% Real Live Broadcast Attendance
   const targetLiveSessions = liveSessionsDB.filter(s => s.grade === currentTargetStudent.grade || s.grade === 'all' || !s.grade);
-  const liveAttendancePct = targetLiveSessions.length > 0 ? 92 : 100;
+  const attendedLiveCount = currentTargetStudent.attendedLiveSessions?.length || 0;
+  const liveAttendancePct = targetLiveSessions.length > 0 
+    ? Math.min(100, Math.round((attendedLiveCount / targetLiveSessions.length) * 100))
+    : 0;
 
   return (
     <div className="space-y-8 pb-16 max-w-5xl mx-auto" dir="rtl">
@@ -129,7 +133,7 @@ export const ParentView = () => {
           </div>
           <div>
             <div className="text-3xl font-black text-slate-900 dark:text-white font-mono">
-              {avgPercentage}%
+              {avgPercentage !== null ? `${avgPercentage}%` : '—'}
             </div>
             <div className="mt-1">
               <span className={`text-[11px] font-black px-2.5 py-0.5 rounded-lg border ${gradeInfo.bg} ${gradeInfo.color}`}>
@@ -137,7 +141,9 @@ export const ParentView = () => {
               </span>
             </div>
           </div>
-          <p className="text-[10px] text-slate-400 font-medium">معدل التراكمي الشامل لكافة الأنشطة</p>
+          <p className="text-[10px] text-slate-400 font-medium">
+            {totalExamsCount > 0 ? `متوسط ${totalExamsCount} امتحان تم حلهم` : 'لم يتم حل امتحانات حتى الآن'}
+          </p>
         </div>
 
         {/* 2. رصيد محفظة الابن */}
@@ -153,7 +159,7 @@ export const ParentView = () => {
               {currentTargetStudent.walletBalance || 0} <span className="text-sm font-bold text-slate-500">ج.م</span>
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold mt-1">
-              {currentTargetStudent.walletBalance > 0 ? 'رصيد كافي لشراء الحصص ⚡' : 'يمكن شحن الرصيد بأي وقت'}
+              {currentTargetStudent.walletBalance > 0 ? 'رصيد كافي لشراء الحصص ⚡' : 'الرصيد الحالي 0 ج.م'}
             </p>
           </div>
           <p className="text-[10px] text-slate-400 font-medium">يستخدم في فتح الحصص والاختبارات</p>
@@ -175,7 +181,7 @@ export const ParentView = () => {
               المركز {currentTargetStudent.rank || 1} على مستوى الصف 🏆
             </p>
           </div>
-          <p className="text-[10px] text-slate-400 font-medium">مجموع نقاط التميز: {currentTargetStudent.points || 150} نقطة</p>
+          <p className="text-[10px] text-slate-400 font-medium">مجموع نقاط التميز: {currentTargetStudent.points || 0} نقطة</p>
         </div>
 
         {/* 4. شعلة الالتزام اليومي */}
@@ -188,11 +194,11 @@ export const ParentView = () => {
           </div>
           <div>
             <div className="text-3xl font-black text-orange-500 font-mono flex items-center gap-1">
-              <span>{currentTargetStudent.streakDays || 5}</span>
+              <span>{currentTargetStudent.streakDays || 0}</span>
               <span className="text-sm font-bold text-slate-500">أيام</span>
             </div>
             <p className="text-[11px] text-orange-600 dark:text-orange-400 font-bold mt-1">
-              متابعة دراسية مستمرة 🔥
+              {currentTargetStudent.streakDays > 0 ? 'متابعة دراسية مستمرة 🔥' : 'سجل الدخول يومياً لزيادة الشعلة'}
             </p>
           </div>
           <p className="text-[10px] text-slate-400 font-medium">حضور وحل دوري دون انقطاع</p>
@@ -222,16 +228,18 @@ export const ParentView = () => {
           <div className="w-full bg-slate-100 dark:bg-slate-800 h-3.5 rounded-full overflow-hidden p-0.5 border border-slate-200 dark:border-slate-700">
             <div 
               className="bg-gradient-to-l from-blue-600 to-indigo-600 h-full rounded-full transition-all duration-700 shadow-sm"
-              style={{ width: `${Math.max(5, lessonsProgressPct)}%` }}
+              style={{ width: `${lessonsProgressPct}%` }}
             />
           </div>
 
           <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300 font-bold pt-1">
             <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
               <CheckCircle2 className="w-4 h-4" />
-              <span>أكمل {completedLessonsCount} من أصل {targetGradeLessons.length || 2} حصة</span>
+              <span>أكمل {completedLessonsCount} من أصل {targetGradeLessons.length} حصة</span>
             </span>
-            <span className="text-[11px] text-slate-400 font-mono">الحالة: منتظم ومتقدم</span>
+            <span className="text-[11px] text-slate-400 font-mono">
+              {targetGradeLessons.length === 0 ? 'لا توجد حصص بعد' : `${completedLessonsCount}/${targetGradeLessons.length} مكتمل`}
+            </span>
           </div>
         </div>
 
@@ -243,7 +251,7 @@ export const ParentView = () => {
                 <Radio className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-black text-slate-900 dark:text-white text-sm">نسبة الحضور والتفاعل في البث المباشر</h3>
+                <h3 className="font-black text-slate-900 dark:text-white text-sm">نسبة الحضور في البث المباشر</h3>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">حضور حصص الأونلاين التفاعلية والمشاركة</p>
               </div>
             </div>
@@ -254,16 +262,18 @@ export const ParentView = () => {
           <div className="w-full bg-slate-100 dark:bg-slate-800 h-3.5 rounded-full overflow-hidden p-0.5 border border-slate-200 dark:border-slate-700">
             <div 
               className="bg-gradient-to-l from-rose-500 to-pink-600 h-full rounded-full transition-all duration-700 shadow-sm"
-              style={{ width: `${Math.max(5, liveAttendancePct)}%` }}
+              style={{ width: `${liveAttendancePct}%` }}
             />
           </div>
 
           <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300 font-bold pt-1">
             <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
               <CheckCircle2 className="w-4 h-4" />
-              <span>مشارك في الشات واستطلاعات الرأي (Polls)</span>
+              <span>حضر {attendedLiveCount} من أصل {targetLiveSessions.length} بث</span>
             </span>
-            <span className="text-[11px] text-rose-600 dark:text-rose-400 font-bold">حضور متميز 🔴</span>
+            <span className="text-[11px] text-slate-400 font-mono">
+              {targetLiveSessions.length === 0 ? 'لا يوجد بث حالياً' : `${attendedLiveCount}/${targetLiveSessions.length} حضور`}
+            </span>
           </div>
         </div>
 
