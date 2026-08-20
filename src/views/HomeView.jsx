@@ -153,7 +153,7 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveId
       </section>
 
       {/* ═══ Live Classroom Banner ═══ */}
-      {targetLiveSession ? (
+      {targetLiveSession && (
         <section className={`p-5 md:p-6 rounded-3xl border shadow-lg transition-all flex flex-col md:flex-row items-center justify-between gap-5 ${
           targetLiveSession.status === 'live'
             ? 'bg-gradient-to-r from-rose-950 via-slate-900 to-slate-950 border-rose-500/40 text-white ring-2 ring-rose-500/20'
