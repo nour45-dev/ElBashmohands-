@@ -2018,7 +2018,12 @@ app.post('/api/live/:id/notify', requireAdmin, async (req, res) => {
       writeLocalData(data);
     }
 
-    // 2. Generate customized WhatsApp links for every registered student
+    // 2. Identify sender based on teacher identity
+    const isSayed = session.subject?.includes('عرب') || session.instructor?.includes('سيد') || session.instructorId === 'mr_sayed';
+    const senderName = isSayed ? 'أ / سيد عبد العاطي' : 'م / نور الدين';
+    const senderPhone = isSayed ? '01094273996' : '01002169889';
+
+    // 3. Generate customized WhatsApp links for every registered student
     const whatsappLinks = students.map(st => {
       const studentName = st.name || 'طالبنا العزيز';
       const phone = st.phone || st.parentPhone;
@@ -2028,7 +2033,8 @@ app.post('/api/live/:id/notify', requireAdmin, async (req, res) => {
         `أهلاً يا ${studentName} 👋\n\n` +
         `🔴 *حصة بث مباشر هامة الآن على منصة عِلم*\n` +
         `📖 *العنوان:* ${session.title}\n` +
-        `👨‍🏫 *المحاضر:* ${session.instructor}\n` +
+        `👨‍🏫 *المحاضر:* ${senderName}\n` +
+        `📞 *رقم المحاضر:* ${senderPhone}\n` +
         `📚 *المادة:* ${session.subject}\n\n` +
         `🚀 *اضغط على الرابط التالي للدخول فوراً والمشاركة في الشرح والشات التفاعلي:*\n` +
         `${joinUrl}\n\n` +
@@ -2046,9 +2052,11 @@ app.post('/api/live/:id/notify', requireAdmin, async (req, res) => {
 
     return res.json({
       success: true,
-      message: `تم إرسال الإشعار وتوليد ${whatsappLinks.length} رابط واتساب للطلاب المسجلين بالصف بنجاح! 🚀`,
+      message: `تم إرسال إشعار وتنبيه البث المباشر بنجاح إلى جميع الطلاب (${students.length} طالب مسجل) من رقم ${senderName} (${senderPhone})! 🚀📱`,
       inAppNotification: newNotif,
       studentsCount: students.length,
+      senderName,
+      senderPhone,
       whatsappLinks
     });
   } catch (err) {
