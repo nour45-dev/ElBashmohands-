@@ -213,15 +213,57 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveId
           </button>
 
         </section>
-      ) : (
-        <div className="flex items-center justify-between bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/60 px-5 py-3 rounded-2xl">
-          <div className="flex items-center gap-2 text-blue-900 dark:text-blue-200 text-xs font-black">
-            <GraduationCap className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-            <span>المحتوى المعروض مخصص لـ: <strong>{gradeTitles[activeGrade] || 'الصف الدراسي المسجل'}</strong></span>
-          </div>
-          <span className="text-[10px] bg-blue-600 text-white px-2.5 py-0.5 rounded-full font-bold">حسابك مفعل ✓</span>
-        </div>
       )}
+
+      {/* ═══ Grade Switcher Bar (Interactive for Admin, Locked for Student) ═══ */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#162534] border border-blue-200 dark:border-blue-800/60 p-4 md:p-5 rounded-3xl shadow-sm">
+        <div className="flex items-center gap-3 text-slate-800 dark:text-slate-100 text-xs md:text-sm font-black">
+          <div className="w-10 h-10 rounded-2xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center text-lg flex-shrink-0">
+            🎓
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span>المحتوى المعروض حالياً:</span>
+              <span className="text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2.5 py-0.5 rounded-lg border border-blue-500/20">
+                {gradeTitles[activeGrade] || 'الصف الدراسي'}
+              </span>
+            </div>
+            {userRole === 'admin' && (
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold mt-0.5">
+                👑 بصفتك أدمن: يمكنك الضغط على أي صف دراسي أدناه لمعاينة وتصفح حصصه فوراً:
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Interactive Grade Selector Tabs for Admin */}
+        {userRole === 'admin' ? (
+          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 self-stretch sm:self-auto justify-center">
+            {[
+              { id: '3sec', label: '🎓 ثالثة ثانوي (2026)' },
+              { id: '2sec', label: '📘 ثانية ثانوي' },
+              { id: '1sec', label: '📗 أولى ثانوي' }
+            ].map(g => (
+              <button
+                key={g.id}
+                onClick={() => switchGrade(g.id)}
+                className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
+                  activeGrade === g.id
+                    ? 'bg-blue-600 text-white shadow-md scale-105 ring-2 ring-blue-500/30'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-white/80 dark:hover:bg-slate-800'
+                }`}
+              >
+                <span>{g.label}</span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 px-3.5 py-1.5 rounded-2xl text-xs font-black self-start sm:self-auto">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <span>حساب الطالب مخصص لصفك الدراسي فقط ✓</span>
+          </div>
+        )}
+      </div>
 
       {/* ══════════════════════════════════════════════════════════════
           1️⃣ CARD 1: قسم اللغة العربية والبلاغة (مستر سيد عبد العاطي)
