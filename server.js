@@ -2049,7 +2049,7 @@ app.post('/api/admin/broadcast-whatsapp', requireAdmin, async (req, res) => {
       if (!phone) { failedCount++; continue; }
       const cleanPhone = normalizePhone(phone);
       const studentName = st.name || 'طالبنا العزيز';
-      const text = messageBody ? messageBody.replace('{name}', studentName) : `أهلاً يا ${studentName} 👋\n\n📌 *${title || 'تنبيه من منصة عِلم التعليمية'}*\n\n🔗 ادخل للمنصة الآن: https://elbashmohands.dev`;
+      const text = messageBody ? messageBody.replace('{name}', studentName) : `أهلاً يا ${studentName} 👋\n\n📌 *${title || 'تنبيه من منصة عِلم التعليمية'}*\n\n🔗 ادخل للمنصة الآن: https://elm.up.railway.app`;
 
       if (isWhatsAppConfigured) {
         const result = await sendWhatsAppMessage(cleanPhone, text);
@@ -2145,7 +2145,7 @@ app.post('/api/live/:id/notify', requireAdmin, async (req, res) => {
         if (!phone) { failedCount++; continue; }
         const cleanPhone = normalizePhone(phone);
         const studentName = st.name || 'طالبنا العزيز';
-        const joinUrl = `https://elbashmohands.dev/?live=${session.id}`;
+        const joinUrl = `https://elm.up.railway.app/?live=${session.id}`;
         const msgText =
           `أهلاً يا ${studentName} 👋\n\n` +
           `🔴 *حصة بث مباشر هامة الآن على منصة عِلم*\n` +
@@ -2164,7 +2164,7 @@ app.post('/api/live/:id/notify', requireAdmin, async (req, res) => {
       const studentName = st.name || 'طالبنا العزيز';
       const phone = st.phone || st.parentPhone;
       const cleanPhone = normalizePhone(phone);
-      const joinUrl = `https://elbashmohands.dev/?live=${session.id}`;
+      const joinUrl = `https://elm.up.railway.app/?live=${session.id}`;
       const textMsg = encodeURIComponent(
         `أهلاً يا ${studentName} 👋\n\n` +
         `🔴 *حصة بث مباشر هامة الآن على منصة عِلم*\n` +
