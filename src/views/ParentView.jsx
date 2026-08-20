@@ -121,87 +121,48 @@ export const ParentView = () => {
       </div>
 
       {/* ═══ Overall Performance & Key Stats Grid ═══ */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         
         {/* 1. التقدير الكلي العام */}
-        <div className="bg-white dark:bg-[#162534] p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-md space-y-3 relative overflow-hidden">
+        <div className="bg-white dark:bg-[#162534] p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-md space-y-3 relative overflow-hidden">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400">التقدير الكلي للابن</span>
-            <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-              <Star className="w-4 h-4" />
+            <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <Star className="w-5 h-5" />
             </div>
           </div>
           <div>
-            <div className="text-3xl font-black text-slate-900 dark:text-white font-mono">
+            <div className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white font-mono">
               {avgPercentage !== null ? `${avgPercentage}%` : '—'}
             </div>
-            <div className="mt-1">
-              <span className={`text-[11px] font-black px-2.5 py-0.5 rounded-lg border ${gradeInfo.bg} ${gradeInfo.color}`}>
+            <div className="mt-2">
+              <span className={`text-xs font-black px-3 py-1 rounded-lg border ${gradeInfo.bg} ${gradeInfo.color}`}>
                 {gradeInfo.label}
               </span>
             </div>
           </div>
-          <p className="text-[10px] text-slate-400 font-medium">
+          <p className="text-[11px] text-slate-400 font-medium">
             {totalExamsCount > 0 ? `متوسط ${totalExamsCount} امتحان تم حلهم` : 'لم يتم حل امتحانات حتى الآن'}
           </p>
         </div>
 
         {/* 2. رصيد محفظة الابن */}
-        <div className="bg-white dark:bg-[#162534] p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-md space-y-3">
+        <div className="bg-white dark:bg-[#162534] p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-md space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400">رصيد المحفظة المتاح</span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <Wallet className="w-4 h-4" />
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <Wallet className="w-5 h-5" />
             </div>
           </div>
           <div>
-            <div className="text-3xl font-black text-emerald-600 dark:text-emerald-400 font-mono">
-              {currentTargetStudent.walletBalance || 0} <span className="text-sm font-bold text-slate-500">ج.م</span>
+            <div className="text-3xl md:text-4xl font-black text-emerald-600 dark:text-emerald-400 font-mono">
+              {currentTargetStudent.walletBalance || 0} <span className="text-base font-bold text-slate-500">ج.م</span>
             </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold mt-1">
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mt-2">
               {currentTargetStudent.walletBalance > 0 ? 'رصيد كافي لشراء الحصص ⚡' : 'الرصيد الحالي 0 ج.م'}
             </p>
           </div>
-          <p className="text-[10px] text-slate-400 font-medium">يستخدم في فتح الحصص والاختبارات</p>
-        </div>
-
-        {/* 3. الترتيب العام بين الطلاب */}
-        <div className="bg-white dark:bg-[#162534] p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-md space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">الترتيب في الدفعة</span>
-            <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-              <Award className="w-4 h-4" />
-            </div>
-          </div>
-          <div>
-            <div className="text-3xl font-black text-blue-600 dark:text-blue-400 font-mono">
-              #{currentTargetStudent.rank || 1}
-            </div>
-            <p className="text-[11px] text-blue-600 dark:text-blue-400 font-bold mt-1">
-              المركز {currentTargetStudent.rank || 1} على مستوى الصف 🏆
-            </p>
-          </div>
-          <p className="text-[10px] text-slate-400 font-medium">مجموع نقاط التميز: {currentTargetStudent.points || 0} نقطة</p>
-        </div>
-
-        {/* 4. شعلة الالتزام اليومي */}
-        <div className="bg-white dark:bg-[#162534] p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-md space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">شعلة الالتزام المستمر</span>
-            <div className="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center">
-              <Flame className="w-4 h-4 text-orange-500" />
-            </div>
-          </div>
-          <div>
-            <div className="text-3xl font-black text-orange-500 font-mono flex items-center gap-1">
-              <span>{currentTargetStudent.streakDays || 0}</span>
-              <span className="text-sm font-bold text-slate-500">أيام</span>
-            </div>
-            <p className="text-[11px] text-orange-600 dark:text-orange-400 font-bold mt-1">
-              {currentTargetStudent.streakDays > 0 ? 'متابعة دراسية مستمرة 🔥' : 'سجل الدخول يومياً لزيادة الشعلة'}
-            </p>
-          </div>
-          <p className="text-[10px] text-slate-400 font-medium">حضور وحل دوري دون انقطاع</p>
+          <p className="text-[11px] text-slate-400 font-medium">يستخدم في فتح الحصص والاختبارات</p>
         </div>
 
       </div>
