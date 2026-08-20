@@ -463,21 +463,61 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
   }, [isTeacher, isAdmitted, currentSession?.id, hasRemoteVideo]);
 
   const toggleMic = () => {
-    if (activeMediaStream) {
-      const audioTrack = activeMediaStream.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled;
-        setIsMicMuted(!audioTrack.enabled);
+    const stream = activeStreamRef.current || activeMediaStream;
+    if (stream) {
+      const audioTracks = stream.getAudioTracks();
+      if (audioTracks.length > 0) {
+        const nextState = !isMicMuted;
+        audioTracks.forEach(t => {
+          t.enabled = !nextState;
+        });
+        setIsMicMuted(nextState);
+
+        // Update senders on all connected students
+        if (connectedStudentCallsRef.current.length > 0) {
+          connectedStudentCallsRef.current.forEach(call => {
+            try {
+              if (call?.peerConnection) {
+                const senders = call.peerConnection.getSenders();
+                senders.forEach(s => {
+                  if (s.track && s.track.kind === 'audio') {
+                    s.track.enabled = !nextState;
+                  }
+                });
+              }
+            } catch (e) {}
+          });
+        }
       }
     }
   };
 
   const toggleCamera = () => {
-    if (activeMediaStream) {
-      const videoTrack = activeMediaStream.getVideoTracks()[0];
-      if (videoTrack) {
-        videoTrack.enabled = !videoTrack.enabled;
-        setIsCameraOff(!videoTrack.enabled);
+    const stream = activeStreamRef.current || activeMediaStream;
+    if (stream) {
+      const videoTracks = stream.getVideoTracks();
+      if (videoTracks.length > 0) {
+        const nextState = !isCameraOff;
+        videoTracks.forEach(t => {
+          t.enabled = !nextState;
+        });
+        setIsCameraOff(nextState);
+
+        // Update senders on all connected students
+        if (connectedStudentCallsRef.current.length > 0) {
+          connectedStudentCallsRef.current.forEach(call => {
+            try {
+              if (call?.peerConnection) {
+                const senders = call.peerConnection.getSenders();
+                senders.forEach(s => {
+                  if (s.track && s.track.kind === 'video') {
+                    s.track.enabled = !nextState;
+                  }
+                });
+              }
+            } catch (e) {}
+          });
+        }
       }
     }
   };
@@ -556,14 +596,55 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
   };
 
   const stopLocalStream = () => {
-    if (activeMediaStream) {
-      activeMediaStream.getTracks().forEach(t => t.stop());
-      setActiveMediaStream(null);
+    try {
+      if (activeMediaStream) {
+        activeMediaStream.getTracks().forEach(t => {
+          t.stop();
+          t.enabled = false;
+        });
+        setActiveMediaStream(null);
+      }
+      if (activeStreamRef.current) {
+        activeStreamRef.current.getTracks().forEach(t => {
+          t.stop();
+          t.enabled = false;
+        });
+        activeStreamRef.current = null;
+      }
+      if (studentMicStream) {
+        studentMicStream.getTracks().forEach(t => {
+          t.stop();
+          t.enabled = false;
+        });
+        setStudentMicStream(null);
+      }
+      if (teacherVideoRef.current) {
+        teacherVideoRef.current.srcObject = null;
+      }
+      if (teacherPeerRef.current) {
+        try { teacherPeerRef.current.destroy(); } catch (e) {}
+        teacherPeerRef.current = null;
+      }
+      connectedStudentCallsRef.current = [];
+    } catch (e) {
+      console.log('Error stopping local stream:', e);
     }
     setLocalStream(false);
     setIsSharingScreen(false);
+    setIsMicMuted(false);
+    setIsCameraOff(false);
     handleStopRecording();
   };
+
+  // Thorough cleanup when navigating away from Live view
+  useEffect(() => {
+    return () => {
+      stopLocalStream();
+      if (studentPeerRef.current) {
+        try { studentPeerRef.current.destroy(); } catch (e) {}
+      }
+    };
+  }, []);
 
   // Countdown timer calculation
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
@@ -1063,13 +1144,25 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                    ==================================================== */
                 localStream ? (
                   <div className="relative w-full h-full min-h-[520px] flex items-center justify-center bg-[#202124] overflow-hidden rounded-3xl">
-                    <video
-                      ref={teacherVideoRef}
-                      autoPlay
-                      playsInline
-                      muted
-                      className="w-full h-full object-contain"
-                    />
+                    {isCameraOff ? (
+                      <div className="w-full h-full min-h-[480px] flex flex-col items-center justify-center bg-[#202124] text-white space-y-3">
+                        <div className="w-24 h-24 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-4xl shadow-xl">
+                          👨‍🏫
+                        </div>
+                        <h3 className="text-sm font-black text-slate-300">{studentDisplayName} (الكاميرا متوقفة)</h3>
+                        <span className="text-[11px] text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
+                          {isMicMuted ? 'المايك والكاميرا مقفولين 🔇' : 'المايك شغال والطلاب يستمعون لشرحك 🎙️'}
+                        </span>
+                      </div>
+                    ) : (
+                      <video
+                        ref={teacherVideoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        className="w-full h-full object-contain"
+                      />
+                    )}
 
                     {/* Teacher Name Tag (Google Meet Style) */}
                     <div className="absolute bottom-20 right-4 z-40 bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/10 flex items-center gap-2 text-white text-xs font-bold">
