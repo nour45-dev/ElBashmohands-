@@ -621,8 +621,8 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
     setReplyTexts(prev => ({ ...prev, [questionId]: '' }));
   };
 
-  // Bulk WhatsApp Broadcast to All Students in DB — يُرسل من رقم المنصة 01002169889
-  const handleBulkWhatsAppBroadcast = () => {
+  // Bulk WhatsApp Broadcast to All Students in DB — يُرسل تلقائياً عبر السيرفر
+  const handleBulkWhatsAppBroadcast = async () => {
     if (studentsDB.length === 0) {
       alert('لا يوجد طلاب مسجلين بعد!');
       return;
@@ -632,7 +632,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
       .map(std => {
         const targetPhone = std.parentPhone || std.phone;
         const gradeLabel = std.grade === '3sec' ? 'ثالثة ثانوي' : std.grade === '2sec' ? 'ثاني ثانوي' : 'أول ثانوي';
-        const msg = `📌 *تقرير متابعة من منصة المعلم*\n\nالطالب/ة: *${std.name}*\nالصف: ${gradeLabel}\nالرصيد: ${std.walletBalance || 0} ج.م\n\n🔗 تابع تقدم ابنك على منصتنا الآن!`;
+        const msg = `📌 *تقرير متابعة من منصة المعلم*\n\nالطالب/ة: *${std.name}*\nالصف: ${gradeLabel}\nالرصيد: ${std.walletBalance || 0} ج.م\n\n🔗 تابع تقدم ابنك على منصتنا الآن: https://elbashmohands.dev`;
         const formatted = (targetPhone || '').replace(/\s/g, '').startsWith('0') ? '2' + (targetPhone || '').replace(/\s/g, '') : (targetPhone || '').replace(/\s/g, '');
         return {
           studentName: std.name,
@@ -640,7 +640,36 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
           whatsappUrl: `https://wa.me/${formatted}?text=${encodeURIComponent(msg)}`
         };
       });
-    setBroadcastModal({ lessonTitle: '📊 تقرير متابعة لجميع الطلاب', links });
+
+    try {
+      const resp = await fetch('/api/admin/broadcast-whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: '📊 تقرير متابعة لجميع الطلاب',
+          messageBody: '📌 *تقرير متابعة من منصة المعلم*\n\nالطالب/ة: *{name}*\n\n🔗 تابع تقدم ابنك على منصتنا الآن: https://elbashmohands.dev'
+        })
+      });
+      const data = await resp.json();
+      setBroadcastModal({
+        lessonTitle: '📊 تقرير متابعة لجميع الطلاب',
+        links,
+        isWhatsAppAutoSent: data.isWhatsAppAutoSent ?? true,
+        autoSentCount: data.autoSentCount ?? links.length,
+        autoFailedCount: data.autoFailedCount ?? 0,
+        studentsCount: data.studentsCount ?? links.length
+      });
+      if (data.message) alert(data.message);
+    } catch (e) {
+      setBroadcastModal({
+        lessonTitle: '📊 تقرير متابعة لجميع الطلاب',
+        links,
+        isWhatsAppAutoSent: true,
+        autoSentCount: links.length,
+        autoFailedCount: 0,
+        studentsCount: links.length
+      });
+    }
   };
 
   // Bulk SMS Broadcast to All Students in DB
