@@ -188,6 +188,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
   const handleBroadcastLive = async (session) => {
     const res = await adminBroadcastLiveAlert(session.id);
     if (res.success) {
+      alert(`✅ تم إرسال وتوجيه تنبيه البث المباشر بنجاح لجميع الطلاب (${res.studentsCount || res.whatsappLinks?.length || 0} طالب مسجل)!\n\n👨‍🏫 المحاضر: ${res.senderName || (isSayedAdmin ? 'أ / سيد عبد العاطي' : 'م / نور الدين')}\n📞 رقم الإرسال: ${res.senderPhone || (isSayedAdmin ? '01094273996' : '01002169889')}`);
       setBroadcastModal({
         lessonTitle: `🔴 بث مباشر: ${session.title}`,
         links: res.whatsappLinks || []
