@@ -176,76 +176,7 @@ const initialData = {
       badges: [{ id: 'b1', name: 'عضو جديد 💻', icon: '💻', desc: 'انضم لمنصة عِلم' }]
     }
   ],
-  lessons: [
-    {
-      id: 'les_demo_1',
-      title: 'مقدمة في لغة Python وكتابة أول برنامج',
-      subject: 'برمجة وعلوم الحاسب',
-      grade: '3sec',
-      duration: '45 دقيقة',
-      price: 25,
-      videoType: 'url',
-      videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-      thumbnail: 'https://images.unsplash.com/photo-1526379879527-8559ecfcaec0?auto=format&fit=crop&q=80&w=600',
-      description: 'شرح مبسط وممتع لأساسيات المتغيرات وعمليات الإدخال والإخراج في Python.',
-      attachmentType: 'pdf',
-      attachmentPdf: 'مذكرة_Python_الحصة_الأولى.pdf',
-      attachmentFileUrl: null,
-      viewsCount: 142,
-      isUnlocked: false,
-      attachedQuiz: {
-        id: 'qz_demo_1',
-        title: 'الامتحان الإلكتروني للحصة الأولى - لغة Python',
-        rewardPoints: 50,
-        durationMinutes: 20,
-        questions: [
-          {
-            id: 1,
-            question: 'أي من الكلمات التالية تستخدم لطباعة مخرجات في لغة Python؟',
-            options: ['echo', 'print()', 'Console.WriteLine()', 'printf()'],
-            correctIndex: 1
-          },
-          {
-            id: 2,
-            question: 'كيف يتم تعريف المتغير x بقيمة نصية في Python؟',
-            options: ['int x = "Hello"', 'x = "Hello"', 'var x = "Hello"', 'string x = "Hello"'],
-            correctIndex: 1
-          }
-        ]
-      }
-    },
-    {
-      id: 'les_demo_2',
-      title: 'شرح درس البلاغة - الكناية وأسرار الجمال',
-      subject: 'اللغة العربية',
-      grade: '3sec',
-      duration: '40 دقيقة',
-      price: 25,
-      videoType: 'url',
-      videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-      thumbnail: 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&q=80&w=600',
-      description: 'شرح تفصيلي لدرس الكناية وأنواعها (عن صفة، عن موصوف، عن نسبة) وتدريبات البلاغة للمرحلة الثانوية.',
-      attachmentType: 'pdf',
-      attachmentPdf: 'مذكرة_البلاغة_الكناية.pdf',
-      attachmentFileUrl: null,
-      viewsCount: 98,
-      isUnlocked: false,
-      attachedQuiz: {
-        id: 'qz_demo_2',
-        title: 'امتحان البلاغة الإلكتروني - درس الكناية',
-        rewardPoints: 50,
-        durationMinutes: 15,
-        questions: [
-          {
-            id: 1,
-            question: 'قال الشاعر: "فما جازه جود ولا حل دونه ... ولكن يسير الجود حيث يسير" — ما نوع الكناية هنا؟',
-            options: ['كناية عن صفة', 'كناية عن موصوف', 'كناية عن نسبة', 'استعارة تصريحية'],
-            correctIndex: 2
-          }
-        ]
-      }
-    }
-  ],
+  lessons: [],
   coupons: [
     {
       id: 'coup_1',
@@ -254,7 +185,7 @@ const initialData = {
       value: 50,
       targetGrade: 'all',
       maxUses: 100,
-      usedCount: 14,
+      usedCount: 0,
       active: true
     },
     {
@@ -264,128 +195,17 @@ const initialData = {
       value: 100,
       targetGrade: '3sec',
       maxUses: 50,
-      usedCount: 8,
+      usedCount: 0,
       active: true
     }
   ],
-  payments: [
-    {
-      id: 'req_1001',
-      studentId: 'std_101',
-      studentName: 'أحمد محمود العبد',
-      studentPhone: '01012345678',
-      parentPhone: '01198765432',
-      amount: 150,
-      method: 'instapay',
-      refNumber: 'INSTA-88741259',
-      proofImage: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&q=80&w=400',
-      status: 'pending',
-      requestDate: new Date().toLocaleDateString('ar-EG')
-    }
-  ],
-  questions: [
-    {
-      id: 'q_101',
-      lessonId: 'les_demo_1',
-      studentName: 'أحمد محمود العبد',
-      studentPhone: '01012345678',
-      questionText: 'يا باشمهندس ازاي أفرق بين List و Tuple في لغة Python؟',
-      replyText: 'أهلاً يا أحمد! الـ List قابلة للتعديل (mutable)، بينما الـ Tuple ثابته ولا يمكن تعديل عناصرها بعد إنشائها.',
-      repliedAt: 'منذ ساعتين',
-      status: 'answered'
-    }
-  ],
+  payments: [],
+  questions: [],
   notifications: [
-    { id: 'n1', title: 'مرحباً بك في منصة منصة عِلم التعليمية! 💻', body: 'التطبيق جاهز ومحمي بالكامل 100%.', time: 'الآن', unread: true }
+    { id: 'n1', title: 'مرحباً بك في منصة عِلم التعليمية! 💻', body: 'المنصة جاهزة ومحمية بالكامل 100%.', time: 'الآن', unread: true }
   ],
   exams: [],
-  liveSessions: [
-    {
-      id: 'live_demo_1',
-      title: 'المراجعة النهائية الشاملة: فرع النحو وأسرار امتحان الثانوية العامة 🔴',
-      instructor: 'أ / سيد عبد العاطي',
-      instructorId: 'mr_sayed',
-      subject: 'اللغة العربية',
-      grade: '3sec',
-      gradeName: 'الصف الثالث الثانوي (ثانوية عامة)',
-      status: 'live',
-      scheduledAt: '2026-08-19T20:00:00',
-      description: 'بث مباشر تفاعلي لحل 150 فكرة امتحانية في النحو التراكمي وتدريبات البلاغة مع استقبال أسئلة الطلاب لحظة بلحظة.',
-      streamType: 'youtube_live',
-      streamUrl: 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
-      thumbnail: 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?auto=format&fit=crop&q=80&w=800',
-      viewersCount: 342,
-      likesCount: 189,
-      chatMessages: [
-        {
-          id: 'c1',
-          senderName: 'أ / سيد عبد العاطي',
-          senderRole: 'teacher',
-          text: 'أهلاً بكم يا أبطال دفعة 2026! جهزوا كشكول الملاحظات سنبدأ بحل أصعب شواهد النحو الآن 🚀',
-          timestamp: 'منذ دقيقة',
-          isPinned: true
-        },
-        {
-          id: 'c2',
-          senderName: 'محمد أحمد علي',
-          senderRole: 'student',
-          text: 'مستعدين يا مستر والصوت والصورة جودتهم ممتازة جداً ما شاء الله 🔥',
-          timestamp: 'منذ دقيقة'
-        },
-        {
-          id: 'c3',
-          senderName: 'أحمد محمود علي',
-          senderRole: 'student',
-          text: 'يا مستر ممكن توضيح الفرق بين لا النافية للجنس ولا العاطفة؟',
-          timestamp: 'الآن'
-        }
-      ],
-      polls: [
-        {
-          id: 'poll_1',
-          question: 'ما نوع (لا) في جملة: «لا طالبَ علمٍ مهملٌ»؟',
-          options: ['نافية للجنس عاملة', 'نافية مهملة', 'عاطفة', 'ناهية جازمة'],
-          correctIndex: 0,
-          votes: { '0': 24, '1': 3, '2': 1, '3': 0 },
-          totalVotes: 28,
-          isActive: true,
-          createdAt: 'منذ 5 دقائق'
-        }
-      ],
-      handRaises: [
-        {
-          id: 'hr_1',
-          studentId: 'std_3003',
-          studentName: 'محمد أحمد علي',
-          studentCode: '3003',
-          requestedAt: 'الآن',
-          status: 'pending'
-        }
-      ],
-      recordingUrl: null
-    },
-    {
-      id: 'live_demo_2',
-      title: 'ورشة عمل مباشرة: بناء تطبيق ذكاء اصطناعي تفاعلي بلغة Python 💻',
-      instructor: 'م / نور الدين',
-      instructorId: 'eng_nour',
-      subject: 'برمجة وعلوم الحاسب',
-      grade: '3sec',
-      gradeName: 'الصف الثالث الثانوي (ثانوية عامة)',
-      status: 'scheduled',
-      scheduledAt: '2026-08-20T19:00:00',
-      description: 'بث تدريبي عملي لكتابة كود حقيقي وبناء نموذج ذكاء اصطناعي متكامل خطوة بخطوة وتصحيح الأخطاء مباشرة.',
-      streamType: 'youtube_live',
-      streamUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-      thumbnail: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=800',
-      viewersCount: 0,
-      likesCount: 95,
-      chatMessages: [],
-      polls: [],
-      handRaises: [],
-      recordingUrl: null
-    }
-  ]
+  liveSessions: []
 };
 
 // Database Connection Helper
