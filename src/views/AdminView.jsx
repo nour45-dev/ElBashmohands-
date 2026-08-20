@@ -190,10 +190,14 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
   const handleBroadcastLive = async (session) => {
     const res = await adminBroadcastLiveAlert(session.id);
     if (res.success) {
-      alert(`✅ تم إرسال وتوجيه تنبيه البث المباشر بنجاح لجميع الطلاب (${res.studentsCount || res.whatsappLinks?.length || 0} طالب مسجل)!\n\n👨‍🏫 المحاضر: ${res.senderName || (isSayedAdmin ? 'أ / سيد عبد العاطي' : 'م / نور الدين')}\n📞 رقم الإرسال: ${res.senderPhone || (isSayedAdmin ? '01094273996' : '01002169889')}`);
+      alert(res.message);
       setBroadcastModal({
         lessonTitle: `🔴 بث مباشر: ${session.title}`,
-        links: res.whatsappLinks || []
+        links: res.whatsappLinks || [],
+        isWhatsAppAutoSent: res.isWhatsAppAutoSent,
+        autoSentCount: res.autoSentCount || 0,
+        autoFailedCount: res.autoFailedCount || 0,
+        studentsCount: res.studentsCount || 0
       });
     } else {
       alert(res.message);
@@ -2661,6 +2665,30 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                 <div className="text-[11px] text-blue-600 font-mono">رقم الواتساب: {isSayedAdmin ? '01094273996' : '01002169889'}</div>
               </div>
             </div>
+
+            {/* Auto-Send Status Banner */}
+            {broadcastModal.isWhatsAppAutoSent ? (
+              <div className="bg-emerald-50 border-2 border-emerald-400 p-4 rounded-2xl text-xs text-emerald-900 font-black flex items-center gap-3 shadow-sm">
+                <span className="text-2xl">✅</span>
+                <div>
+                  <div className="text-sm">تم الإرسال الأوتوماتيك بنجاح!</div>
+                  <div className="text-[11px] font-bold text-emerald-700">تم إرسال {broadcastModal.autoSentCount} رسالة واتساب مباشرة من السيرفر بدون تدخل {broadcastModal.autoFailedCount > 0 ? `(فشل: ${broadcastModal.autoFailedCount})` : ''}</div>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-amber-50 border-2 border-amber-400 p-3 rounded-2xl text-xs text-amber-900 font-bold flex items-start gap-2.5">
+                <span className="text-lg">⚠️</span>
+                <div>
+                  <div className="font-black text-sm">الإرسال الأوتوماتيك غير مفعّل بعد</div>
+                  <div className="text-[11px] text-amber-700 mt-1">
+                    لتفعيل الإرسال التلقائي بدون أي تدخل، أضف في إعدادات Railway:<br/>
+                    <code className="bg-amber-100 px-1 rounded">WHATSAPP_TOKEN</code> و <code className="bg-amber-100 px-1 rounded">WHATSAPP_PHONE_ID</code><br/>
+                    من: <a href="https://developers.facebook.com/apps" target="_blank" rel="noreferrer" className="text-blue-600 underline">Meta for Developers → WhatsApp → API Setup</a>
+                  </div>
+                  <div className="text-[11px] text-amber-600 mt-1">في الوقت الحالي يمكنك استخدام الأزرار أدناه للإرسال اليدوي 👇</div>
+                </div>
+              </div>
+            )}
 
             {/* 📢 ONE-CLICK GROUP BROADCAST BUTTON (PRIMARY RECOMMENDED) */}
             <div className="space-y-2">
