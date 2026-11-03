@@ -44,6 +44,18 @@ export const formatVideoEmbedUrl = (url) => {
     }
   }
 
+    // 4. Google Drive Player (convert /view, /edit, or query params to /preview)
+  if (cleanUrl.includes('drive.google.com')) {
+    const fileIdMatch = cleanUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (fileIdMatch && fileIdMatch[1]) {
+      return `https://drive.google.com/file/d/${fileIdMatch[1]}/preview`;
+    }
+    const queryIdMatch = cleanUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (queryIdMatch && queryIdMatch[1]) {
+      return `https://drive.google.com/file/d/${queryIdMatch[1]}/preview`;
+    }
+  }
+
   return cleanUrl;
 };
 

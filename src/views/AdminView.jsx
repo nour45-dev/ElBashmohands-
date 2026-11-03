@@ -129,6 +129,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
   const [editLessonPrice, setEditLessonPrice] = useState(25);
   const [editLessonGrade, setEditLessonGrade] = useState('3sec');
   const [editLessonDesc, setEditLessonDesc] = useState('');
+  const [editLessonDuration, setEditLessonDuration] = useState(45);
 
   // Live Stream Source Type: 'native' (Platform In-Browser Camera & Screen) | 'youtube_live' (External link)
   const [newLiveStreamType, setNewLiveStreamType] = useState('native');
@@ -280,6 +281,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
   const [newLessonSubject, setNewLessonSubject] = useState(defaultAdminSubject);
   const [newLessonGrade, setNewLessonGrade] = useState('3sec');
   const [newLessonPrice, setNewLessonPrice] = useState(25);
+  const [newLessonDuration, setNewLessonDuration] = useState(45);
   const [newLessonDesc, setNewLessonDesc] = useState('');
   
   const [videoUploadMode, setVideoUploadMode] = useState('file'); 
@@ -429,6 +431,8 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
     setEditLessonPrice(les.price);
     setEditLessonGrade(les.grade);
     setEditLessonDesc(les.description || '');
+    const parsedDur = parseInt(les.duration) || 45;
+    setEditLessonDuration(parsedDur);
   };
 
   // Save Edit Lesson
@@ -520,7 +524,14 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
           setIsUploading(false);
           return;
         }
-        finalVideoUrl = videoUrlInput.trim();
+        let inputUrl = videoUrlInput.trim();
+        if (inputUrl.includes('drive.google.com')) {
+          const match = inputUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+          if (match && match[1]) {
+            inputUrl = `https://drive.google.com/file/d/${match[1]}/preview`;
+          }
+        }
+        finalVideoUrl = inputUrl;
       }
 
       // Upload attachment file if present
@@ -559,7 +570,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
         title: newLessonTitle,
         subject: newLessonSubject,
         grade: newLessonGrade,
-        duration: '45 دقيقة',
+        duration: `${newLessonDuration || 45} دقيقة`,
         price: Number(newLessonPrice),
         videoType: videoType,
         videoUrl: finalVideoUrl,
