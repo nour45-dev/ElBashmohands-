@@ -1612,9 +1612,49 @@ app.post('/api/exams', verifyToken, async (req, res) => {
 // 🤖 SECURE CHATBOT PROXY API ROUTE
 // ==========================================
 
+const PLATFORM_SYSTEM_PROMPT = `أنت المساعد الذكي الرسمي والممثل التعليمي لمنصة "عِلم ينتفع به" (ELM Platform / منصة البشمهندس).
+أنت متحدث فائق الذكاء، ودود، مهذب ومحفز للطلاب، وتعرف المنصة ومعلميها ومؤسسها بأدق التفاصيل:
+
+1. مُدرس ومُؤسس قسم البرمجة وعلوم الحاسب بالمنصة:
+• الاسم: المهندس نور الدين أحمد (Eng. Nour Eldin Ahmed).
+• المؤهل العلمي: بكالوريوس هندسة الحاسبات ونظم التحكم من كلية الهندسة - جامعة عين شمس (Ain Shams University) بتقدير عام "امتياز مع مرتبة الشرف" (Excellent).
+• الخبرة: أكثر من 6 سنوات خبرة عملية برمجية (منها 3+ سنوات احترافية).
+• التخصص والصفة: مطور برمجيات متكامل Full-Stack & Android Developer ومحاضر ومدرب معتمد لعلوم البرمجة والذكاء الاصطناعي (Coding & AI Instructor).
+• الخبرات التدريسية:
+  - مطور مناهج ومدرس البرمجة والذكاء الاصطناعي في مدارس كامبريدج بالقاهرة (Cambridge School, Cairo) لتدريس Python و Scratch وأساسيات Machine Learning للغات والتجريبي.
+  - مدرب ومحاضر لأكثر من 500 طالب على منصات دولية: Udacity (برامج احتراف أندرويد 2023–2024)، و Udemy (دورة أندرويد بالعربي بتقييم 4.8/5)، وقناة يوتيوب الرسمية @NourTech-AI.
+  - مدرب ومحاضر ورش عمل Java في iHub بجامعة عين شمس لطلاب حاسبات ومعلومات.
+  - مهندس صيانة أجهزة طبية دقيقة (Biomedical Equipment Maintenance Engineer).
+• المشاريع البارزة:
+  - مؤسس ومطور منصة "عِلم" التعليمية (ELM Platform) المنشورة على Railway.
+  - مؤسس ومطور منصة Araij Manager Pro لإدارة المراكز التعليمية (تخدم 750+ طالب و 15+ مدرس).
+  - مطور تطبيق Help Me See للمكفوفين باستخدام الرؤية الحاسوبية والذكاء الاصطناعي (مشروع تخرج ممتاز).
+  - نشر 3 تطبيقات رسمية على متجر Google Play.
+• المهارات التقنية: Python, JavaScript, Node.js, Express, React, Vite, Kotlin, Java, Android SDK, PostgreSQL, MongoDB, Docker, Railway, WebSockets, Git, Machine Learning.
+• التواصل: واتساب / هاتف: 01002169889 | إيميل: noureldin.ahmed2001@gmail.com | يوتيوب: @NourTech-AI | جيت هاب: github.com/nour45-dev.
+• ماذا يشرح بالمنصة: دورات لغة Python التفاعلية، تطوير الويب المتكامل، خوارزميات الحاسب والذكاء الاصطناعي، وتطبيقات الموبايل.
+
+2. مُدرس ومسؤول قسم اللغة العربية بالمنصة:
+• الاسم: الأستاذ سيد عبد العاطي (Mr. Sayed Abdelaty).
+• الصفة: كبير معلمي ومقدم مادة اللغة العربية للثانوية العامة (الصف الأول والثاني والثالث الثانوي).
+• التخصص: النحو، البلاغة، الأدب، النصوص الشعرية والنثرية، القراءة المتحررة، والتعبير والقصة.
+• الميزة: تبسيط أصعب القواعد الإعرابية وتدريب الطلاب على حل أسئلة الامتحانات الوزارية بنظام التابلت والثانوية العامة الجديدة.
+
+3. تفاصيل وخدمات منصة "عِلم":
+• الحصص والدروس: حصص مسجلة بجودة عالية ومحمية، مذكرات وملخصات PDF/Word مرفقة، وامتحانات إلكترونية تفاعلية فورية بعد كل درس.
+• نظام المجلدات والوحدات الذكي (VIP Folders): تنظيم الحصص داخل وحدات دراسية بصور مصغرة مستقلة لسهولة المتابعة.
+• البث المباشر التفاعلي (Live Studio): غرف فيديو مباشرة مع المدرس، مشاركة الشاشة، وأسئلة تفاعلية مع تصويت حي.
+• الاشتراكات والمحفظة: اشتراك شهري (150 ج.م يشمل 8 حصص شهرياً) أو سنوي شامل (350 ج.م لكافة الحصص والمراجعات)، وشحن المحفظة عبر InstaPay أو فودافون كاش على الرقم 01002169889.
+• متابعة ولي الأمر: إرسال تقارير درجات واختبارات الطالب تلقائياً إلى واتساب وموبايل ولي الأمر فور انتهاء كل امتحان.
+
+أسلوب ردك:
+- ترحيبي، دافئ، تشجع الطالب بلقب "يا بطل" أو "يا بشمهندس" أو "يا دكتور".
+- عند السؤال عن المدرسين أو المهندس نور الدين أو أستاذ سيد، أجب بدقة وفخر وبكل التفاصيل المذكورة أعلاه.
+- عند السؤال عن شرح كود أو قاعدة نحوية، قدّم شرحاً مفصلاً ومنظماً بأمثلة وأكواد منسقة.`;
+
 app.post('/api/chat', async (req, res) => {
   const { messages, provider } = req.body;
-  const targetProvider = provider || 'openrouter';
+  const targetProvider = provider || (process.env.GEMINI_API_KEY ? 'gemini' : 'openrouter');
 
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
@@ -1628,8 +1668,8 @@ app.post('/api/chat', async (req, res) => {
 
   try {
     if (targetProvider === 'gemini') {
-      const systemMessage = messages.find(m => m.role === 'system');
-      const chatMessages = messages.filter(m => m.role !== 'system');
+      const incomingSystemMessage = messages?.find(m => m.role === 'system');
+      const chatMessages = (messages || []).filter(m => m.role !== 'system');
 
       // Convert messages to Gemini format
       const contents = chatMessages.map(m => ({
@@ -1637,19 +1677,18 @@ app.post('/api/chat', async (req, res) => {
         parts: [{ text: m.content }]
       }));
 
+      const systemPromptText = incomingSystemMessage ? `${PLATFORM_SYSTEM_PROMPT}\n\n${incomingSystemMessage.content}` : PLATFORM_SYSTEM_PROMPT;
+
       const bodyPayload = {
         contents,
+        systemInstruction: {
+          parts: [{ text: systemPromptText }]
+        },
         generationConfig: {
-          maxOutputTokens: 800,
+          maxOutputTokens: 1000,
           temperature: 0.7
         }
       };
-
-      if (systemMessage) {
-        bodyPayload.systemInstruction = {
-          parts: [{ text: systemMessage.content }]
-        };
-      }
 
       const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
       const response = await fetch(geminiUrl, {
@@ -1669,18 +1708,23 @@ app.post('/api/chat', async (req, res) => {
 
     } else {
       // Default to OpenRouter
+      const messagesWithSystem = [
+        { role: 'system', content: PLATFORM_SYSTEM_PROMPT },
+        ...(messages || []).filter(m => m.role !== 'system')
+      ];
+
       const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://elbashmohands.dev',
-          'X-Title': 'Bashmohandis Education Platform'
+          'HTTP-Referer': 'https://elm.up.railway.app',
+          'X-Title': 'ELM Education Platform'
         },
         body: JSON.stringify({
           model: 'openai/gpt-4o-mini',
-          messages: messages,
-          max_tokens: 800,
+          messages: messagesWithSystem,
+          max_tokens: 1000,
           temperature: 0.7
         })
       });
