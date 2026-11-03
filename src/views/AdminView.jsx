@@ -34,13 +34,22 @@ import {
   Radio,
   Hand,
   Sparkles,
-  Share2
+  Share2,
+  Folder,
+  FolderPlus,
+  FolderCheck,
+  FolderOpen,
+  Layers
 } from 'lucide-react';
 
 export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveId }) => {
   const { 
     studentsDB,
     lessons, 
+    folders = [],
+    adminCreateFolder,
+    adminDeleteFolder,
+    adminUpdateFolder,
     couponsDB,
     paymentRequestsDB,
     videoQuestions,
@@ -130,6 +139,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
   const [editLessonGrade, setEditLessonGrade] = useState('3sec');
   const [editLessonDesc, setEditLessonDesc] = useState('');
   const [editLessonDuration, setEditLessonDuration] = useState(45);
+  const [editLessonFolderId, setEditLessonFolderId] = useState('');
 
   // Live Stream Source Type: 'native' (Platform In-Browser Camera & Screen) | 'youtube_live' (External link)
   const [newLiveStreamType, setNewLiveStreamType] = useState('native');
@@ -275,6 +285,20 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
   const videoInputRef = useRef(null);
   const docInputRef = useRef(null);
   const thumbInputRef = useRef(null);
+  const folderThumbInputRef = useRef(null);
+
+  // Folder Creation & Management States
+  const [newFolderTitle, setNewFolderTitle] = useState('');
+  const [newFolderGrade, setNewFolderGrade] = useState('3sec');
+  const [newFolderDesc, setNewFolderDesc] = useState('');
+  const [folderThumbFile, setFolderThumbFile] = useState(null);
+  const [folderThumbPreview, setFolderThumbPreview] = useState(null);
+  const [folderSuccessMsg, setFolderSuccessMsg] = useState(null);
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+
+  // Lesson Placement Mode: 'general' (عام مستقل) vs 'folder' (داخل مجلد تعليمي)
+  const [videoPlacementMode, setVideoPlacementMode] = useState('general');
+  const [selectedFolderId, setSelectedFolderId] = useState('');
 
   // Video Form State
   const [newLessonTitle, setNewLessonTitle] = useState('');
@@ -283,6 +307,81 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
   const [newLessonPrice, setNewLessonPrice] = useState(25);
   const [newLessonDuration, setNewLessonDuration] = useState(45);
   const [newLessonDesc, setNewLessonDesc] = useState('');
+
+  // Smart Folder Suggestion Engine based on video title & folder names
+  const suggestedFolder = React.useMemo(() => {
+    if (!newLessonTitle || newLessonTitle.trim().length < 2 || !folders || folders.length === 0) return null;
+    const lower = newLessonTitle.toLowerCase().trim();
+    
+    // Filter folders by active subject
+    const subjectFolders = folders.filter(f => {
+      if (isSayedAdmin) return (f.subject?.includes('عرب') || f.subject === 'arabic');
+      return (!f.subject?.includes('عرب') && f.subject !== 'arabic');
+    });
+
+    let bestMatch = null;
+    let bestScore = 0;
+
+    for (const f of subjectFolders) {
+      let score = 0;
+      const fTitle = f.title.toLowerCase();
+      const words = fTitle.split(/[\s:,\-_/]+/).filter(w => w.length > 2);
+      for (const word of words) {
+        if (lower.includes(word)) score += 2;
+      }
+      const keywords = ['الوحدة الأولى', 'الوحدة 1', 'الوحدة الثانية', 'الوحدة 2', 'الوحدة الثالثة', 'الوحدة 3', 'أساسيات', 'مراجعة', 'python', 'بايثون', 'نحو', 'بلاغة', 'أدب'];
+      for (const kw of keywords) {
+        if (lower.includes(kw) && fTitle.includes(kw)) score += 4;
+      }
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = f;
+      }
+    }
+
+    return bestScore >= 2 ? bestMatch : null;
+  }, [newLessonTitle, folders, isSayedAdmin]);
+
+  const handleCreateFolder = async (e) => {
+    e.preventDefault();
+    if (!newFolderTitle.trim()) {
+      alert('يرجى كتابة عنوان المجلد أو الوحدة');
+      return;
+    }
+
+    setIsCreatingFolder(true);
+    try {
+      let thumbUrl = folderThumbPreview || null;
+      if (folderThumbFile) {
+        thumbUrl = await uploadFileHelper(folderThumbFile);
+      } else if (!thumbUrl) {
+        thumbUrl = isSayedAdmin
+          ? 'https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&q=80&w=800'
+          : 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&q=80&w=800';
+      }
+
+      const res = await adminCreateFolder({
+        title: newFolderTitle.trim(),
+        subject: isSayedAdmin ? 'arabic' : 'programming',
+        grade: newFolderGrade,
+        thumbnail: thumbUrl,
+        description: newFolderDesc.trim() || `وحدة تعليمية متكاملة لمادة ${defaultAdminSubject}`
+      });
+
+      if (res) {
+        setFolderSuccessMsg(`تم إنشاء المجلد "${res.title}" بنجاح! 📁`);
+        setNewFolderTitle('');
+        setNewFolderDesc('');
+        setFolderThumbFile(null);
+        setFolderThumbPreview(null);
+        setTimeout(() => setFolderSuccessMsg(null), 4000);
+      }
+    } catch (err) {
+      alert('فشل إنشاء المجلد: ' + err.message);
+    } finally {
+      setIsCreatingFolder(false);
+    }
+  };
   
   const [videoUploadMode, setVideoUploadMode] = useState('file'); 
   const [videoFile, setVideoFile] = useState(null);
@@ -444,6 +543,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
     setEditLessonDesc(les.description || '');
     const parsedDur = parseInt(les.duration) || 45;
     setEditLessonDuration(parsedDur);
+    setEditLessonFolderId(les.folderId || '');
   };
 
   // Save Edit Lesson
@@ -455,6 +555,8 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
       title: editLessonTitle,
       price: Number(editLessonPrice),
       grade: editLessonGrade,
+      duration: `${editLessonDuration || 45} دقيقة`,
+      folderId: editLessonFolderId || null,
       description: editLessonDesc
     });
 
@@ -581,6 +683,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
         title: newLessonTitle,
         subject: newLessonSubject,
         grade: newLessonGrade,
+        folderId: videoPlacementMode === 'folder' ? (selectedFolderId || null) : null,
         duration: `${newLessonDuration || 45} دقيقة`,
         price: Number(newLessonPrice),
         videoType: videoType,
@@ -759,6 +862,14 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
         >
           <Video className="w-4 h-4" />
           الحصص والمذكرات ({lessons.filter(l => isSayedAdmin ? (l.subject === 'اللغة العربية' || l.subject?.includes('عرب') || l.subject === 'arabic') : (!l.subject?.includes('عرب') && l.subject !== 'arabic')).length})
+        </button>
+
+        <button
+          onClick={() => setAdminTab('folders')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all whitespace-nowrap ${adminTab === 'folders' ? 'bg-indigo-900 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
+        >
+          <Folder className="w-4 h-4 text-indigo-400" />
+          <span>المجلدات والوحدات ({folders.filter(f => isSayedAdmin ? (f.subject?.includes('عرب') || f.subject === 'arabic') : (!f.subject?.includes('عرب') && f.subject !== 'arabic')).length}) 📁</span>
         </button>
 
         <button
@@ -1685,6 +1796,266 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
         </div>
       )}
 
+      {/* Tab: Folders / Units Management (إدارة المجلدات والوحدات) */}
+      {adminTab === 'folders' && (
+        <div className="space-y-8 animate-in fade-in" dir="rtl">
+          
+          {/* Header Action Banner */}
+          <div className="bg-gradient-to-r from-indigo-950 via-slate-900 to-blue-950 text-white p-6 md:p-8 rounded-3xl border border-indigo-500/30 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="space-y-2 text-right">
+              <div className="inline-flex items-center gap-2 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-3 py-1 rounded-full text-xs font-black">
+                <Folder className="w-3.5 h-3.5 text-indigo-400" />
+                <span>نظام المجلدات والوحدات الذكي (VIP Folders)</span>
+              </div>
+              <h2 className="text-xl md:text-2xl font-black">
+                إدارة المجلدات والوحدات التعليمية 📁
+              </h2>
+              <p className="text-xs text-slate-300 max-w-xl font-medium leading-relaxed">
+                أنشئ وحدات دراسية ومجلدات مستقلة بصور مصغرة مخصصة، واجمع حصصك بداخلها لتظهر للطالب كدورات ووحدات متكاملة ومنظمة.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/15 text-center">
+                <div className="text-2xl font-black text-indigo-300">
+                  {folders.filter(f => isSayedAdmin ? (f.subject?.includes('عرب') || f.subject === 'arabic') : (!f.subject?.includes('عرب') && f.subject !== 'arabic')).length}
+                </div>
+                <div className="text-[11px] font-bold text-slate-300">مجلدات نشطة</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Create Folder Form */}
+          <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200/80 shadow-md space-y-6 max-w-2xl mx-auto">
+            <div className="border-b border-slate-100 pb-4">
+              <h3 className="font-black text-slate-900 text-lg flex items-center gap-2">
+                <FolderPlus className="w-5 h-5 text-indigo-600" />
+                <span>إنشاء مجلد أو وحدة تعليمية جديدة</span>
+              </h3>
+            </div>
+
+            <form onSubmit={handleCreateFolder} className="space-y-4">
+              <div>
+                <label className="block text-xs font-black text-slate-700 mb-1">عنوان المجلد / الوحدة:</label>
+                <input
+                  type="text"
+                  required
+                  value={newFolderTitle}
+                  onChange={(e) => setNewFolderTitle(e.target.value)}
+                  placeholder="مثال: الوحدة الأولى: أساسيات لغة Python والبرمجة..."
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-black text-slate-700 mb-1">المادة الدراسية 📚:</label>
+                  <div className={`p-2 rounded-xl border text-xs font-black flex items-center gap-1.5 ${isSayedAdmin ? 'bg-amber-50 text-amber-900 border-amber-300' : 'bg-blue-50 text-blue-900 border-blue-300'}`}>
+                    <span>{isSayedAdmin ? '📖' : '💻'}</span>
+                    <span>{defaultAdminSubject}</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-slate-700 mb-1">الصف المستهدف:</label>
+                  <select
+                    value={newFolderGrade}
+                    onChange={(e) => setNewFolderGrade(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-xs font-bold focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="3sec">الصف الثالث الثانوي (3 ثانوي)</option>
+                    <option value="2sec">الصف الثاني الثانوي</option>
+                    <option value="1sec">الصف الأول الثانوي</option>
+                    <option value="all">كل الصفوف الدراسية</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-slate-700 mb-1">وصف المجلد ومحتوياته (اختياري):</label>
+                <textarea
+                  value={newFolderDesc}
+                  onChange={(e) => setNewFolderDesc(e.target.value)}
+                  placeholder="اكتب نبذة مختصرة عن الدروس والموضوعات التي يتناولها هذا المجلد..."
+                  rows={3}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-xs font-bold outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              {/* Folder Thumbnail Picker */}
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <label className="block text-xs font-black text-slate-700">الصورة المصغرة لغلاف المجلد (Thumbnail 🖼️):</label>
+                
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => folderThumbInputRef.current && folderThumbInputRef.current.click()}
+                    className="bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 text-xs font-black px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all shadow-xs"
+                  >
+                    <ImageIcon className="w-4 h-4 text-indigo-600" />
+                    <span>اختيار صورة غلاف من الجهاز</span>
+                  </button>
+                  <input
+                    ref={folderThumbInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        setFolderThumbFile(file);
+                        const reader = new FileReader();
+                        reader.onload = (evt) => {
+                          setFolderThumbPreview(evt.target.result);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="hidden"
+                  />
+
+                  {folderThumbPreview && (
+                    <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-300 p-1.5 rounded-xl">
+                      <img src={folderThumbPreview} alt="Folder Preview" className="w-14 h-10 object-cover rounded-lg border border-emerald-400" />
+                      <span className="text-xs text-emerald-700 font-black">تم تحديد الغلاف بنجاح ✓</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Direct image url option */}
+                <div className="pt-1">
+                  <span className="text-[11px] text-slate-500 font-bold">أو ضع رابط صورة مباشر:</span>
+                  <input
+                    type="text"
+                    value={folderThumbPreview && !folderThumbFile ? folderThumbPreview : ''}
+                    onChange={(e) => {
+                      setFolderThumbFile(null);
+                      setFolderThumbPreview(e.target.value);
+                    }}
+                    placeholder="https://images.unsplash.com/photo-..."
+                    className="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none dir-ltr"
+                  />
+                </div>
+              </div>
+
+              {folderSuccessMsg && (
+                <div className="bg-emerald-50 text-emerald-800 p-3 rounded-xl border border-emerald-200 text-xs font-bold animate-in fade-in">
+                  {folderSuccessMsg}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isCreatingFolder}
+                className={`w-full text-xs font-black py-3.5 rounded-xl justify-center shadow-lg flex items-center gap-2 ${isCreatingFolder ? 'bg-slate-400 text-slate-200 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-600/30'}`}
+              >
+                <FolderPlus className="w-4 h-4" />
+                <span>{isCreatingFolder ? 'جاري إنشاء المجلد... ⏳' : 'إنشاء وحفظ المجلد التعليمي 🚀'}</span>
+              </button>
+            </form>
+          </div>
+
+          {/* Existing Folders List */}
+          <div className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200/80 shadow-md space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
+              <div>
+                <h3 className="font-black text-slate-900 text-lg flex items-center gap-2">
+                  <Layers className="w-5 h-5 text-indigo-600" />
+                  <span>المجلدات والوحدات الحالية</span>
+                </h3>
+                <p className="text-xs text-slate-500 font-medium mt-1">
+                  يمكنك استعراض الدروس بداخل كل مجلد أو حذفه (لن يتم حذف الفيديوهات بل ستتحول لحصص عامة).
+                </p>
+              </div>
+            </div>
+
+            {folders.filter(f => isSayedAdmin ? (f.subject?.includes('عرب') || f.subject === 'arabic') : (!f.subject?.includes('عرب') && f.subject !== 'arabic')).length === 0 ? (
+              <div className="text-center py-12 text-slate-400 space-y-3">
+                <Folder className="w-12 h-12 mx-auto text-slate-300" />
+                <p className="text-xs font-bold">لا توجد مجلدات بعد. يمكنك إنشاء أول مجلد الآن من النموذج بالأعلى 👆</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {folders
+                  .filter(f => isSayedAdmin ? (f.subject?.includes('عرب') || f.subject === 'arabic') : (!f.subject?.includes('عرب') && f.subject !== 'arabic'))
+                  .map(f => {
+                    const insideLessons = lessons.filter(l => l.folderId === f.id);
+                    return (
+                      <div
+                        key={f.id}
+                        className="bg-slate-50 border border-slate-200 rounded-3xl overflow-hidden hover:shadow-xl transition-all flex flex-col justify-between group"
+                      >
+                        <div>
+                          {/* Folder Thumbnail Banner */}
+                          <div className="relative aspect-video bg-slate-900 overflow-hidden">
+                            <img
+                              src={f.thumbnail || (isSayedAdmin ? "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&q=80&w=800" : "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&q=80&w=800")}
+                              alt={f.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex items-end justify-between p-3">
+                              <span className="text-[10px] font-black bg-indigo-600 text-white px-2.5 py-0.5 rounded-lg flex items-center gap-1 shadow-sm">
+                                <Folder className="w-3 h-3" />
+                                <span>مجلد تعليمي</span>
+                              </span>
+                              <span className="text-[11px] font-black bg-black/70 text-amber-300 px-2.5 py-1 rounded-lg">
+                                {insideLessons.length} حصة
+                              </span>
+                            </div>
+                            <div className="absolute top-2 right-2">
+                              <span className="bg-slate-900/90 text-white text-[10px] font-black px-2.5 py-0.5 rounded-lg border border-white/20">
+                                {f.grade === '3sec' ? '3 ثانوي' : f.grade === '2sec' ? '2 ثانوي' : f.grade === '1sec' ? '1 ثانوي' : 'كل الصفوف'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="p-4 space-y-2">
+                            <h4 className="font-black text-slate-900 text-sm line-clamp-2">
+                              {f.title}
+                            </h4>
+                            <p className="text-xs text-slate-500 line-clamp-2 font-medium">
+                              {f.description || 'وحدة تعليمية تحتوي على مجموعة من الحصص المتسلسلة.'}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Folder Card Actions */}
+                        <div className="p-4 pt-0 border-t border-slate-200/80 mt-2 flex items-center justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setVideoPlacementMode('folder');
+                              setSelectedFolderId(f.id);
+                              setAdminTab('videos');
+                            }}
+                            className="text-xs font-black text-indigo-600 hover:text-indigo-800 flex items-center gap-1 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-xl transition-all"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>إضافة فيديو لهذا المجلد</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm(`هل أنت متأكد من حذف مجلد "${f.title}"؟\nملاحظة: الفيديوهات بداخله لن تُحذف وستتحول إلى حصص عامة مستقلة.`)) {
+                                adminDeleteFolder(f.id);
+                              }
+                            }}
+                            className="text-rose-500 hover:text-rose-700 p-2 rounded-xl hover:bg-rose-50 transition-all"
+                            title="حذف المجلد"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                }
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Tab 1: Videos Management */}
       {adminTab === 'videos' && (
         <div className="space-y-8 animate-in fade-in">
@@ -1756,6 +2127,87 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                 </div>
               </div>
 
+              {/* Placement: General vs Inside Folder */}
+              <div className="bg-gradient-to-r from-indigo-50/70 via-blue-50/40 to-slate-50 p-4 rounded-2xl border border-indigo-100 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <label className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                    <Folder className="w-4 h-4 text-indigo-600" />
+                    <span>مكان نشر الحصة:</span>
+                  </label>
+                  <div className="flex gap-1.5 bg-white p-1 rounded-xl border border-slate-200 shadow-xs self-start sm:self-auto">
+                    <button
+                      type="button"
+                      onClick={() => setVideoPlacementMode('general')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${videoPlacementMode === 'general' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'}`}
+                    >
+                      🌐 عامة مستقلة
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setVideoPlacementMode('folder')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all ${videoPlacementMode === 'folder' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'}`}
+                    >
+                      📁 داخل مجلد / وحدة
+                    </button>
+                  </div>
+                </div>
+
+                {/* AI Smart Folder Suggestion Banner */}
+                {suggestedFolder && videoPlacementMode !== 'folder' && (
+                  <div className="bg-gradient-to-r from-amber-50 via-indigo-50 to-purple-50 border border-indigo-200 p-3.5 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs animate-in fade-in">
+                    <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
+                      <Sparkles className="w-5 h-5 text-indigo-600 animate-pulse flex-shrink-0" />
+                      <div>
+                        <span className="font-black text-indigo-950">اقتراح النظام الذكي:</span> تم رصد تطابق مع مجلد <span className="text-indigo-600 font-black underline">"{suggestedFolder.title}"</span>!
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setVideoPlacementMode('folder');
+                        setSelectedFolderId(suggestedFolder.id);
+                      }}
+                      className="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-black px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5 self-start sm:self-auto"
+                    >
+                      <FolderCheck className="w-4 h-4" />
+                      <span>إدراج في هذا المجلد الآن ✨</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Folder Selection Dropdown */}
+                {videoPlacementMode === 'folder' && (
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between text-[11px] font-bold">
+                      <span className="text-slate-700 font-black">اختر المجلد التعليمي:</span>
+                      <button
+                        type="button"
+                        onClick={() => setAdminTab('folders')}
+                        className="text-indigo-600 hover:underline flex items-center gap-1 font-black"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>إنشاء مجلد جديد 📁</span>
+                      </button>
+                    </div>
+                    <select
+                      value={selectedFolderId}
+                      onChange={(e) => setSelectedFolderId(e.target.value)}
+                      className="w-full bg-white border border-indigo-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    >
+                      <option value="">-- اضغط لاختيار المجلد --</option>
+                      {folders
+                        .filter(f => isSayedAdmin ? (f.subject?.includes('عرب') || f.subject === 'arabic') : (!f.subject?.includes('عرب') && f.subject !== 'arabic'))
+                        .map(f => (
+                          <option key={f.id} value={f.id}>
+                            📁 {f.title} ({lessons.filter(l => l.folderId === f.id).length} حصة)
+                          </option>
+                        ))
+                      }
+                    </select>
+                  </div>
+                )}
+              </div>
+
               {/* Video Upload Mode Switcher */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs font-black text-slate-700">
@@ -1799,25 +2251,38 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                     )}
                   </div>
                 ) : (
-                  <input
-                    type="text"
-                    value={videoUrlInput}
-                    onChange={async (e) => {
-                      const val = e.target.value;
-                      setVideoUrlInput(val);
-                      if (val && val.trim().length > 10) {
-                        try {
-                          const durRes = await fetch(`/api/detect-duration?url=${encodeURIComponent(val.trim())}`);
-                          const durData = await durRes.json();
-                          if (durData.success && durData.minutes) {
-                            setNewLessonDuration(durData.minutes);
-                          }
-                        } catch(e) {}
-                      }
-                    }}
-                    placeholder="https://www.youtube.com/watch?v=..."
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs font-mono font-bold outline-none dir-ltr"
-                  />
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      value={videoUrlInput}
+                      onChange={async (e) => {
+                        const val = e.target.value;
+                        setVideoUrlInput(val);
+                        if (val && val.trim().length > 10) {
+                          try {
+                            const durRes = await fetch(`/api/detect-duration?url=${encodeURIComponent(val.trim())}`);
+                            const durData = await durRes.json();
+                            if (durData.success && durData.minutes) {
+                              setNewLessonDuration(durData.minutes);
+                            }
+                          } catch(e) {}
+                        }
+                      }}
+                      placeholder="https://www.youtube.com/watch?v=..."
+                      className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs font-mono font-bold outline-none dir-ltr"
+                    />
+                    {videoUrlInput.includes('drive.google.com') && (
+                      <div className="bg-amber-50 border border-amber-300 p-3 rounded-xl text-xs text-amber-900 font-bold flex items-start gap-2 animate-in fade-in">
+                        <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <strong className="text-amber-950">تنبيه هام لفيديوهات Google Drive:</strong>
+                          <p className="text-[11px] text-amber-800 font-medium mt-0.5">
+                            تأكد من ضبط إذن المشاركة في Google Drive على <span className="font-bold underline text-amber-950">"Anyone with the link can view / أي شخص لديه الرابط"</span> حتى يفتح الفيديو مباشرة لكل الطلاب بدون ظهور شاشة "طلب الإذن".
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
 
@@ -2567,6 +3032,23 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                   <label className="block mb-1">المدة (بالدقائق ⏱️):</label>
                   <input type="number" min="1" value={editLessonDuration} onChange={(e) => setEditLessonDuration(e.target.value)} className="w-full border p-2.5 rounded-xl" />
                 </div>
+              </div>
+
+              <div>
+                <label className="block mb-1">المجلد / الوحدة التابعة لها (اختياري 📁):</label>
+                <select 
+                  value={editLessonFolderId} 
+                  onChange={(e) => setEditLessonFolderId(e.target.value)} 
+                  className="w-full border p-2.5 rounded-xl bg-slate-50 text-slate-800"
+                >
+                  <option value="">🌐 عامة مستقلة (بدون مجلد)</option>
+                  {folders
+                    .filter(f => isSayedAdmin ? (f.subject?.includes('عرب') || f.subject === 'arabic') : (!f.subject?.includes('عرب') && f.subject !== 'arabic'))
+                    .map(f => (
+                      <option key={f.id} value={f.id}>📁 {f.title}</option>
+                    ))
+                  }
+                </select>
               </div>
 
               <div>

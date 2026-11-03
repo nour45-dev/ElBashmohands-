@@ -22,7 +22,9 @@ import {
   Clock,
   ChevronRight,
   Eye,
-  XCircle
+  XCircle,
+  Folder,
+  ExternalLink
 } from 'lucide-react';
 
 // ─── Timer component ────────────────────────────────────────────────────────
@@ -133,6 +135,7 @@ const QuizReviewModal = ({ attempt, onClose }) => {
 export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => {
   const { 
     lessons, 
+    folders = [],
     student, 
     userRole, 
     unlockLesson, 
@@ -178,6 +181,8 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
   const lesson = (subjectFilteredAllLessons && subjectFilteredAllLessons.length > 0)
     ? (subjectFilteredAllLessons.find(les => les.id === lessonId) || subjectFilteredAllLessons[0])
     : null;
+
+  const currentFolder = folders.find(f => f.id === lesson?.folderId);
 
   // Sync playlist subject when lesson changes
   useEffect(() => {
@@ -446,6 +451,25 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
             </div>
           </div>
 
+          {/* Google Drive permission hint & external open */}
+          {lesson.videoUrl?.includes('drive.google.com') && (
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2 text-amber-300">
+                <span className="text-base">💡</span>
+                <span>إذا ظهرت رسالة "طلب الإذن بالوصول"، تأكد من ضبط إذن الرابط في Google Drive على "عام (Anyone with the link)".</span>
+              </div>
+              <a
+                href={lesson.videoUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-amber-400 hover:text-amber-300 font-bold bg-amber-500/20 px-3 py-1.5 rounded-xl border border-amber-500/40 text-xs self-start sm:self-auto whitespace-nowrap"
+              >
+                <span>فتح الرابط في Drive</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          )}
+
           {/* ── NEXT VIDEO BUTTON ── */}
           {isVideoAccessible && nextLesson && (
             <div className="bg-gradient-to-l from-slate-900 to-slate-800 rounded-2xl p-4 flex items-center justify-between border border-slate-700 shadow-lg">
@@ -698,6 +722,18 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
                 )}
               </div>
             </div>
+
+            {currentFolder && (
+              <div className="bg-indigo-50 border border-indigo-200/80 p-2.5 rounded-2xl flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-indigo-950 text-xs font-black">
+                  <Folder className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+                  <span className="line-clamp-1">{currentFolder.title}</span>
+                </div>
+                <span className="text-[10px] bg-indigo-200 text-indigo-900 font-bold px-2 py-0.5 rounded-md flex-shrink-0">
+                  الوحدة الحالية
+                </span>
+              </div>
+            )}
             
             <div className="space-y-3">
               {gradeFilteredLessons.length === 0 ? (

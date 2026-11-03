@@ -238,6 +238,7 @@ const initializeDatabase = async () => {
       await seedCollectionIfEmpty('questions', initialData.questions);
       await seedCollectionIfEmpty('notifications', initialData.notifications);
       await seedCollectionIfEmpty('liveSessions', initialData.liveSessions);
+      await seedCollectionIfEmpty('folders', initialData.folders || []);
       console.log('MongoDB initialization and seeding check completed.');
     } catch (err) {
       console.error('FATAL: Failed to connect to MongoDB in production/configured state!');
@@ -888,6 +889,107 @@ app.get('/api/detect-duration', async (req, res) => {
     }
 
     return res.json({ success: false, message: 'Could not auto-detect duration' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+
+// ==========================================
+// 📁 FOLDERS / UNITS ROUTES
+// ==========================================
+app.get('/api/folders', async (req, res) => {
+  try {
+    let folders = [];
+    if (dbType === 'mongodb') {
+      folders = await db.collection('folders').find({}).toArray();
+    } else {
+      const data = getLocalData();
+      folders = data.folders || [];
+    }
+    return res.json(folders);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/folders', requireAdmin, async (req, res) => {
+  const { title, subject, grade, thumbnail, description } = req.body;
+  if (!title || !title.trim()) {
+    return res.status(400).json({ error: 'عنوان المجلد مطلوب.' });
+  }
+
+  try {
+    const newFolder = {
+      id: 'fld_' + Date.now(),
+      title: title.trim(),
+      subject: subject || 'programming',
+      grade: grade || '3sec',
+      thumbnail: thumbnail || null,
+      description: description ? description.trim() : '',
+      createdAt: Date.now()
+    };
+
+    if (dbType === 'mongodb') {
+      await db.collection('folders').insertOne(newFolder);
+    } else {
+      const data = getLocalData();
+      if (!data.folders) data.folders = [];
+      data.folders.push(newFolder);
+      writeLocalData(data);
+    }
+    return res.status(201).json(newFolder);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/folders/:id', requireAdmin, async (req, res) => {
+  const folderId = req.params.id;
+  try {
+    if (dbType === 'mongodb') {
+      await db.collection('folders').deleteOne({ id: folderId });
+      await db.collection('lessons').updateMany({ folderId }, { $set: { folderId: null } });
+    } else {
+      const data = getLocalData();
+      if (data.folders) {
+        data.folders = data.folders.filter(f => f.id !== folderId);
+      }
+      if (data.lessons) {
+        data.lessons.forEach(l => {
+          if (l.folderId === folderId) l.folderId = null;
+        });
+      }
+      writeLocalData(data);
+    }
+    return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch('/api/folders/:id', requireAdmin, async (req, res) => {
+  const folderId = req.params.id;
+  const updates = req.body;
+  try {
+    if (dbType === 'mongodb') {
+      const resData = await db.collection('folders').findOneAndUpdate(
+        { id: folderId },
+        { $set: updates },
+        { returnDocument: 'after' }
+      );
+      return res.json(resData);
+    } else {
+      const data = getLocalData();
+      if (!data.folders) data.folders = [];
+      const idx = data.folders.findIndex(f => f.id === folderId);
+      if (idx !== -1) {
+        data.folders[idx] = { ...data.folders[idx], ...updates };
+        writeLocalData(data);
+        return res.json(data.folders[idx]);
+      }
+      return res.status(404).json({ error: 'المجلد غير موجود' });
+    }
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

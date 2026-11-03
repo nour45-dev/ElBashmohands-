@@ -33,11 +33,15 @@ import {
   ArrowRight,
   ShieldCheck,
   Smartphone,
-  Radio
+  Radio,
+  Folder,
+  FolderOpen,
+  Layers
 } from 'lucide-react';
 
 export const HomeView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveId }) => {
-  const { currentGrade, switchGrade, lessons, student, userRole, adminIdentity, liveSessionsDB = [] } = useApp();
+  const { currentGrade, switchGrade, lessons, folders = [], student, userRole, adminIdentity, liveSessionsDB = [] } = useApp();
+  const [activeFolderExplorer, setActiveFolderExplorer] = useState(null);
   
   // Lock grade to student's registered grade if student, or currentGrade for admin
   const activeGrade = (userRole === 'student' && student?.grade) ? student.grade : currentGrade;
@@ -68,6 +72,17 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveId
   const programmingLessons = lessons.filter(les => 
     (les.grade === activeGrade || les.grade === 'all') && 
     !(les.subject?.includes('عرب') || les.subject?.includes('Arabic') || les.subject?.includes('لغة'))
+  );
+
+  // Filter folders by subject and grade
+  const arabicFolders = (folders || []).filter(f => 
+    (f.grade === activeGrade || f.grade === 'all' || !f.grade) && 
+    (f.subject?.includes('عرب') || f.subject?.includes('Arabic') || f.subject === 'arabic')
+  );
+
+  const programmingFolders = (folders || []).filter(f => 
+    (f.grade === activeGrade || f.grade === 'all' || !f.grade) && 
+    !(f.subject?.includes('عرب') || f.subject?.includes('Arabic') || f.subject === 'arabic')
   );
 
   return (
@@ -265,6 +280,126 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveId
         )}
       </div>
 
+      {/* ═══ VIP Folder Explorer View (عند الضغط على مجلد تعليمي) ═══ */}
+      {activeFolderExplorer && (
+        <section className="bg-white dark:bg-[#162534] rounded-3xl border-2 border-indigo-500/40 shadow-2xl overflow-hidden animate-in fade-in">
+          {/* Explorer Header */}
+          <div className="relative aspect-[21/9] sm:aspect-[24/7] bg-slate-900 overflow-hidden flex items-end">
+            <img
+              src={activeFolderExplorer.thumbnail || "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&q=80&w=1200"}
+              alt={activeFolderExplorer.title}
+              className="absolute inset-0 w-full h-full object-cover opacity-40 blur-xs scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent" />
+            
+            <div className="relative z-10 p-6 md:p-8 w-full flex flex-col sm:flex-row sm:items-end justify-between gap-4 text-white">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="bg-indigo-600 text-white text-xs font-black px-3 py-1 rounded-xl flex items-center gap-1.5 shadow-sm">
+                    <FolderOpen className="w-3.5 h-3.5" />
+                    <span>مجلد تعليمي منظم</span>
+                  </span>
+                  <span className="bg-white/20 backdrop-blur-md text-white text-xs font-bold px-3 py-1 rounded-xl">
+                    {lessons.filter(l => l.folderId === activeFolderExplorer.id).length} حصص بداخل المجلد
+                  </span>
+                </div>
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-black">
+                  {activeFolderExplorer.title}
+                </h2>
+                {activeFolderExplorer.description && (
+                  <p className="text-xs sm:text-sm text-slate-300 max-w-2xl font-medium leading-relaxed">
+                    {activeFolderExplorer.description}
+                  </p>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveFolderExplorer(null)}
+                className="bg-white/20 hover:bg-white/30 text-white text-xs font-black px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 backdrop-blur-md self-start sm:self-auto border border-white/20"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>العودة لكافة الأقسام ↩️</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Lessons Grid inside Folder */}
+          <div className="p-6">
+            {lessons.filter(l => l.folderId === activeFolderExplorer.id).length === 0 ? (
+              <div className="text-center py-12 text-slate-400 space-y-2">
+                <Folder className="w-12 h-12 mx-auto text-slate-300" />
+                <p className="text-sm font-bold text-slate-600 dark:text-slate-400">لا توجد حصص مضافة لهذا المجلد بعد.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {lessons
+                  .filter(l => l.folderId === activeFolderExplorer.id)
+                  .map(les => {
+                    const isFree = les.price === 0;
+                    const isUnlocked = isFree || student?.unlockedLessons?.includes(les.id);
+                    return (
+                      <div
+                        key={les.id}
+                        onClick={() => { setSelectedLessonId(les.id); setCurrentTab('lesson-detail'); }}
+                        className="bg-slate-50 dark:bg-slate-900/70 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-xl hover:border-indigo-400 transition-all cursor-pointer group flex flex-col justify-between"
+                      >
+                        <div>
+                          <div className="relative aspect-video bg-slate-900 overflow-hidden">
+                            <img
+                              src={les.thumbnail || activeFolderExplorer.thumbnail || "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=800"}
+                              alt={les.title}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex items-end justify-between p-3">
+                              <span className="text-[10px] font-black bg-indigo-600 text-white px-2 py-0.5 rounded-md">
+                                {les.subject}
+                              </span>
+                              <span className="text-xs text-white font-bold bg-black/70 px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-sm">
+                                <Clock className="w-3 h-3" />
+                                <span>{les.duration || '45 دقيقة'}</span>
+                              </span>
+                            </div>
+                            <div className="absolute top-2 right-2">
+                              {isFree ? (
+                                <span className="bg-emerald-500 text-white text-[10px] font-black px-2.5 py-0.5 rounded-lg shadow">مجانية 🎁</span>
+                              ) : isUnlocked ? (
+                                <span className="bg-blue-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-lg shadow">مفعلة ✓</span>
+                              ) : (
+                                <span className="bg-slate-900/90 text-amber-400 border border-amber-500/40 text-[10px] font-black px-2.5 py-0.5 rounded-lg shadow">
+                                  {les.price} ج.م
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="p-4 space-y-1.5">
+                            <h4 className="font-black text-slate-900 dark:text-white text-xs md:text-sm line-clamp-2 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                              {les.title}
+                            </h4>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 font-medium">
+                              {les.description || 'شرح تفصيلي مع تدريبات مكثفة.'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="p-4 pt-0 border-t border-slate-200/60 dark:border-slate-800/60 mt-2 flex items-center justify-between">
+                          <span className="text-[11px] font-black text-indigo-600 dark:text-indigo-400">
+                            {isUnlocked ? 'مشاهدة الحصة الآن' : 'فتح الحصة'}
+                          </span>
+                          <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center group-hover:scale-110 transition-all shadow-xs">
+                            <Play className="w-3.5 h-3.5 fill-current" />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* ══════════════════════════════════════════════════════════════
           1️⃣ CARD 1: قسم اللغة العربية والبلاغة (مستر سيد عبد العاطي)
           (مخفي تماماً عن المهندس نور الدين)
@@ -304,73 +439,140 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveId
 
         {/* Card Body / Lessons Grid */}
         <div className="p-6">
+          {/* Subject Folders / Units */}
+          {arabicFolders.length > 0 && (
+            <div className="mb-8 space-y-3">
+              <div className="flex items-center gap-2 text-xs font-black text-amber-900 dark:text-amber-300">
+                <Folder className="w-4 h-4 text-amber-500" />
+                <span>الوحدات والمجلدات التعليمية 📁</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {arabicFolders.map(folder => {
+                  const folderLessons = lessons.filter(l => l.folderId === folder.id);
+                  return (
+                    <div
+                      key={folder.id}
+                      onClick={() => setActiveFolderExplorer(folder)}
+                      className="bg-gradient-to-br from-amber-50/70 to-orange-50/40 dark:from-slate-900/90 dark:to-slate-800/80 rounded-2xl border-2 border-amber-300/80 dark:border-amber-500/30 overflow-hidden hover:shadow-xl hover:border-amber-500 transition-all cursor-pointer group flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="relative aspect-video bg-slate-900 overflow-hidden">
+                          <img
+                            src={folder.thumbnail || "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&q=80&w=800"}
+                            alt={folder.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex items-end justify-between p-3">
+                            <span className="text-[10px] font-black bg-amber-500 text-slate-950 px-2.5 py-0.5 rounded-md flex items-center gap-1 shadow-sm">
+                              <Folder className="w-3 h-3" />
+                              <span>مجلد تعليمي</span>
+                            </span>
+                            <span className="text-xs text-white font-bold bg-black/70 px-2.5 py-1 rounded-lg">
+                              {folderLessons.length} حصة
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="p-4 space-y-1.5">
+                          <h4 className="font-black text-slate-900 dark:text-white text-xs md:text-sm line-clamp-2 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                            {folder.title}
+                          </h4>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 font-medium">
+                            {folder.description || 'وحدة تعليمية كاملة تشمل شرح وتطبيقات.'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="p-4 pt-0 border-t border-amber-200/60 dark:border-slate-800/60 mt-2 flex items-center justify-between">
+                        <span className="text-[11px] font-black text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                          <span>استعراض محتويات المجلد</span>
+                          <ArrowLeft className="w-3 h-3" />
+                        </span>
+                        <div className="w-7 h-7 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center group-hover:scale-110 transition-all shadow-xs">
+                          <FolderOpen className="w-3.5 h-3.5" />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {arabicLessons.length === 0 ? (
             <div className="text-center py-10 text-slate-400 space-y-2">
               <div className="text-3xl">📖</div>
               <p className="text-xs font-bold">لا توجد حصص لغة عربية مضافة لهذا الصف حالياً، سيتم رفعها قريباً.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {arabicLessons.map(les => {
-                const isFree = les.price === 0;
-                const isUnlocked = isFree || student?.unlockedLessons?.includes(les.id);
-                return (
-                  <div
-                    key={les.id}
-                    onClick={() => { setSelectedLessonId(les.id); setCurrentTab('lesson-detail'); }}
-                    className="bg-slate-50 dark:bg-slate-900/70 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-lg hover:border-amber-400 transition-all cursor-pointer group flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className="relative aspect-video bg-slate-900 overflow-hidden">
-                        <img
-                          src={les.thumbnail || "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&q=80&w=800"}
-                          alt={les.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex items-end justify-between p-3">
-                          <span className="text-[10px] font-black bg-amber-500 text-slate-950 px-2 py-0.5 rounded-md">
-                            اللغة العربية
-                          </span>
-                          <span className="text-xs text-white font-bold bg-black/70 px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-sm">
-                            <Clock className="w-3 h-3" />
-                            <span>{les.duration || '45 دقيقة'}</span>
-                          </span>
-                        </div>
-
-                        <div className="absolute top-2 right-2">
-                          {isFree ? (
-                            <span className="bg-emerald-500 text-white text-[10px] font-black px-2.5 py-0.5 rounded-lg shadow">مجانية 🎁</span>
-                          ) : isUnlocked ? (
-                            <span className="bg-blue-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-lg shadow">مفعلة ✓</span>
-                          ) : (
-                            <span className="bg-slate-900/90 text-amber-400 border border-amber-500/40 text-[10px] font-black px-2.5 py-0.5 rounded-lg shadow">
-                              {les.price} ج.م
+            <div>
+              {arabicFolders.length > 0 && (
+                <div className="flex items-center gap-2 text-xs font-black text-slate-700 dark:text-slate-300 mb-3">
+                  <span>🌐 الحصص والمراجعات المستقلة</span>
+                </div>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {(arabicFolders.length > 0 ? arabicLessons.filter(l => !l.folderId) : arabicLessons).map(les => {
+                  const isFree = les.price === 0;
+                  const isUnlocked = isFree || student?.unlockedLessons?.includes(les.id);
+                  return (
+                    <div
+                      key={les.id}
+                      onClick={() => { setSelectedLessonId(les.id); setCurrentTab('lesson-detail'); }}
+                      className="bg-slate-50 dark:bg-slate-900/70 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-lg hover:border-amber-400 transition-all cursor-pointer group flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="relative aspect-video bg-slate-900 overflow-hidden">
+                          <img
+                            src={les.thumbnail || "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&q=80&w=800"}
+                            alt={les.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex items-end justify-between p-3">
+                            <span className="text-[10px] font-black bg-amber-500 text-slate-950 px-2 py-0.5 rounded-md">
+                              اللغة العربية
                             </span>
-                          )}
+                            <span className="text-xs text-white font-bold bg-black/70 px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-sm">
+                              <Clock className="w-3 h-3" />
+                              <span>{les.duration || '45 دقيقة'}</span>
+                            </span>
+                          </div>
+
+                          <div className="absolute top-2 right-2">
+                            {isFree ? (
+                              <span className="bg-emerald-500 text-white text-[10px] font-black px-2.5 py-0.5 rounded-lg shadow">مجانية 🎁</span>
+                            ) : isUnlocked ? (
+                              <span className="bg-blue-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-lg shadow">مفعلة ✓</span>
+                            ) : (
+                              <span className="bg-slate-900/90 text-amber-400 border border-amber-500/40 text-[10px] font-black px-2.5 py-0.5 rounded-lg shadow">
+                                {les.price} ج.م
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="p-4 space-y-1.5">
+                          <h4 className="font-black text-slate-900 dark:text-white text-xs md:text-sm line-clamp-2 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                            {les.title}
+                          </h4>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 font-medium">
+                            {les.description || 'شرح تفصيلي مع تدريبات مكثفة وأسئلة وزارية.'}
+                          </p>
                         </div>
                       </div>
 
-                      <div className="p-4 space-y-1.5">
-                        <h4 className="font-black text-slate-900 dark:text-white text-xs md:text-sm line-clamp-2 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-                          {les.title}
-                        </h4>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 font-medium">
-                          {les.description || 'شرح تفصيلي مع تدريبات مكثفة وأسئلة وزارية.'}
-                        </p>
+                      <div className="p-4 pt-0 border-t border-slate-200/60 dark:border-slate-800/60 mt-2 flex items-center justify-between">
+                        <span className="text-[11px] font-black text-amber-600 dark:text-amber-400">
+                          {isUnlocked ? 'مشاهدة الحصة الآن' : 'فتح الحصة'}
+                        </span>
+                        <div className="w-7 h-7 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center group-hover:scale-110 transition-all shadow-xs">
+                          <Play className="w-3.5 h-3.5 fill-current" />
+                        </div>
                       </div>
                     </div>
-
-                    <div className="p-4 pt-0 border-t border-slate-200/60 dark:border-slate-800/60 mt-2 flex items-center justify-between">
-                      <span className="text-[11px] font-black text-amber-600 dark:text-amber-400">
-                        {isUnlocked ? 'مشاهدة الحصة الآن' : 'فتح الحصة'}
-                      </span>
-                      <div className="w-7 h-7 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center group-hover:scale-110 transition-all shadow-xs">
-                        <Play className="w-3.5 h-3.5 fill-current" />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -416,73 +618,140 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveId
 
         {/* Card Body / Lessons Grid */}
         <div className="p-6">
+          {/* Programming Folders / Units */}
+          {programmingFolders.length > 0 && (
+            <div className="mb-8 space-y-3">
+              <div className="flex items-center gap-2 text-xs font-black text-blue-900 dark:text-blue-300">
+                <Folder className="w-4 h-4 text-blue-500" />
+                <span>الوحدات والمجلدات التعليمية 📁</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {programmingFolders.map(folder => {
+                  const folderLessons = lessons.filter(l => l.folderId === folder.id);
+                  return (
+                    <div
+                      key={folder.id}
+                      onClick={() => setActiveFolderExplorer(folder)}
+                      className="bg-gradient-to-br from-blue-50/70 to-indigo-50/40 dark:from-slate-900/90 dark:to-slate-800/80 rounded-2xl border-2 border-blue-300/80 dark:border-blue-500/30 overflow-hidden hover:shadow-xl hover:border-blue-500 transition-all cursor-pointer group flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="relative aspect-video bg-slate-900 overflow-hidden">
+                          <img
+                            src={folder.thumbnail || "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&q=80&w=800"}
+                            alt={folder.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex items-end justify-between p-3">
+                            <span className="text-[10px] font-black bg-blue-600 text-white px-2 py-0.5 rounded-md flex items-center gap-1 shadow-sm">
+                              <Folder className="w-3 h-3" />
+                              <span>مجلد تعليمي</span>
+                            </span>
+                            <span className="text-xs text-white font-bold bg-black/70 px-2.5 py-1 rounded-lg">
+                              {folderLessons.length} حصة
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="p-4 space-y-1.5">
+                          <h4 className="font-black text-slate-900 dark:text-white text-xs md:text-sm line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                            {folder.title}
+                          </h4>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 font-medium">
+                            {folder.description || 'وحدة تعليمية كاملة تشمل كود ومشاريع وتطبيقات.'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="p-4 pt-0 border-t border-blue-200/60 dark:border-slate-800/60 mt-2 flex items-center justify-between">
+                        <span className="text-[11px] font-black text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                          <span>استعراض محتويات المجلد</span>
+                          <ArrowLeft className="w-3 h-3" />
+                        </span>
+                        <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center group-hover:scale-110 transition-all shadow-xs">
+                          <FolderOpen className="w-3.5 h-3.5" />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {programmingLessons.length === 0 ? (
             <div className="text-center py-10 text-slate-400 space-y-2">
               <div className="text-3xl">💻</div>
               <p className="text-xs font-bold">لا توجد حصص برمجة مضافة لهذا الصف حالياً، سيتم رفعها قريباً.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {programmingLessons.map(les => {
-                const isFree = les.price === 0;
-                const isUnlocked = isFree || student?.unlockedLessons?.includes(les.id);
-                return (
-                  <div
-                    key={les.id}
-                    onClick={() => { setSelectedLessonId(les.id); setCurrentTab('lesson-detail'); }}
-                    className="bg-slate-50 dark:bg-slate-900/70 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-lg hover:border-blue-400 transition-all cursor-pointer group flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className="relative aspect-video bg-slate-900 overflow-hidden">
-                        <img
-                          src={les.thumbnail || "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=800"}
-                          alt={les.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex items-end justify-between p-3">
-                          <span className="text-[10px] font-black bg-blue-600 text-white px-2 py-0.5 rounded-md">
-                            البرمجة
-                          </span>
-                          <span className="text-xs text-white font-bold bg-black/70 px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-sm">
-                            <Clock className="w-3 h-3" />
-                            <span>{les.duration || '45 دقيقة'}</span>
-                          </span>
-                        </div>
-
-                        <div className="absolute top-2 right-2">
-                          {isFree ? (
-                            <span className="bg-emerald-500 text-white text-[10px] font-black px-2.5 py-0.5 rounded-lg shadow">مجانية 🎁</span>
-                          ) : isUnlocked ? (
-                            <span className="bg-blue-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-lg shadow">مفعلة ✓</span>
-                          ) : (
-                            <span className="bg-slate-900/90 text-amber-400 border border-amber-500/40 text-[10px] font-black px-2.5 py-0.5 rounded-lg shadow">
-                              {les.price} ج.م
+            <div>
+              {programmingFolders.length > 0 && (
+                <div className="flex items-center gap-2 text-xs font-black text-slate-700 dark:text-slate-300 mb-3">
+                  <span>🌐 الحصص والمراجعات المستقلة</span>
+                </div>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {(programmingFolders.length > 0 ? programmingLessons.filter(l => !l.folderId) : programmingLessons).map(les => {
+                  const isFree = les.price === 0;
+                  const isUnlocked = isFree || student?.unlockedLessons?.includes(les.id);
+                  return (
+                    <div
+                      key={les.id}
+                      onClick={() => { setSelectedLessonId(les.id); setCurrentTab('lesson-detail'); }}
+                      className="bg-slate-50 dark:bg-slate-900/70 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-lg hover:border-blue-400 transition-all cursor-pointer group flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="relative aspect-video bg-slate-900 overflow-hidden">
+                          <img
+                            src={les.thumbnail || "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=800"}
+                            alt={les.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex items-end justify-between p-3">
+                            <span className="text-[10px] font-black bg-blue-600 text-white px-2 py-0.5 rounded-md">
+                              البرمجة
                             </span>
-                          )}
+                            <span className="text-xs text-white font-bold bg-black/70 px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-sm">
+                              <Clock className="w-3 h-3" />
+                              <span>{les.duration || '45 دقيقة'}</span>
+                            </span>
+                          </div>
+
+                          <div className="absolute top-2 right-2">
+                            {isFree ? (
+                              <span className="bg-emerald-500 text-white text-[10px] font-black px-2.5 py-0.5 rounded-lg shadow">مجانية 🎁</span>
+                            ) : isUnlocked ? (
+                              <span className="bg-blue-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-lg shadow">مفعلة ✓</span>
+                            ) : (
+                              <span className="bg-slate-900/90 text-amber-400 border border-amber-500/40 text-[10px] font-black px-2.5 py-0.5 rounded-lg shadow">
+                                {les.price} ج.م
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="p-4 space-y-1.5">
+                          <h4 className="font-black text-slate-900 dark:text-white text-xs md:text-sm line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                            {les.title}
+                          </h4>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 font-medium">
+                            {les.description || 'شرح عملي تطبيقي مع تمارين برمجية ومشاريع حقيقية.'}
+                          </p>
                         </div>
                       </div>
 
-                      <div className="p-4 space-y-1.5">
-                        <h4 className="font-black text-slate-900 dark:text-white text-xs md:text-sm line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                          {les.title}
-                        </h4>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 font-medium">
-                          {les.description || 'شرح عملي تطبيقي مع تمارين برمجية ومشاريع حقيقية.'}
-                        </p>
+                      <div className="p-4 pt-0 border-t border-slate-200/60 dark:border-slate-800/60 mt-2 flex items-center justify-between">
+                        <span className="text-[11px] font-black text-blue-600 dark:text-blue-400">
+                          {isUnlocked ? 'مشاهدة الحصة الآن' : 'فتح الحصة'}
+                        </span>
+                        <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center group-hover:scale-110 transition-all shadow-xs">
+                          <Play className="w-3.5 h-3.5 fill-current" />
+                        </div>
                       </div>
                     </div>
-
-                    <div className="p-4 pt-0 border-t border-slate-200/60 dark:border-slate-800/60 mt-2 flex items-center justify-between">
-                      <span className="text-[11px] font-black text-blue-600 dark:text-blue-400">
-                        {isUnlocked ? 'مشاهدة الحصة الآن' : 'فتح الحصة'}
-                      </span>
-                      <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center group-hover:scale-110 transition-all shadow-xs">
-                        <Play className="w-3.5 h-3.5 fill-current" />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>

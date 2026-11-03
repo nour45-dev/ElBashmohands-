@@ -70,6 +70,7 @@ export const AppProvider = ({ children }) => {
   const [studentsDB, setStudentsDB] = useState([]);
   const [currentStudent, setCurrentStudent] = useState(null);
   const [lessons, setLessons] = useState([]);
+  const [folders, setFolders] = useState([]);
   const [quizzes, setQuizzes] = useState([]);
   const [couponsDB, setCouponsDB] = useState([]);
   const [paymentRequestsDB, setPaymentRequestsDB] = useState([]);
@@ -145,6 +146,13 @@ export const AppProvider = ({ children }) => {
         const data = await resLessons.json();
         setLessons(data);
       }
+      try {
+        const resFolders = await fetch('/api/folders');
+        if (resFolders.ok) {
+          const dataFolders = await resFolders.json();
+          setFolders(dataFolders);
+        }
+      } catch(e) {}
       const resNotifs = await fetch('/api/notifications');
       if (resNotifs.ok) {
         const data = await resNotifs.json();
@@ -1041,6 +1049,63 @@ https://elm.up.railway.app`;
     }
   };
 
+  
+  // Admin Folder Handlers
+  const adminCreateFolder = async (folderData) => {
+    try {
+      const res = await fetch('/api/folders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(folderData),
+        credentials: 'include'
+      });
+      if (res.ok) {
+        const created = await res.json();
+        setFolders(prev => [created, ...prev]);
+        return created;
+      }
+    } catch (err) {
+      console.error('Create folder failed:', err);
+    }
+    return null;
+  };
+
+  const adminDeleteFolder = async (folderId) => {
+    try {
+      const res = await fetch(`/api/folders/${folderId}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      if (res.ok) {
+        setFolders(prev => prev.filter(f => f.id !== folderId));
+        setLessons(prev => prev.map(l => l.folderId === folderId ? { ...l, folderId: null } : l));
+        return true;
+      }
+    } catch (err) {
+      console.error('Delete folder failed:', err);
+    }
+    return false;
+  };
+
+  const adminUpdateFolder = async (folderId, updatedData) => {
+    try {
+      const res = await fetch(`/api/folders/${folderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedData),
+        credentials: 'include'
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setFolders(prev => prev.map(f => f.id === folderId ? updated : f));
+        return updated;
+      }
+    } catch (err) {
+      console.error('Update folder failed:', err);
+    }
+    return null;
+  };
+
   const adminDeleteLesson = async (lessonId) => {
     try {
       const res = await fetch(`/api/lessons/${lessonId}`, {
@@ -1449,6 +1514,10 @@ https://elm.up.railway.app`;
       recordExamResult,
       adminAddLesson,
       adminDeleteLesson,
+      folders,
+      adminCreateFolder,
+      adminDeleteFolder,
+      adminUpdateFolder,
       getParentFullWhatsAppReport,
       getWhatsAppMsgText,
       triggerWhatsAppSend,

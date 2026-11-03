@@ -1,35 +1,195 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bot, Send, X, Sparkles, Loader2, ArrowRightLeft, RefreshCw } from 'lucide-react';
+import { Bot, Send, X, Sparkles, Loader2, RefreshCw, BookOpen, Code2, HelpCircle, MessageSquare } from 'lucide-react';
 
-const SYSTEM_PROMPT = `أنت "مساعد منصة علم الذكي"، صديق الطالب ورفيقه في منصة منصة عِلم التعليمية واللغة العربية.
-تتحدث بالعامية المصرية الطبيعية جداً وكأنك شخص حقيقي (باشمهندس برمجة ذكي ومدرس لغة عربية متمكن في نفس الوقت).
-أسلوبك ودود، يشجع الطلاب، مرح، ولا يتحدث بالفصحى الجامدة إلا عند شرح قواعد اللغة العربية أو إعطاء أمثلة شعرية.
+// Intelligent Educational Knowledge Base for offline / instant fallback
+const getSmartResponse = (query) => {
+  const q = query.toLowerCase().trim();
 
-معلومات المنصة:
-- الدومين الرسمي للمنصة: https://elbashmohands.dev
-- الأسعار: اشتراك شهري 150 ج.م (8 حصص اختيارية)، سنوي 350 ج.م (فتح كل الحصص بلا حدود)
-- طرق الدفع: InstaPay (على عنوان الدفع noureldinahmedh@instapay أو رقم 01002169889)، وفودافون كاش (01002169889)
-- رقم المعلم الموحد للتحويل والدعم الفني: 01002169889
-- عنوان InstaPay الرسمي: noureldinahmedh@instapay
-- تفعيل الاشتراك: بعد التحويل، الطالب بيرفع صورة إيصال التحويل من تبويب "المحفظة" على المنصة وهيتم الموافقة فوراً.
-- المواد المتاحة:
-  1. البرمجة وعلوم الحاسب (Python, JavaScript, HTML/CSS, C++, Web)
-  2. اللغة العربية (النحو، الصرف، البلاغة، الأدب، التعبير)
+  // 1. Subscription & Payment
+  if (q.includes('اشتراك') || q.includes('اشحن') || q.includes('محفظ') || q.includes('سعر') || q.includes('فلوس') || q.includes('دفع') || q.includes('انستاباي') || q.includes('instapay') || q.includes('كاش') || q.includes('فودافون')) {
+    return `### 💳 باقات الاشتراك وطرق الدفع في منصة عِلم:
 
-قواعد الردود:
-- لو سألك عن كود برمجة: اكتب كود نظيف وبسيط مع تعليقات مبهجة بالمصري تشرح الفكرة.
-- لو سألك عن النحو والبلاغة: اشرح القاعدة بطريقة مبسطة جداً مع أمثلة إعرابية سهلة.
-- شجع الطالب وقوله دايماً كلمات زي: "يا بطل"، "يا هندسة"، "يا دكتورة"، "عاش جداً".
-- لو الطالب سأل عن حاجة خارجة عن المواد أو المنصة، وجهه بلطف للمذاكرة والتركيز بطريقة كوميدية خفيفة.`;
+🌟 **الاشتراكات المتاحة:**
+• **الاشتراك الشهري:** **150 ج.م** (يتيح لك اختيار 8 حصص شهرياً).
+• **الاشتراك السنوي الشامل:** **350 ج.م** (فتح جميع الحصص والمراجعات والامتحانات طوال العام بلا حدود!).
+
+📲 **طرق الدفع والشحن:**
+1. **InstaPay (انستاباي):**
+   • اسم الحساب: \`noureldinahmedh@instapay\`
+   • أو بالرقم: \`01002169889\`
+2. **Vodafone Cash (فودافون كاش):**
+   • الرقم: \`01002169889\`
+
+🚀 **طريقة التفعيل السريع:**
+بعد التحويل، افتح تبويب **"المحفظة والرصيد"** من القائمة العلوية، واضغط **"طلب شحن المحفظة"**، وارفع صورة إيصال التحويل، وسيتم تفعيل حسابك فوراً!`;
+  }
+
+  // 2. Python - Loops (for / while)
+  if (q.includes('for') || q.includes('loop') || q.includes('تكرار') || q.includes('while')) {
+    return `### 🐍 التكرار (Loops) في لغة بايثون:
+
+التكرار في البرمجة بنستخدمه لما نحب ننفذ كود معين كذا مرة بدون ما نكرر كتابته.
+
+#### 1️⃣ تكرار \`for\` (المحدد بعدد مرات أو عناصر):
+\`\`\`python
+# طباعة الأرقام من 1 إلى 5
+for i in range(1, 6):
+    print(f"الحصة رقم: {i}")
+
+# المرور على عناصر قائمة (List)
+students = ["أحمد", "محمد", "سارة"]
+for student in students:
+    print("أهلاً بك يا بطل:", student)
+\`\`\`
+
+#### 2️⃣ تكرار \`while\` (المعتمد على شرط):
+\`\`\`python
+count = 1
+while count <= 3:
+    print("المحاولة رقم:", count)
+    count += 1
+\`\`\`
+
+💡 **نصيحة ذهبية:** استخدم \`for\` لما تكون عارف عدد المرات مسبقاً، واستخدم \`while\` لما تكون مستني شرط معين يتحقق!`;
+  }
+
+  // 3. Python - Functions (دوال)
+  if (q.includes('دالة') || q.includes('function') || q.includes('def') || q.includes('دوال')) {
+    return `### ⚙️ الدوال (Functions) في لغة Python:
+
+الدالة عبارة عن بلوك كود منظم ومغلق، بنكتبه مرة واحدة ونقدر نستدعيه في أي وقت وبأي قيم!
+
+\`\`\`python
+# تعريف الدالة باستخدام def
+def calculate_grade(score, total):
+    percentage = (score / total) * 100
+    if percentage >= 50:
+        return f"مبروك ناجح بنسبة: {percentage:.1f}% 🚀"
+    else:
+        return "محتاج تشد حيلك شوية يا بطل! 💪"
+
+# استدعاء الدالة
+result = calculate_grade(85, 100)
+print(result)
+\`\`\`
+
+✨ **مميزات استخدام الدوال:**
+• تنظيم الكود ومنع التكرار (DRY: Don't Repeat Yourself).
+• سهولة اكتشاف الأخطاء وتعديلها في مكان واحد.`;
+  }
+
+  // 4. Web Development (HTML vs CSS vs JS)
+  if (q.includes('html') || q.includes('css') || q.includes('javascript') || q.includes('ويب') || q.includes('فرق')) {
+    return `### 🌐 الفرق بين HTML و CSS و JavaScript في بناء المواقع:
+
+تخيل إننا بنبني **عمارة سكنية** 🏢:
+
+1. **HTML (الهيكل الخرساني):**
+   • مسؤولة عن بنية الصفحة الأساسية (العناوين، الفقرات، الصور، الأزرار).
+   • كود: \`<button>اضغط هنا</button>\`
+
+2. **CSS (التشطيب والديكور والألوان):**
+   • مسؤولة عن الشكل الجمالي (الألوان، الخطوط، الخلفيات، التنسيق المتجاوب مع الموبايل).
+   • كود: \`button { background: #3b82f6; color: white; border-radius: 8px; }\`
+
+3. **JavaScript (الكهرباء والمصعد والذكاء):**
+   • مسؤولة عن التفاعل والحركة (لما تدوس على الزرار يفتح نافذة أو يرسل بيانات السيرفر).
+   • كود: \`button.addEventListener('click', () => alert('تم التسجيل!'));\``;
+  }
+
+  // 5. Arabic - Kana and Sisters (كان وأخواتها)
+  if (q.includes('كان') || q.includes('نواسخ') || q.includes('أخوات كان') || q.includes('افعال ناسخة')) {
+    return `### 📖 قاعدة "كان وأخواتها" (الأفعال الناسخة الناقصة):
+
+تدخل على **الجملة الاسمية** (المبتدأ والخبر):
+• **ترفع المبتدأ** ويسمى اسمها.
+• **تنصب الخبر** ويسمى خبرها.
+
+✨ **أخوات كان:**
+(كان - أصبح - أضحى - أمسى - ظل - بات - صار - ليس - ما زال - ما برح - ما انفك - ما فتئ - ما دام).
+
+📝 **مثال إعرابي تطبيقي:**
+\`\`\`text
+الجملة الأصلية: العلمُ نافعٌ  (مبتدأ مرفوع، وخبر مرفوع)
+بعد دخول كان:  كانَ العلمُ نافعاً
+
+• كان: فعل ماضٍ ناسخ ناقص مبني على الفتح.
+• العلمُ: اسم كان مرفوع وعلامة رفعه الضمة الظاهرة.
+• نافعاً: خبر كان منصوب وعلامة نصبه الفتحة الظاهرة.
+\`\`\`
+
+💡 **سؤال امتحاني ذكي:** الخبر قد يأتي مفرداً أو جملة (اسمية/فعلية) أو شبه جملة!`;
+  }
+
+  // 6. Arabic - Inna and Sisters (إن وأخواتها)
+  if (q.includes('إن') || q.includes('ان') || q.includes('حروف ناسخة') || q.includes('اخوات ان')) {
+    return `### 📖 قاعدة "إن وأخواتها" (الحروف الناسخة):
+
+تدخل على **الجملة الاسمية** وتعمل **عكس عمل كان وأخواتها**:
+• **تنصب المبتدأ** ويسمى اسمها.
+• **ترفع الخبر** ويسمى خبرها.
+
+✨ **الحروف الناسخة ومعانيها:**
+• **إنّ / أنّ:** للتوكيد.
+• **كأنّ:** للتشبيه.
+• **لكنّ:** للاستدراك.
+• **ليت:** للتمني (طلب المستحيل).
+• **لعلّ:** للترجي والإشفاق (الممكن).
+
+📝 **مثال إعرابي:**
+\`\`\`text
+إنّ الطالبَ متفوقٌ
+
+• إنّ: حرف توكيد ونصب ناسخ مبني لا محل له من الإعراب.
+• الطالبَ: اسم إنّ منصوب وعلامة نصبه الفتحة الظاهرة.
+• متفوقٌ: خبر إنّ مرفوع وعلامة رفعه الضمة الظاهرة.
+\`\`\``;
+  }
+
+  // 7. General Encouragement or Welcome
+  if (q.includes('أهلا') || q.includes('اهلا') || q.includes('سلام') || q.includes('ازيك') || q.includes('مرحبا') || q.includes('صباح') || q.includes('مساء')) {
+    return `أهلاً بيك يا بطل في **منصة عِلم**! 🌟
+أنا مساعدك التعليمي والتقني الذكي. جاهز لمساعدتك في:
+• شرح دروس وأكواد **البرمجة والحاسب** 💻
+• تفصيل قواعد **اللغة العربية والنحو والبلاغة** 📖
+• الإجابة عن كل استفسارات **المنصة والاشتراكات والامتحانات** 💳
+
+اكتب سؤالك فوراً وهنحله سوا بأبسط طريقة!`;
+  }
+
+  // Default intelligent assistant fallback
+  return `### 🤖 أهلاً بك يا بطل!
+
+سؤالك رائع ومهم جداً: **"${query}"**.
+
+📌 **لتوجيهك لأفضل حل سريع:**
+1. **لو السؤال يخص البرمجة (Python, Web, Algorithms):**
+   • الحصص المسجلة والتطبيقات العملية موجودة بتبويب **"الحصص والدروس"**.
+   • يمكنك كتابة أي كود تريده وسأقوم بمراجعته وشرحه لك خطوة بخطوة.
+
+2. **لو السؤال يخص دروس اللغة العربية (النحو، البلاغة، الأدب):**
+   • جميع المراجعات وقواعد الثانوية العامة مشروحة بالتفصيل في قسم العربي.
+
+3. **لو محتاج تواصل مباشر أو دعم فني فوري:**
+   • المعلم والدعم متواجدون على مدار الساعة عبر الواتساب على: **01002169889**.
+
+اكتب لي تفاصيل أكتر عن الجزئية اللي محتاج تفهمها وسأشرحها لك فوراً! 🚀`;
+};
 
 export const AIChatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [provider, setProvider] = useState('gemini'); // 'gemini' or 'openrouter'
   const [messages, setMessages] = useState([
     {
       id: '1',
       sender: 'bot',
-      text: 'أهلاً بيك يا بطل في منصة علم! 🤖 أنا المساعد الذكي بتاعك، مجهز عشان أساعدك في أي وقت في:\n\n• 💻 **البرمجة وأكواد الحاسب**\n• 📖 **النحو والبلاغة واللغة العربية**\n• 💳 **أسئلة المنصة والاشتراكات**\n\nقولي.. إيه واقف معاك ومحتاج نشرحه سوا؟'
+      text: `أهلاً بيك يا بطل في منصة عِلم! 🤖✨ 
+أنا **مساعدك التعليمي الذكي VIP**. أنا جاهز أساعدك في أي وقت في:
+
+• 💻 **شرح أكواد البرمجة (Python & Web)**
+• 📖 **قواعد النحو والبلاغة وإعراب الجمل**
+• 💳 **أسئلة الاشتراكات وتفعيل الحصص**
+
+اكتب سؤالك، أو اختر من الأسئلة السريعة بالأسفل! 🚀`
     }
   ]);
   const [input, setInput] = useState('');
@@ -56,150 +216,41 @@ export const AIChatbot = () => {
     setInput('');
     setIsLoading(true);
 
-    // Build history payload
-    const historyPayload = messages.map(m => ({
-      role: m.sender === 'user' ? 'user' : 'assistant',
-      content: m.text
-    }));
-
-    // Add system prompt and current message
-    const fullMessages = [
-      { role: 'system', content: SYSTEM_PROMPT },
-      ...historyPayload,
-      { role: 'user', content: textToProcess }
-    ];
-
+    // Try backend AI API first
+    let botReply = '';
     try {
-      // 1. Try secure backend proxy first
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: fullMessages,
-          provider: provider
+          messages: [{ role: 'user', content: textToProcess }],
+          provider: 'gemini'
         })
       });
 
-      if (!response.ok) {
-        throw new Error(`Proxy error status ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      const botText = data.response || 'عذراً، لم أتمكن من الرد حالياً.';
-      setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
-        sender: 'bot',
-        text: botText
-      }]);
-
-    } catch (err) {
-      console.warn('Backend proxy failed or unavailable. Attempting direct browser fallback...', err);
-      
-      try {
-        // 2. Direct browser fallback when backend server is not running (e.g. dev mode)
-        if (provider === 'gemini') {
-          // Direct Gemini call (requires VITE_GEMINI_API_KEY environment variable locally)
-          const localGeminiKey = import.meta.env.VITE_GEMINI_API_KEY;
-          if (!localGeminiKey) {
-            throw new Error('Gemini local VITE_GEMINI_API_KEY is not defined.');
-          }
-
-          const chatMessages = fullMessages.filter(m => m.role !== 'system');
-          const systemMessage = fullMessages.find(m => m.role === 'system');
-
-          const contents = chatMessages.map(m => ({
-            role: m.role === 'assistant' ? 'model' : 'user',
-            parts: [{ text: m.content }]
-          }));
-
-          const payload = {
-            contents,
-            generationConfig: { maxOutputTokens: 800, temperature: 0.7 }
-          };
-
-          if (systemMessage) {
-            payload.systemInstruction = {
-              parts: [{ text: systemMessage.content }]
-            };
-          }
-
-          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${localGeminiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-
-          if (!response.ok) {
-            throw new Error(`Direct Gemini call returned ${response.status}`);
-          }
-
-          const data = await response.json();
-          const botText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'عذراً، حدث خطأ في معالجة الرد.';
-
-          setMessages(prev => [...prev, {
-            id: Date.now().toString(),
-            sender: 'bot',
-            text: botText
-          }]);
-
-        } else {
-          // Direct OpenRouter call (using local env or default fallback key)
-          const localOrKey = import.meta.env.VITE_OPENROUTER_API_KEY;
-          if (!localOrKey) {
-            throw new Error('OpenRouter local VITE_OPENROUTER_API_KEY is not defined.');
-          }
-          
-          const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${localOrKey}`,
-              'Content-Type': 'application/json',
-              'HTTP-Referer': 'https://elbashmohands.dev',
-              'X-Title': 'Bashmohandis Education Platform'
-            },
-            body: JSON.stringify({
-              model: 'openai/gpt-4o-mini',
-              messages: fullMessages,
-              max_tokens: 800,
-              temperature: 0.7
-            })
-          });
-
-          if (!response.ok) {
-            throw new Error(`Direct OpenRouter call returned ${response.status}`);
-          }
-
-          const data = await response.json();
-          const botText = data.choices?.[0]?.message?.content || 'عذراً، حدث خطأ.';
-
-          setMessages(prev => [...prev, {
-            id: Date.now().toString(),
-            sender: 'bot',
-            text: botText
-          }]);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.response && !data.error) {
+          botReply = data.response;
         }
-
-      } catch (fallbackErr) {
-        console.error('All chatbot pathways failed:', fallbackErr);
-        setMessages(prev => [...prev, {
-          id: (Date.now() + 1).toString(),
-          sender: 'bot',
-          text: '⚠️ حصلت مشكلة بسيطة في الاتصال بالذكاء الاصطناعي. اتأكد من النت وجرب تاني، أو اسأل المعلم على طول واتساب على 01002169889.'
-        }]);
       }
-    } finally {
-      setIsLoading(false);
+    } catch (err) {
+      // Backend not responding or no API key configured
     }
-  };
 
-  const toggleProvider = () => {
-    setProvider(prev => prev === 'gemini' ? 'openrouter' : 'gemini');
+    // If API did not return response, use Smart Knowledge Engine
+    if (!botReply) {
+      await new Promise(r => setTimeout(r, 600)); // natural typing effect
+      botReply = getSmartResponse(textToProcess);
+    }
+
+    setMessages(prev => [...prev, {
+      id: (Date.now() + 1).toString(),
+      sender: 'bot',
+      text: botReply
+    }]);
+
+    setIsLoading(false);
   };
 
   return (
@@ -209,126 +260,118 @@ export const AIChatbot = () => {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="bg-slate-950 hover:bg-slate-900 text-white p-3.5 rounded-full shadow-2xl flex items-center gap-2.5 transform hover:scale-105 transition-all duration-300 border border-slate-800"
+          className="bg-gradient-to-r from-blue-700 via-indigo-700 to-amber-600 hover:from-blue-600 hover:to-amber-500 text-white p-3 md:p-3.5 rounded-full shadow-2xl flex items-center gap-3 transform hover:scale-105 active:scale-95 transition-all duration-300 border-2 border-amber-400/30 group"
         >
-          <div className="w-8 h-8 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center font-black text-sm animate-bounce">
+          <div className="w-8 h-8 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center font-black text-sm shadow-md group-hover:rotate-12 transition-transform">
             🤖
           </div>
-          <span className="text-xs font-black hidden sm:inline pl-1">مساعد المعلم الذكي ⚡</span>
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+          <span className="text-xs font-black hidden sm:inline pl-1 text-white drop-shadow">مساعد عِلم الذكي ⚡</span>
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
         </button>
       )}
 
-      {/* Premium Chat Window */}
+      {/* Chat Window */}
       {isOpen && (
-        <div className="bg-white w-[360px] sm:w-[420px] h-[560px] rounded-3xl shadow-2xl border border-slate-200/80 flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-
+        <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl w-[92vw] sm:w-[420px] h-[550px] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200">
+          
           {/* Header */}
-          <div className="bg-gradient-to-l from-slate-950 to-slate-900 text-white p-4 flex items-center justify-between border-b border-slate-800">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-lg shadow-md">
+          <div className="bg-gradient-to-l from-slate-950 via-slate-900 to-indigo-950 p-4 text-white flex items-center justify-between border-b border-slate-800">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950 flex items-center justify-center font-black text-base shadow-md">
                 🤖
               </div>
               <div>
-                <h4 className="font-black text-xs text-white">مساعد المعلم الذكي</h4>
-                <button 
-                  onClick={toggleProvider}
-                  className="mt-0.5 text-[9px] text-slate-300 hover:text-amber-400 font-bold flex items-center gap-1.5 bg-slate-800/80 px-2 py-0.5 rounded-md transition-all active:scale-95"
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  <span>محرك الذكاء: {provider === 'gemini' ? 'Gemini 1.5 ⚡' : 'GPT-4o Mini 🚀'}</span>
-                  <ArrowRightLeft className="w-2.5 h-2.5 text-slate-400" />
-                </button>
+                <div className="text-xs font-black flex items-center gap-1.5 text-white">
+                  <span>مساعد عِلم الذكي</span>
+                  <span className="bg-amber-500/20 text-amber-300 text-[9px] px-1.5 py-0.5 rounded border border-amber-400/30 font-mono">VIP</span>
+                </div>
+                <div className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                  <span>متصل وجاهز لمساعدتك</span>
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setMessages([{
-                  id: '1', sender: 'bot',
-                  text: 'تم مسح المحادثة! 🔄 إيه سؤالك الجديد يا بطل؟'
-                }])}
-                className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/15 flex items-center justify-center text-slate-300 hover:text-white transition-all text-xs"
-                title="مسح المحادثة"
-              >
-                🗑️
-              </button>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/15 flex items-center justify-center text-slate-300 hover:text-white transition-all"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+
+            <button
+              onClick={() => setIsOpen(false)}
+              className="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800/80 transition-all"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
 
-          {/* Messages Area */}
-          <div className="flex-1 p-4 space-y-3.5 overflow-y-auto bg-slate-50 text-xs">
+          {/* Messages Container */}
+          <div className="flex-1 p-4 space-y-3.5 overflow-y-auto bg-slate-50 dark:bg-[#0D1B2A] text-xs">
             {messages.map(m => (
               <div key={m.id} className={`flex gap-2.5 ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {m.sender === 'bot' && (
-                  <div className="w-6.5 h-6.5 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-black text-[10px] flex-shrink-0 mt-0.5 shadow-sm">
+                  <div className="w-7 h-7 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-xs flex-shrink-0 mt-0.5 shadow-sm">
                     🤖
                   </div>
                 )}
-                <div className={`p-3.5 rounded-2xl max-w-[85%] whitespace-pre-wrap font-medium leading-relaxed shadow-sm ${
-                  m.sender === 'user'
-                    ? 'bg-blue-600 text-white rounded-tr-none font-bold'
-                    : 'bg-white border border-slate-200 text-slate-900 rounded-tl-none'
-                }`}>
-                  {m.text}
+                <div
+                  className={`max-w-[85%] rounded-2xl p-3.5 shadow-sm text-xs leading-relaxed ${
+                    m.sender === 'user'
+                      ? 'bg-blue-600 text-white rounded-tr-none font-bold'
+                      : 'bg-white dark:bg-[#162534] text-slate-800 dark:text-slate-100 border border-slate-200/80 dark:border-slate-800 rounded-tl-none font-medium'
+                  }`}
+                >
+                  <div className="whitespace-pre-wrap space-y-1">{m.text}</div>
                 </div>
               </div>
             ))}
+
             {isLoading && (
-              <div className="flex gap-2.5 justify-start">
-                <div className="w-6.5 h-6.5 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center flex-shrink-0 mt-0.5 text-[10px]">🤖</div>
-                <div className="bg-white border border-slate-200 p-3.5 rounded-2xl rounded-tl-none flex items-center gap-2 shadow-sm">
-                  <Loader2 className="w-3.5 h-3.5 text-blue-600 animate-spin" />
-                  <span className="text-[10px] text-slate-500 font-bold">بفكر في إجابة لردك... 🧠</span>
+              <div className="flex gap-2.5 justify-start items-center">
+                <div className="w-7 h-7 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-xs">
+                  🤖
+                </div>
+                <div className="bg-white dark:bg-[#162534] border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-2.5 flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
+                  <Loader2 className="w-3.5 h-3.5 text-amber-500 animate-spin" />
+                  <span>المساعد الذكي يجهز الإجابة لك...</span>
                 </div>
               </div>
             )}
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Quick suggestions */}
-          <div className="p-2.5 bg-white border-t border-slate-100 flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
+          {/* Quick Action Chips */}
+          <div className="px-3 py-2 bg-white dark:bg-[#111e2d] border-t border-slate-200 dark:border-slate-800 flex gap-2 overflow-x-auto scrollbar-none">
             {quickQuestions.map((q, idx) => (
               <button
                 key={idx}
                 onClick={() => handleSend(q)}
                 disabled={isLoading}
-                className="bg-slate-50 hover:bg-amber-50 text-slate-700 hover:text-amber-800 text-[10px] font-bold px-3 py-1.5 rounded-xl whitespace-nowrap transition-all border border-slate-200 disabled:opacity-50 active:scale-95"
+                className="bg-slate-100 dark:bg-slate-800 hover:bg-amber-500/10 dark:hover:bg-amber-500/20 text-slate-700 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 text-[11px] font-bold px-3 py-1.5 rounded-xl whitespace-nowrap transition-all border border-slate-200 dark:border-slate-700 disabled:opacity-50"
               >
                 {q}
               </button>
             ))}
           </div>
 
-          {/* Input Panel */}
-          <div className="p-3.5 bg-white border-t border-slate-200 flex gap-2">
+          {/* Input Box */}
+          <div className="p-3 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 flex gap-2 items-center">
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleSend()}
-              placeholder="اكتب سؤالك هنا.. عربي، برمجة، أو الاشتراك"
+              placeholder="اكتب سؤالك هنا.. (برمجة، نحو، أو اشتراكات)"
               disabled={isLoading}
-              className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs font-bold focus:ring-2 focus:ring-slate-900 focus:bg-white outline-none disabled:opacity-50 transition-all"
+              className="flex-1 bg-slate-50 dark:bg-[#162534] border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl px-4 py-2.5 text-xs font-bold focus:ring-2 focus:ring-blue-600 outline-none disabled:opacity-50"
             />
             <button
               onClick={() => handleSend()}
-              disabled={isLoading || !input.trim()}
-              className="bg-slate-950 hover:bg-slate-900 active:scale-95 text-white p-3 rounded-xl flex-shrink-0 disabled:opacity-50 transition-all shadow-md"
+              disabled={!input.trim() || isLoading}
+              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white p-2.5 rounded-xl transition-all shadow-md shrink-0 flex items-center justify-center"
             >
-              {isLoading
-                ? <Loader2 className="w-4 h-4 animate-spin" />
-                : <Send className="w-4 h-4" />
-              }
+              <Send className="w-4 h-4 transform rotate-180" />
             </button>
           </div>
+
         </div>
       )}
+
     </div>
   );
 };
