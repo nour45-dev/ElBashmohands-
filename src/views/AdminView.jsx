@@ -403,7 +403,18 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
       // Extract video snapshot thumbnail using canvas
       try {
         const videoEl = document.createElement('video');
+        videoEl.preload = 'metadata';
         videoEl.src = URL.createObjectURL(file);
+
+        // Auto-extract exact duration from video file
+        videoEl.onloadedmetadata = () => {
+          const totalSec = videoEl.duration;
+          if (totalSec && !isNaN(totalSec) && totalSec > 0) {
+            const mins = Math.ceil(totalSec / 60);
+            setNewLessonDuration(mins);
+          }
+        };
+
         videoEl.currentTime = 1.0;
         videoEl.onloadeddata = () => {
           const canvas = document.createElement('canvas');
@@ -1733,7 +1744,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                 </div>
 
                 <div>
-                  <label className="block text-xs font-black text-slate-700 mb-1">المدة (بالدقائق ⏱️):</label>
+                  <label className="block text-xs font-black text-slate-700 mb-1">المدة (بالدقائق ⏱️) <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">تلقائي ⚡</span>:</label>
                   <input
                     type="number"
                     min="1"
@@ -1791,7 +1802,19 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                   <input
                     type="text"
                     value={videoUrlInput}
-                    onChange={(e) => setVideoUrlInput(e.target.value)}
+                    onChange={async (e) => {
+                      const val = e.target.value;
+                      setVideoUrlInput(val);
+                      if (val && val.trim().length > 10) {
+                        try {
+                          const durRes = await fetch(`/api/detect-duration?url=${encodeURIComponent(val.trim())}`);
+                          const durData = await durRes.json();
+                          if (durData.success && durData.minutes) {
+                            setNewLessonDuration(durData.minutes);
+                          }
+                        } catch(e) {}
+                      }
+                    }}
                     placeholder="https://www.youtube.com/watch?v=..."
                     className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-xs font-mono font-bold outline-none dir-ltr"
                   />

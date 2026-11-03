@@ -144,7 +144,8 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
     triggerSmsSend,
     hasAttemptedExam,
     getExamAttempt,
-    adminIdentity
+    adminIdentity,
+    adminUpdateLesson
   } = useApp();
 
   const [activeSubTab, setActiveSubTab] = useState('notes');

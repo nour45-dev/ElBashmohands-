@@ -830,6 +830,69 @@ app.get('/api/auth/me', async (req, res) => {
 // 📚 LESSONS ROUTES
 // ==========================================
 
+
+// Auto-detect video duration from YouTube / Vimeo / Direct video URLs
+app.get('/api/detect-duration', async (req, res) => {
+  const { url } = req.query;
+  if (!url) return res.status(400).json({ error: 'URL required' });
+
+  try {
+    const cleanUrl = url.trim();
+
+    // 1. YouTube duration
+    if (cleanUrl.includes('youtube.com') || cleanUrl.includes('youtu.be')) {
+      let videoId = '';
+      if (cleanUrl.includes('v=')) videoId = cleanUrl.split('v=')[1]?.split('&')[0];
+      else if (cleanUrl.includes('youtu.be/')) videoId = cleanUrl.split('youtu.be/')[1]?.split('?')[0];
+      else if (cleanUrl.includes('shorts/')) videoId = cleanUrl.split('shorts/')[1]?.split('?')[0];
+      else if (cleanUrl.includes('embed/')) videoId = cleanUrl.split('embed/')[1]?.split('?')[0];
+
+      if (videoId) {
+        const https = require('https');
+        const ytHtml = await new Promise((resolve) => {
+          https.get(`https://www.youtube.com/watch?v=${videoId}`, (r) => {
+            let data = '';
+            r.on('data', chunk => data += chunk);
+            r.on('end', () => resolve(data));
+          }).on('error', () => resolve(''));
+        });
+
+        const match = ytHtml.match(/"approxDurationMs"\s*:\s*"(\d+)"/) || ytHtml.match(/"lengthSeconds"\s*:\s*"(\d+)"/);
+        if (match) {
+          const sec = Math.round(parseInt(match[1]) / (match[0].includes('Ms') ? 1000 : 1));
+          const mins = Math.ceil(sec / 60);
+          return res.json({ success: true, minutes: mins, duration: `${mins} دقيقة` });
+        }
+      }
+    }
+
+    // 2. Vimeo duration
+    if (cleanUrl.includes('vimeo.com')) {
+      const vimeoId = cleanUrl.split('vimeo.com/')[1]?.split('?')[0]?.split('#')[0];
+      if (vimeoId) {
+        const https = require('https');
+        const vimeoData = await new Promise((resolve) => {
+          https.get(`https://vimeo.com/api/oembed.json?url=https://vimeo.com/${vimeoId}`, (r) => {
+            let data = '';
+            r.on('data', chunk => data += chunk);
+            r.on('end', () => {
+              try { resolve(JSON.parse(data)); } catch(e) { resolve(null); }
+            });
+          }).on('error', () => resolve(null));
+        });
+        if (vimeoData && vimeoData.duration) {
+          const mins = Math.ceil(vimeoData.duration / 60);
+          return res.json({ success: true, minutes: mins, duration: `${mins} دقيقة` });
+        }
+      }
+    }
+
+    return res.json({ success: false, message: 'Could not auto-detect duration' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/lessons', async (req, res) => {
   try {
     let lessons = [];
