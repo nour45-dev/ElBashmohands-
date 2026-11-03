@@ -133,6 +133,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
   const [editPassword, setEditPassword] = useState('');
 
   // Edit Lesson Modal State
+  const editLessonThumbInputRef = useRef(null);
   const [editingLessonModal, setEditingLessonModal] = useState(null);
   const [editLessonTitle, setEditLessonTitle] = useState('');
   const [editLessonPrice, setEditLessonPrice] = useState(25);
@@ -140,6 +141,9 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
   const [editLessonDesc, setEditLessonDesc] = useState('');
   const [editLessonDuration, setEditLessonDuration] = useState(45);
   const [editLessonFolderId, setEditLessonFolderId] = useState('');
+  const [editLessonThumbFile, setEditLessonThumbFile] = useState(null);
+  const [editLessonThumbPreview, setEditLessonThumbPreview] = useState(null);
+  const [isUpdatingLesson, setIsUpdatingLesson] = useState(false);
 
   // Live Stream Source Type: 'native' (Platform In-Browser Camera & Screen) | 'youtube_live' (External link)
   const [newLiveStreamType, setNewLiveStreamType] = useState('native');
@@ -592,23 +596,38 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
     const parsedDur = parseInt(les.duration) || 45;
     setEditLessonDuration(parsedDur);
     setEditLessonFolderId(les.folderId || '');
+    setEditLessonThumbPreview(les.thumbnail || '');
+    setEditLessonThumbFile(null);
   };
 
   // Save Edit Lesson
-  const handleSaveEditLesson = (e) => {
+  const handleSaveEditLesson = async (e) => {
     e.preventDefault();
     if (!editingLessonModal) return;
 
-    adminUpdateLesson(editingLessonModal.id, {
-      title: editLessonTitle,
-      price: Number(editLessonPrice),
-      grade: editLessonGrade,
-      duration: `${editLessonDuration || 45} دقيقة`,
-      folderId: editLessonFolderId || null,
-      description: editLessonDesc
-    });
+    setIsUpdatingLesson(true);
+    try {
+      let finalThumb = editLessonThumbPreview || null;
+      if (editLessonThumbFile) {
+        finalThumb = await uploadFileHelper(editLessonThumbFile);
+      }
 
-    setEditingLessonModal(null);
+      await adminUpdateLesson(editingLessonModal.id, {
+        title: editLessonTitle,
+        price: Number(editLessonPrice),
+        grade: editLessonGrade,
+        duration: `${editLessonDuration || 45} دقيقة`,
+        folderId: editLessonFolderId || null,
+        description: editLessonDesc,
+        thumbnail: finalThumb
+      });
+
+      setEditingLessonModal(null);
+    } catch (err) {
+      alert('حدث خطأ أثناء تعديل الحصة: ' + err.message);
+    } finally {
+      setIsUpdatingLesson(false);
+    }
   };
 
   const handleOpenEditStudentModal = (std) => {
@@ -3196,7 +3215,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
       {/* Edit Lesson Modal */}
       {editingLessonModal && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-          <div className="bg-white p-6 md:p-8 rounded-3xl max-w-md w-full space-y-4 text-right relative">
+          <div className="bg-white p-6 md:p-8 rounded-3xl max-w-md w-full space-y-4 text-right relative max-h-[90vh] overflow-y-auto">
             <button onClick={() => setEditingLessonModal(null)} className="absolute top-4 left-4 p-1.5 rounded-xl bg-slate-100 text-slate-500">
               <X className="w-4 h-4" />
             </button>
@@ -3252,8 +3271,81 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                 <textarea value={editLessonDesc} onChange={(e) => setEditLessonDesc(e.target.value)} className="w-full border p-2.5 rounded-xl h-20" />
               </div>
 
+              {/* Edit Lesson Thumbnail */}
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <label className="block text-slate-700 font-black">تغيير الصورة المصغرة للحصة (Thumbnail 🖼️):</label>
+                
+                {editLessonThumbPreview && (
+                  <div className="relative aspect-video w-full rounded-2xl overflow-hidden border-2 border-indigo-200 bg-slate-900 shadow-inner">
+                    <img 
+                      src={editLessonThumbPreview} 
+                      alt="Lesson Thumbnail Preview" 
+                      className="w-full h-full object-cover" 
+                    />
+                    <div className="absolute top-2 right-2 bg-slate-900/80 text-white text-[10px] font-bold px-2 py-0.5 rounded-md">
+                      معاينة الصورة الحالية
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => editLessonThumbInputRef.current && editLessonThumbInputRef.current.click()}
+                    className="bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 text-xs font-black px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all shadow-xs"
+                  >
+                    <ImageIcon className="w-4 h-4 text-indigo-600" />
+                    <span>اختيار صورة مصغرة جديدة من الجهاز</span>
+                  </button>
+                  <input
+                    ref={editLessonThumbInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        setEditLessonThumbFile(file);
+                        const reader = new FileReader();
+                        reader.onload = (evt) => {
+                          setEditLessonThumbPreview(evt.target.result);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="hidden"
+                  />
+                  {editLessonThumbFile && (
+                    <span className="text-emerald-600 font-bold text-xs">تم اختيار ملف صورة جديد ✓</span>
+                  )}
+                </div>
+
+                <div className="pt-1">
+                  <span className="text-[11px] text-slate-500 font-bold">أو ضع رابط صورة مباشر:</span>
+                  <input
+                    type="text"
+                    value={editLessonThumbPreview && !editLessonThumbFile ? editLessonThumbPreview : ''}
+                    onChange={(e) => {
+                      setEditLessonThumbFile(null);
+                      setEditLessonThumbPreview(e.target.value);
+                    }}
+                    placeholder="https://images.unsplash.com/photo-..."
+                    className="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none dir-ltr"
+                  />
+                </div>
+              </div>
+
               <div className="flex gap-2 pt-2">
-                <button type="submit" className="flex-1 btn-primary text-xs py-3 rounded-xl">حفظ التعديلات بالسعر الجديد ✅</button>
+                <button 
+                  type="submit" 
+                  disabled={isUpdatingLesson}
+                  className={`flex-1 text-xs py-3 rounded-xl font-black text-white shadow-md flex items-center justify-center gap-2 ${isUpdatingLesson ? 'bg-slate-400 cursor-not-allowed' : 'btn-primary'}`}
+                >
+                  {isUpdatingLesson ? (
+                    <span>جاري حفظ التعديل... ⏳</span>
+                  ) : (
+                    <span>حفظ التعديلات بالسعر الجديد ✅</span>
+                  )}
+                </button>
                 <button type="button" onClick={() => setEditingLessonModal(null)} className="btn-outline text-xs py-3 px-4 rounded-xl">إلغاء</button>
               </div>
             </form>
