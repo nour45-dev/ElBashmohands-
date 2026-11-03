@@ -296,6 +296,16 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
   const [folderSuccessMsg, setFolderSuccessMsg] = useState(null);
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
 
+  // Edit Folder Modal States
+  const editFolderThumbInputRef = useRef(null);
+  const [editingFolderModal, setEditingFolderModal] = useState(null);
+  const [editFolderTitle, setEditFolderTitle] = useState('');
+  const [editFolderGrade, setEditFolderGrade] = useState('3sec');
+  const [editFolderDesc, setEditFolderDesc] = useState('');
+  const [editFolderThumbFile, setEditFolderThumbFile] = useState(null);
+  const [editFolderThumbPreview, setEditFolderThumbPreview] = useState(null);
+  const [isUpdatingFolder, setIsUpdatingFolder] = useState(false);
+
   // Lesson Placement Mode: 'general' (عام مستقل) vs 'folder' (داخل مجلد تعليمي)
   const [videoPlacementMode, setVideoPlacementMode] = useState('general');
   const [selectedFolderId, setSelectedFolderId] = useState('');
@@ -380,6 +390,44 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
       alert('فشل إنشاء المجلد: ' + err.message);
     } finally {
       setIsCreatingFolder(false);
+    }
+  };
+
+  const handleOpenEditFolderModal = (folder) => {
+    setEditingFolderModal(folder);
+    setEditFolderTitle(folder.title || '');
+    setEditFolderGrade(folder.grade || '3sec');
+    setEditFolderDesc(folder.description || '');
+    setEditFolderThumbPreview(folder.thumbnail || '');
+    setEditFolderThumbFile(null);
+  };
+
+  const handleSaveEditFolder = async (e) => {
+    e.preventDefault();
+    if (!editingFolderModal || !editFolderTitle.trim()) {
+      alert('يرجى كتابة اسم المجلد');
+      return;
+    }
+
+    setIsUpdatingFolder(true);
+    try {
+      let finalThumb = editFolderThumbPreview || null;
+      if (editFolderThumbFile) {
+        finalThumb = await uploadFileHelper(editFolderThumbFile);
+      }
+
+      await adminUpdateFolder(editingFolderModal.id, {
+        title: editFolderTitle.trim(),
+        grade: editFolderGrade,
+        description: editFolderDesc.trim(),
+        thumbnail: finalThumb
+      });
+
+      setEditingFolderModal(null);
+    } catch (err) {
+      alert('حدث خطأ أثناء تعديل المجلد: ' + err.message);
+    } finally {
+      setIsUpdatingFolder(false);
     }
   };
   
@@ -2033,18 +2081,29 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                             <span>إضافة فيديو لهذا المجلد</span>
                           </button>
 
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (window.confirm(`هل أنت متأكد من حذف مجلد "${f.title}"؟\nملاحظة: الفيديوهات بداخله لن تُحذف وستتحول إلى حصص عامة مستقلة.`)) {
-                                adminDeleteFolder(f.id);
-                              }
-                            }}
-                            className="text-rose-500 hover:text-rose-700 p-2 rounded-xl hover:bg-rose-50 transition-all"
-                            title="حذف المجلد"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditFolderModal(f)}
+                              className="text-blue-600 hover:text-blue-800 p-2 rounded-xl hover:bg-blue-50 transition-all"
+                              title="تعديل المجلد (الاسم، الوصف، الغلاف)"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (window.confirm(`هل أنت متأكد من حذف مجلد "${f.title}"؟\nملاحظة: الفيديوهات بداخله لن تُحذف وستتحول إلى حصص عامة مستقلة.`)) {
+                                  adminDeleteFolder(f.id);
+                                }
+                              }}
+                              className="text-rose-500 hover:text-rose-700 p-2 rounded-xl hover:bg-rose-50 transition-all"
+                              title="حذف المجلد"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     );
@@ -2993,6 +3052,143 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
             >
               إغلاق المعاينة
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Folder Modal */}
+      {editingFolderModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in" dir="rtl">
+          <div className="bg-white p-6 md:p-8 rounded-3xl max-w-lg w-full space-y-4 text-right relative shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
+            <button 
+              onClick={() => setEditingFolderModal(null)} 
+              className="absolute top-4 left-4 p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 transition-all"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+              <Folder className="w-5 h-5 text-indigo-600" />
+              <h4 className="font-black text-slate-900 text-base">تعديل بيانات وغلاف المجلد التعليمي 📁✏️</h4>
+            </div>
+
+            <form onSubmit={handleSaveEditFolder} className="space-y-4 text-xs font-bold">
+              <div>
+                <label className="block mb-1 text-slate-700 font-black">اسم / عنوان المجلد:</label>
+                <input 
+                  type="text" 
+                  required
+                  value={editFolderTitle} 
+                  onChange={(e) => setEditFolderTitle(e.target.value)} 
+                  className="w-full border border-slate-300 p-2.5 rounded-xl bg-slate-50 text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none" 
+                />
+              </div>
+
+              <div>
+                <label className="block mb-1 text-slate-700 font-black">الصف الدراسي المستهدف:</label>
+                <select 
+                  value={editFolderGrade} 
+                  onChange={(e) => setEditFolderGrade(e.target.value)} 
+                  className="w-full border border-slate-300 p-2.5 rounded-xl bg-slate-50 text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none"
+                >
+                  <option value="3sec">الصف الثالث الثانوي (3 ثانوي)</option>
+                  <option value="2sec">الصف الثاني الثانوي</option>
+                  <option value="1sec">الصف الأول الثانوي</option>
+                  <option value="all">كل الصفوف الدراسية</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block mb-1 text-slate-700 font-black">وصف المجلد ومحتوياته:</label>
+                <textarea 
+                  rows={3}
+                  value={editFolderDesc} 
+                  onChange={(e) => setEditFolderDesc(e.target.value)} 
+                  className="w-full border border-slate-300 p-2.5 rounded-xl bg-slate-50 text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none resize-none" 
+                />
+              </div>
+
+              {/* Edit Thumbnail */}
+              <div className="space-y-2 pt-2 border-t border-slate-100">
+                <label className="block text-slate-700 font-black">تغيير صورة غلاف المجلد (Thumbnail 🖼️):</label>
+                
+                {editFolderThumbPreview && (
+                  <div className="relative aspect-video w-full rounded-2xl overflow-hidden border-2 border-indigo-200 bg-slate-900 shadow-inner">
+                    <img 
+                      src={editFolderThumbPreview} 
+                      alt="Folder Thumbnail Preview" 
+                      className="w-full h-full object-cover" 
+                    />
+                    <div className="absolute top-2 right-2 bg-slate-900/80 text-white text-[10px] font-bold px-2 py-0.5 rounded-md">
+                      معاينة الغلاف الحالي
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => editFolderThumbInputRef.current && editFolderThumbInputRef.current.click()}
+                    className="bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 text-xs font-black px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all shadow-xs"
+                  >
+                    <ImageIcon className="w-4 h-4 text-indigo-600" />
+                    <span>رفع صورة غلاف جديدة من الجهاز</span>
+                  </button>
+                  <input
+                    ref={editFolderThumbInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        setEditFolderThumbFile(file);
+                        const reader = new FileReader();
+                        reader.onload = (evt) => {
+                          setEditFolderThumbPreview(evt.target.result);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="hidden"
+                  />
+                  {editFolderThumbFile && (
+                    <span className="text-emerald-600 font-bold text-xs">تم اختيار ملف صورة جديد ✓</span>
+                  )}
+                </div>
+
+                <div className="pt-1">
+                  <span className="text-[11px] text-slate-500 font-bold">أو ضع رابط صورة مباشر:</span>
+                  <input
+                    type="text"
+                    value={editFolderThumbPreview && !editFolderThumbFile ? editFolderThumbPreview : ''}
+                    onChange={(e) => {
+                      setEditFolderThumbFile(null);
+                      setEditFolderThumbPreview(e.target.value);
+                    }}
+                    placeholder="https://images.unsplash.com/photo-..."
+                    className="w-full mt-1 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none dir-ltr"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-3 border-t border-slate-100">
+                <button 
+                  type="submit" 
+                  disabled={isUpdatingFolder}
+                  className={`flex-1 text-xs py-3 rounded-xl font-black text-white shadow-md flex items-center justify-center gap-2 ${isUpdatingFolder ? 'bg-slate-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+                >
+                  <Check className="w-4 h-4" />
+                  <span>{isUpdatingFolder ? 'جاري حفظ التعديل... ⏳' : 'حفظ التعديلات الجديدة ✅'}</span>
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => setEditingFolderModal(null)} 
+                  className="btn-outline text-xs py-3 px-5 rounded-xl"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

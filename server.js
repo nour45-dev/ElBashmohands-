@@ -973,12 +973,9 @@ app.patch('/api/folders/:id', requireAdmin, async (req, res) => {
   const updates = req.body;
   try {
     if (dbType === 'mongodb') {
-      const resData = await db.collection('folders').findOneAndUpdate(
-        { id: folderId },
-        { $set: updates },
-        { returnDocument: 'after' }
-      );
-      return res.json(resData);
+      await db.collection('folders').updateOne({ id: folderId }, { $set: updates });
+      const updated = await db.collection('folders').findOne({ id: folderId });
+      return res.json(updated);
     } else {
       const data = getLocalData();
       if (!data.folders) data.folders = [];
