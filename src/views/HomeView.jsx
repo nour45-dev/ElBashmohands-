@@ -331,7 +331,7 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveId
                           <span className="text-[10px] font-black bg-amber-500 text-slate-950 px-2 py-0.5 rounded-md">
                             اللغة العربية
                           </span>
-                          <span className="text-[10px] text-white font-bold bg-black/60 px-2 py-0.5 rounded-md flex items-center gap-1">
+                          <span className="text-xs text-white font-bold bg-black/70 px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-sm">
                             <Clock className="w-3 h-3" />
                             <span>{les.duration || '45 دقيقة'}</span>
                           </span>
@@ -443,7 +443,7 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveId
                           <span className="text-[10px] font-black bg-blue-600 text-white px-2 py-0.5 rounded-md">
                             البرمجة
                           </span>
-                          <span className="text-[10px] text-white font-bold bg-black/60 px-2 py-0.5 rounded-md flex items-center gap-1">
+                          <span className="text-xs text-white font-bold bg-black/70 px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-sm">
                             <Clock className="w-3 h-3" />
                             <span>{les.duration || '45 دقيقة'}</span>
                           </span>

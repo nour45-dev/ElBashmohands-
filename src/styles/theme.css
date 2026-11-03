@@ -6,6 +6,10 @@
    Platform: منصة أ/ سيد عبد العاطي التعليمية
    ========================================================= */
 
+html {
+  font-size: 16.5px;
+}
+
 :root {
   --font-main: 'Cairo', 'Tajawal', -apple-system, BlinkMacSystemFont, sans-serif;
   

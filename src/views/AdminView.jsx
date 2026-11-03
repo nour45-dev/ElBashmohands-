@@ -1700,7 +1700,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div>
                   <label className="block text-xs font-black text-slate-700 mb-1">المادة الدراسية 📚:</label>
                   <div className={`p-2 rounded-xl border text-xs font-black flex items-center gap-1.5 ${isSayedAdmin ? 'bg-amber-50 text-amber-900 border-amber-300' : 'bg-blue-50 text-blue-900 border-blue-300'}`}>
@@ -1728,6 +1728,18 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                     type="number"
                     value={newLessonPrice}
                     onChange={(e) => setNewLessonPrice(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-xs font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-slate-700 mb-1">المدة (بالدقائق ⏱️):</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={newLessonDuration}
+                    onChange={(e) => setNewLessonDuration(e.target.value)}
+                    placeholder="مثال: 45"
                     className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 text-xs font-bold"
                   />
                 </div>
@@ -2513,7 +2525,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                 <input type="text" value={editLessonTitle} onChange={(e) => setEditLessonTitle(e.target.value)} className="w-full border p-2.5 rounded-xl" />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block mb-1">سعر الحصة (ج.م):</label>
                   <input type="number" value={editLessonPrice} onChange={(e) => setEditLessonPrice(e.target.value)} className="w-full border p-2.5 rounded-xl" />
@@ -2526,6 +2538,11 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                     <option value="2sec">2 ثانوي</option>
                     <option value="1sec">1 ثانوي</option>
                   </select>
+                </div>
+
+                <div>
+                  <label className="block mb-1">المدة (بالدقائق ⏱️):</label>
+                  <input type="number" min="1" value={editLessonDuration} onChange={(e) => setEditLessonDuration(e.target.value)} className="w-full border p-2.5 rounded-xl" />
                 </div>
               </div>
 

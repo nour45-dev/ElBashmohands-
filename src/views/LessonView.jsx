@@ -716,7 +716,7 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
                     </div>
                     <div>
                       <div className="text-xs font-black text-slate-900 line-clamp-1">{les.title}</div>
-                      <div className="text-[10px] text-slate-500 font-bold">{les.duration} • {les.price === 0 ? 'مجاني' : `${les.price} ج.م`}</div>
+                      <div className="text-xs text-slate-400 font-bold mt-0.5">{les.duration} • {les.price === 0 ? 'مجاني' : `${les.price} ج.م`}</div>
                     </div>
                   </div>
                   {/* Show exam status badge per lesson */}
