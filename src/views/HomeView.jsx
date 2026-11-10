@@ -40,8 +40,38 @@ import {
 } from 'lucide-react';
 
 export const HomeView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveId }) => {
-  const { currentGrade, switchGrade, lessons, folders = [], student, userRole, adminIdentity, liveSessionsDB = [] } = useApp();
-  const [activeFolderExplorer, setActiveFolderExplorer] = useState(null);
+  const { 
+    currentGrade, 
+    switchGrade, 
+    lessons, 
+    folders = [], 
+    student, 
+    userRole, 
+    adminIdentity, 
+    liveSessionsDB = [],
+    activeFolderId,
+    setActiveFolderId,
+    navigateTo,
+    goBack,
+    canGoBack
+  } = useApp();
+
+  const activeFolderExplorer = folders.find(f => f.id === activeFolderId) || null;
+  const setActiveFolderExplorer = (f) => {
+    if (f) {
+      if (navigateTo) {
+        navigateTo('home', { folderId: f.id });
+      } else if (setActiveFolderId) {
+        setActiveFolderId(f.id);
+      }
+    } else {
+      if (goBack && canGoBack) {
+        goBack();
+      } else if (setActiveFolderId) {
+        setActiveFolderId(null);
+      }
+    }
+  };
   
   // Lock grade to student's registered grade if student, or currentGrade for admin
   const activeGrade = (userRole === 'student' && student?.grade) ? student.grade : currentGrade;
@@ -318,8 +348,8 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveId
                 onClick={() => setActiveFolderExplorer(null)}
                 className="bg-white/20 hover:bg-white/30 text-white text-xs font-black px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 backdrop-blur-md self-start sm:self-auto border border-white/20"
               >
-                <ArrowLeft className="w-4 h-4" />
-                <span>العودة لكافة الأقسام ↩️</span>
+                <ArrowRight className="w-4 h-4" />
+                <span>إغلاق المجلد والعودة للخلف ↩️</span>
               </button>
             </div>
           </div>

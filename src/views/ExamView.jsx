@@ -97,7 +97,9 @@ export const ExamView = ({ setCurrentTab }) => {
     getExamAttempt,
     setActiveWhatsAppModal,
     adminIdentity,
-    userRole
+    userRole,
+    goBack,
+    canGoBack
   } = useApp();
 
   if (userRole === 'admin') {
@@ -113,6 +115,15 @@ export const ExamView = ({ setCurrentTab }) => {
         <p className="text-xs text-slate-400 font-medium max-w-sm">
           لإضافة امتحان تفاعلي جديد، أو مراجعة نتائج الطلاب وتعديل الأسئلة، يرجى الانتقال إلى تبويب **"لوحة المعلم"** في الشريط العلوي لإدارة المنصة بالكامل.
         </p>
+        {canGoBack && (
+          <button
+            onClick={goBack}
+            className="btn-primary text-xs font-black px-6 py-2.5 rounded-xl flex items-center gap-2 shadow-md hover:scale-105 transition-all"
+          >
+            <ArrowRight className="w-4 h-4" />
+            <span>رجوع للخلف</span>
+          </button>
+        )}
       </div>
     );
   }
@@ -198,6 +209,18 @@ export const ExamView = ({ setCurrentTab }) => {
   if (!activeQuiz) {
     return (
       <div className="space-y-8 pb-16">
+
+        {canGoBack && (
+          <div className="flex items-center justify-start">
+            <button
+              onClick={() => goBack ? goBack() : setCurrentTab('home')}
+              className="inline-flex items-center gap-2 text-xs font-black text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-xs hover:scale-105 active:scale-95"
+            >
+              <ArrowRight className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span>رجوع للخلف</span>
+            </button>
+          </div>
+        )}
 
         {/* Header Banner */}
         <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white p-8 rounded-3xl border border-blue-800/80 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
@@ -396,9 +419,23 @@ export const ExamView = ({ setCurrentTab }) => {
 
       {/* Top Controls Bar */}
       <div className="bg-slate-900 text-white p-5 rounded-3xl flex items-center justify-between border border-slate-800 shadow-xl">
-        <div>
-          <h2 className="font-black text-base md:text-lg">{activeQuiz.title}</h2>
-          <p className="text-xs text-slate-400 font-medium">سؤال {currentQuestionIdx + 1} من {activeQuiz.questions.length}</p>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              if (quizCompleted || confirm('هل تريد العودة لقائمة الامتحانات؟')) {
+                setActiveQuiz(null);
+              }
+            }}
+            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all text-xs font-bold flex items-center gap-1.5"
+            title="العودة للامتحانات"
+          >
+            <ArrowRight className="w-4 h-4" />
+            <span>رجوع</span>
+          </button>
+          <div>
+            <h2 className="font-black text-base md:text-lg">{activeQuiz.title}</h2>
+            <p className="text-xs text-slate-400 font-medium">سؤال {currentQuestionIdx + 1} من {activeQuiz.questions.length}</p>
+          </div>
         </div>
 
         {!quizCompleted && (

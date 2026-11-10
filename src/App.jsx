@@ -59,10 +59,17 @@ class ErrorBoundary extends Component {
 }
 
 const MainContent = () => {
-  const { isAuthenticated, userRole } = useApp();
-  const [currentTab, setCurrentTab] = useState(userRole === 'parent' ? 'parent-view' : 'home');
-  const [selectedLessonId, setSelectedLessonId] = useState('');
-  const [selectedLiveId, setSelectedLiveId] = useState('');
+  const { 
+    isAuthenticated, 
+    userRole,
+    currentTab,
+    setCurrentTab,
+    selectedLessonId,
+    setSelectedLessonId,
+    selectedLiveId,
+    setSelectedLiveId,
+    goBack
+  } = useApp();
 
   // Check URL params for direct live link entry (?live=...)
   React.useEffect(() => {
@@ -120,7 +127,7 @@ const MainContent = () => {
         {currentTab === 'live' && (
           <LiveView
             selectedLiveId={selectedLiveId}
-            onBack={() => setCurrentTab('home')}
+            onBack={goBack}
             onSelectLive={(id) => setSelectedLiveId(id)}
           />
         )}

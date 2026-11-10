@@ -148,7 +148,9 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
     hasAttemptedExam,
     getExamAttempt,
     adminIdentity,
-    adminUpdateLesson
+    adminUpdateLesson,
+    goBack,
+    canGoBack
   } = useApp();
 
   const [activeSubTab, setActiveSubTab] = useState('notes');
@@ -203,10 +205,11 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
           المنصة جاهزة 100%. قم بالدخول كباشمهندس (الأدمن) لرفع أول حصة برمجة وتجربة تشغيل ملف الفيديو المرفوع من جهازك!
         </p>
         <button
-          onClick={() => setCurrentTab('home')}
-          className="btn-primary text-xs font-black px-6 py-3 rounded-xl"
+          onClick={() => goBack ? goBack() : setCurrentTab('home')}
+          className="btn-primary text-xs font-black px-6 py-3 rounded-xl flex items-center gap-2 mx-auto"
         >
-          العودة للرئيسية 🚀
+          <ArrowRight className="w-4 h-4" />
+          <span>رجوع للصفحة السابقة 🔙</span>
         </button>
       </div>
     );
@@ -305,11 +308,11 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
       {/* Header Back Button */}
       <div className="flex items-center justify-between">
         <button
-          onClick={() => setCurrentTab('home')}
-          className="inline-flex items-center gap-2 text-xs font-black text-slate-600 bg-white border border-slate-200 px-4 py-2 rounded-xl hover:bg-slate-50 transition-all shadow-sm"
+          onClick={() => goBack ? goBack() : setCurrentTab('home')}
+          className="inline-flex items-center gap-2 text-xs font-black text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-xs hover:scale-105 active:scale-95"
         >
-          <ArrowRight className="w-4 h-4" />
-          <span>العودة للرئيسية</span>
+          <ArrowRight className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          <span>رجوع للخلف</span>
         </button>
 
         <div className="flex items-center gap-2">

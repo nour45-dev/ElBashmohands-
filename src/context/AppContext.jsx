@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 
 const AppContext = createContext();
 
@@ -87,6 +87,191 @@ export const AppProvider = ({ children }) => {
   // Live Broadcast & Virtual Classroom State
   const [liveSessionsDB, setLiveSessionsDB] = useState([]);
   const [activeLiveSession, setActiveLiveSession] = useState(null);
+
+  // ── Navigation & History Stack Engine ───────────────────────────────────
+  const [currentTab, _setCurrentTab] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab');
+      if (tabParam) return tabParam;
+      if (params.get('live')) return 'live';
+      const role = localStorage.getItem('user_role');
+      return role === 'parent' ? 'parent-view' : 'home';
+    } catch (e) {
+      return 'home';
+    }
+  });
+
+  const [selectedLessonId, setSelectedLessonId] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('lesson') || '';
+    } catch (e) {
+      return '';
+    }
+  });
+
+  const [selectedLiveId, setSelectedLiveId] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('live') || '';
+    } catch (e) {
+      return '';
+    }
+  });
+
+  const [activeFolderId, setActiveFolderId] = useState(null);
+  const [navHistory, setNavHistory] = useState([]);
+
+  // Ref to always hold fresh state across async / event boundaries
+  const navStateRef = useRef({
+    currentTab,
+    selectedLessonId,
+    selectedLiveId,
+    activeFolderId,
+    navHistory
+  });
+
+  useEffect(() => {
+    navStateRef.current = {
+      currentTab,
+      selectedLessonId,
+      selectedLiveId,
+      activeFolderId,
+      navHistory
+    };
+  }, [currentTab, selectedLessonId, selectedLiveId, activeFolderId, navHistory]);
+
+  const navigateTo = (newTab, params = {}) => {
+    const curr = navStateRef.current;
+    const currentState = {
+      tab: curr.currentTab,
+      lessonId: curr.selectedLessonId,
+      liveId: curr.selectedLiveId,
+      folderId: curr.activeFolderId
+    };
+
+    const targetLessonId = params.lessonId !== undefined ? params.lessonId : (newTab === 'lesson-detail' ? curr.selectedLessonId : '');
+    const targetLiveId = params.liveId !== undefined ? params.liveId : (newTab === 'live' ? curr.selectedLiveId : '');
+    const targetFolderId = params.folderId !== undefined ? params.folderId : (newTab === 'home' ? curr.activeFolderId : null);
+
+    // If target is exact same state, avoid duplicate stack entries
+    if (
+      newTab === currentState.tab &&
+      targetLessonId === currentState.lessonId &&
+      targetLiveId === currentState.liveId &&
+      targetFolderId === currentState.folderId
+    ) {
+      return;
+    }
+
+    // Push previous state onto history stack
+    setNavHistory(prev => [...prev, currentState]);
+
+    // Update active states
+    _setCurrentTab(newTab);
+    setSelectedLessonId(targetLessonId);
+    setSelectedLiveId(targetLiveId);
+    setActiveFolderId(targetFolderId);
+
+    // Sync with browser history API
+    try {
+      window.history.pushState(
+        {
+          tab: newTab,
+          lessonId: targetLessonId,
+          liveId: targetLiveId,
+          folderId: targetFolderId
+        },
+        '',
+        window.location.pathname
+      );
+    } catch (e) {
+      console.warn('history.pushState failed:', e);
+    }
+  };
+
+  const setCurrentTab = (tab, params = {}) => {
+    navigateTo(tab, params);
+  };
+
+  const goBack = () => {
+    const historyStack = navStateRef.current.navHistory;
+
+    if (historyStack && historyStack.length > 0) {
+      const prev = historyStack[historyStack.length - 1];
+      setNavHistory(old => old.slice(0, -1));
+
+      _setCurrentTab(prev.tab);
+      setSelectedLessonId(prev.lessonId || '');
+      setSelectedLiveId(prev.liveId || '');
+      setActiveFolderId(prev.folderId || null);
+
+      try {
+        window.history.replaceState(
+          {
+            tab: prev.tab,
+            lessonId: prev.lessonId || '',
+            liveId: prev.liveId || '',
+            folderId: prev.folderId || null
+          },
+          '',
+          window.location.pathname
+        );
+      } catch (e) {}
+      return;
+    }
+
+    // Fallbacks if history stack was empty (e.g. direct entry or refresh)
+    if (navStateRef.current.activeFolderId) {
+      setActiveFolderId(null);
+      return;
+    }
+
+    if (navStateRef.current.currentTab !== 'home' && navStateRef.current.currentTab !== 'parent-view') {
+      _setCurrentTab(userRole === 'parent' ? 'parent-view' : 'home');
+      setSelectedLessonId('');
+      setSelectedLiveId('');
+      setActiveFolderId(null);
+    }
+  };
+
+  // Sync with browser hardware/UI back button (popstate event)
+  useEffect(() => {
+    try {
+      if (!window.history.state) {
+        window.history.replaceState({
+          tab: currentTab,
+          lessonId: selectedLessonId,
+          liveId: selectedLiveId,
+          folderId: activeFolderId
+        }, '', window.location.pathname);
+      }
+    } catch (e) {}
+
+    const handlePopState = (e) => {
+      if (e.state && e.state.tab) {
+        const { tab, lessonId, liveId, folderId } = e.state;
+        _setCurrentTab(tab);
+        setSelectedLessonId(lessonId || '');
+        setSelectedLiveId(liveId || '');
+        setActiveFolderId(folderId || null);
+        setNavHistory(prev => (prev.length > 0 ? prev.slice(0, -1) : []));
+      } else {
+        // Popped to root or initial state
+        _setCurrentTab(userRole === 'parent' ? 'parent-view' : 'home');
+        setSelectedLessonId('');
+        setSelectedLiveId('');
+        setActiveFolderId(null);
+        setNavHistory([]);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [userRole]);
+
+  const canGoBack = navHistory.length > 0 || (currentTab !== 'home' && currentTab !== 'parent-view') || Boolean(activeFolderId);
 
   // Theme states (Light / Dark) - Default: Light Mode
   const [theme, setTheme] = useState(() => {
@@ -1530,6 +1715,19 @@ https://elm.up.railway.app`;
       toggleTheme,
       verifyDeviceOtp,
       uploadVideoFile,
+      // Navigation & Back History Stack values
+      currentTab,
+      setCurrentTab,
+      selectedLessonId,
+      setSelectedLessonId,
+      selectedLiveId,
+      setSelectedLiveId,
+      activeFolderId,
+      setActiveFolderId,
+      navigationHistory: navHistory,
+      canGoBack,
+      navigateTo,
+      goBack,
       // Live Broadcast values
       liveSessionsDB,
       activeLiveSession,

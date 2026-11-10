@@ -18,11 +18,12 @@ import {
   Upload,
   Clock,
   XCircle,
-  Check
+  Check,
+  ArrowRight
 } from 'lucide-react';
 
 export const WalletView = () => {
-  const { student, submitPaymentRequest, purchaseSubscription, paymentRequestsDB, userRole } = useApp();
+  const { student, submitPaymentRequest, purchaseSubscription, paymentRequestsDB, userRole, goBack, canGoBack } = useApp();
 
   if (userRole === 'admin') {
     return (
@@ -37,6 +38,15 @@ export const WalletView = () => {
         <p className="text-xs text-slate-400 font-medium max-w-sm">
           لشحن رصيد أي طالب، أو تفعيل اشتراكه، أو قبول طلبات الشحن والمدفوعات، يرجى الذهاب لتبويب **"لوحة المعلم"** في الشريط العلوي لإدارة المنصة بالكامل.
         </p>
+        {canGoBack && (
+          <button
+            onClick={goBack}
+            className="btn-primary text-xs font-black px-6 py-2.5 rounded-xl flex items-center gap-2 shadow-md hover:scale-105 transition-all"
+          >
+            <ArrowRight className="w-4 h-4" />
+            <span>رجوع للخلف</span>
+          </button>
+        )}
       </div>
     );
   }
@@ -97,6 +107,18 @@ export const WalletView = () => {
 
   return (
     <div className="space-y-8 pb-16 max-w-4xl mx-auto">
+
+      {canGoBack && (
+        <div className="flex items-center justify-start">
+          <button
+            onClick={goBack}
+            className="inline-flex items-center gap-2 text-xs font-black text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-xs hover:scale-105 active:scale-95"
+          >
+            <ArrowRight className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <span>رجوع للخلف</span>
+          </button>
+        </div>
+      )}
       
       {/* Wallet Balance Hero Card */}
       <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 text-white p-8 rounded-3xl border border-slate-800 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">

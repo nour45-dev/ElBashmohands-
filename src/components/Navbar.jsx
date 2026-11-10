@@ -15,7 +15,8 @@ import {
   Code,
   Zap,
   PhoneCall,
-  Radio
+  Radio,
+  ArrowRight
 } from 'lucide-react';
 
 export const Navbar = ({ currentTab, setCurrentTab, setSelectedLiveId, setSelectedLessonId }) => {
@@ -31,7 +32,9 @@ export const Navbar = ({ currentTab, setCurrentTab, setSelectedLiveId, setSelect
     switchGrade,
     theme,
     toggleTheme,
-    liveSessionsDB = []
+    liveSessionsDB = [],
+    goBack,
+    canGoBack
   } = useApp();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -45,9 +48,22 @@ export const Navbar = ({ currentTab, setCurrentTab, setSelectedLiveId, setSelect
       
       <div className="container py-3 flex items-center justify-between">
         
-        {/* Brand Logo & Title */}
-        <div className="flex items-center gap-3 cursor-pointer" onClick={() => setCurrentTab('home')}>
-          <ElmLogo variant="horizontal" />
+        {/* Brand Logo & Back Button */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {canGoBack && (
+            <button
+              onClick={goBack}
+              title="رجوع للصفحة السابقة"
+              className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-black bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/70 dark:hover:bg-blue-900 dark:text-blue-300 border border-blue-200 dark:border-blue-800 transition-all shadow-xs hover:scale-105 active:scale-95 animate-in fade-in"
+            >
+              <ArrowRight className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <span>رجوع</span>
+            </button>
+          )}
+
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setCurrentTab('home')}>
+            <ElmLogo variant="horizontal" />
+          </div>
         </div>
 
         {/* Desktop Navigation Items */}

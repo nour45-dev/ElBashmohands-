@@ -28,6 +28,7 @@ import {
   XCircle,
   Check,
   Image as ImageIcon,
+  ArrowRight,
   X,
   BarChart2,
   Bell,
@@ -73,6 +74,8 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
     broadcastNewLesson,
     adminIdentity,
     setActiveWhatsAppModal,
+    goBack,
+    canGoBack,
     // Live Studio functions
     liveSessionsDB,
     adminCreateLiveSession,
@@ -882,6 +885,18 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
 
   return (
     <div className="space-y-8 pb-16">
+
+      {canGoBack && (
+        <div className="flex items-center justify-start">
+          <button
+            onClick={goBack}
+            className="inline-flex items-center gap-2 text-xs font-black text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-xs hover:scale-105 active:scale-95"
+          >
+            <ArrowRight className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <span>رجوع للخلف</span>
+          </button>
+        </div>
+      )}
       
       {/* Admin Header Banner */}
       <div className="bg-slate-900 text-white p-6 md:p-8 rounded-3xl border border-slate-800 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6">

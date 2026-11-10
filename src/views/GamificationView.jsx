@@ -1,12 +1,24 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { Sparkles, Flame, Award, Trophy, Star, ShieldCheck, Gift } from 'lucide-react';
+import { Sparkles, Flame, Award, Trophy, Star, ShieldCheck, Gift, ArrowRight } from 'lucide-react';
 
 export const GamificationView = () => {
-  const { student, leaderboard } = useApp();
+  const { student, leaderboard, goBack, canGoBack } = useApp();
 
   return (
     <div className="space-y-8 pb-16 max-w-5xl mx-auto">
+
+      {canGoBack && (
+        <div className="flex items-center justify-start">
+          <button
+            onClick={goBack}
+            className="inline-flex items-center gap-2 text-xs font-black text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all shadow-xs hover:scale-105 active:scale-95"
+          >
+            <ArrowRight className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <span>رجوع للخلف</span>
+          </button>
+        </div>
+      )}
       
       {/* Hero Leaderboard Banner */}
       <div className="bg-gradient-to-r from-amber-600 via-yellow-600 to-slate-900 text-white p-8 rounded-3xl border border-amber-400/40 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6">
