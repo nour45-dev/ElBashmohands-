@@ -64,6 +64,7 @@ export const AppProvider = ({ children }) => {
   const [userRole, setUserRole] = useState('student');
   const [adminIdentity, setAdminIdentity] = useState('eng_nour');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isDemoMode, setIsDemoMode] = useState(false);
   const [loadingSession, setLoadingSession] = useState(true);
 
   // Core Data Lists loaded from DB API
@@ -366,6 +367,7 @@ export const AppProvider = ({ children }) => {
         const res = await fetch('/api/auth/me', { credentials: 'include' });
         if (res.ok) {
           const data = await res.json();
+          setIsDemoMode(false);
           setIsAuthenticated(true);
           setUserRole(data.role);
           if (data.role === 'admin') {
@@ -375,6 +377,33 @@ export const AppProvider = ({ children }) => {
             setCurrentStudent(data.user);
             setCurrentGrade(data.user.grade || '3sec');
             fetchStudentData();
+          }
+        } else {
+          // Check if visitor arrived via Interactive Demo link (?demo=1) from landing page
+          const params = new URLSearchParams(window.location.search);
+          if (params.get('demo') === '1') {
+            setIsDemoMode(true);
+            setIsAuthenticated(true);
+            setUserRole('student');
+            setCurrentGrade('2sec');
+            setCurrentStudent({
+              id: 'demo_visitor',
+              code: 'DEMO-2026',
+              name: 'أستاذ زائر (معاينة حية)',
+              phone: '01000000000',
+              parentPhone: '01000000000',
+              grade: '2sec',
+              gradeName: 'الصف الثاني الثانوي (وضع المعاينة)',
+              walletBalance: 500,
+              subscriptionStatus: 'active',
+              subscriptionType: 'شهري',
+              monthlyCreditsLeft: 8,
+              points: 350,
+              streakDays: 12,
+              rank: 1,
+              unlockedLessons: ['les_1793692156441', 'les_1793695501213', 'les_1793700360237'],
+              badges: [{ id: 'b_demo', name: 'معاينة المنصة 👑', icon: '👑', desc: 'تجربة حية للمعلمين' }]
+            });
           }
         }
       } catch (err) {
@@ -424,7 +453,7 @@ export const AppProvider = ({ children }) => {
 
   // Real-time automatic background synchronization for live broadcasts & notifications
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || isDemoMode) return;
     const liveSyncInterval = setInterval(async () => {
       try {
         const [resLive, resNotif] = await Promise.all([
@@ -653,6 +682,7 @@ export const AppProvider = ({ children }) => {
     try {
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
     } catch (e) {}
+    setIsDemoMode(false);
     setIsAuthenticated(false);
     setUserRole('student');
     setCurrentStudent(null);
@@ -1704,6 +1734,7 @@ https://elm.up.railway.app`;
       adminIdentity,
       setAdminIdentity,
       isAuthenticated,
+      isDemoMode,
       registerStudent,
       loginUser,
       logoutUser,

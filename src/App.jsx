@@ -61,6 +61,8 @@ class ErrorBoundary extends Component {
 const MainContent = () => {
   const { 
     isAuthenticated, 
+    isDemoMode,
+    logoutUser,
     userRole,
     currentTab,
     setCurrentTab,
@@ -112,6 +114,21 @@ const MainContent = () => {
         setSelectedLiveId={setSelectedLiveId} 
         setSelectedLessonId={setSelectedLessonId} 
       />
+
+      {/* Interactive Visitor / Teacher Demo Banner */}
+      {isDemoMode && (
+        <div className="bg-gradient-to-l from-amber-500 via-orange-500 to-amber-500 text-slate-950 px-4 py-2 text-xs sm:text-sm font-black shadow-md">
+          <div className="container flex flex-wrap items-center justify-between gap-2">
+            <span>👀 أنت تتصفح الآن <strong>وضع المعاينة التفاعلية الحية</strong> — جرّب الحصص، المجلدات، البث المباشر، الامتحانات، المحفظة، والمساعد الذكي بنفسك!</span>
+            <button
+              onClick={logoutUser}
+              className="bg-slate-950 text-amber-300 hover:bg-slate-900 px-3.5 py-1.5 rounded-xl text-xs font-black transition shadow"
+            >
+              تسجيل الدخول / إنشاء حساب حقيقي 🚀
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main Workspace View */}
       <main className="flex-1 container pt-6">

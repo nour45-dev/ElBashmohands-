@@ -370,6 +370,58 @@ student1.study(3)
 اكتب سؤالك فوراً وهنحله سوا بأبسط طريقة!`;
   }
 
+  // 5. Teacher SaaS Packages / Pricing / Buying the platform
+  if (
+    q.includes('باقات') ||
+    q.includes('باقة') ||
+    q.includes('اسعار') ||
+    q.includes('أسعار') ||
+    q.includes('سعر المنصة') ||
+    q.includes('عايز منصة') ||
+    q.includes('أعمل منصة') ||
+    q.includes('اعمل منصة') ||
+    q.includes('للمدرسين') ||
+    q.includes('سنتر') ||
+    q.includes('عمولة') ||
+    (q.includes('اشتراك') && q.includes('مدرس'))
+  ) {
+    return `### 🚀 امتلك منصتك التعليمية الخاصة (منظومة عِلم للأعمال):
+
+تقدر تمتلك منصة كاملة باسمك ولوجو سنترك مع **0% عمولة على مبيعاتك** وبقاعدة بيانات معزولة لطلابك:
+
+1️⃣ **باقة الانطلاق (ELM):**
+• **شهرياً:** 790 ج.م | **سنوياً:** 7,800 ج.م (يعادل 650 ج.م/شهر — توفير 1,680 ج.م).
+• تشمل: منصة باسمك، مشغل فيديو محمي Anti-Leak، مجلدات وملازم PDF، امتحانات وتصحيح فوري، شحن InstaPay وفودافون كاش وأكواد، وبوابة ولي الأمر (حتى 300 طالب).
+
+2️⃣ **الباقة الذكية (Pro + AI) — الأكثر طلباً 🔥:**
+• **شهرياً:** 1,490 ج.م | **سنوياً:** 14,280 ج.م (يعادل 1,190 ج.م/شهر — توفير 3,600 ج.م).
+• تشمل كل المميزات + **البث المباشر التفاعلي (Live)** + **المساعد الذكي AI 24/7** + تحليلات متقدمة لدرجات الطلاب (حتى 1,000 طالب).
+
+3️⃣ **باقة النخبة (Enterprise + App):**
+• **شهرياً:** 2,790 ج.م | **سنوياً:** 27,000 ج.م (يعادل 2,250 ج.م/شهر — توفير 6,480 ج.م).
+• تشمل **تطبيق Android APK خاص باسم الأكاديمية** + عدد طلاب وفروع غير محدود + دعم فني أولوية 24/7.
+
+📲 **للتعاقد وتشغيل نسختك خلال 48 ساعة:** تواصل مع م. نور الدين واتساب: **01002169889** أو زر صفحة الأعمال \`/for-teachers\`.`;
+  }
+
+  // 6. Security, Anti-Leak, Live, or Database Isolation questions
+  if (
+    q.includes('حماية') ||
+    q.includes('تسريب') ||
+    q.includes('anti-leak') ||
+    q.includes('أمان') ||
+    q.includes('بث مباشر') ||
+    q.includes('لايف') ||
+    q.includes('قاعدة البيانات') ||
+    q.includes('عزل')
+  ) {
+    return `### 🛡️ الأمان وحماية المحتوى والبث المباشر في منصة عِلم:
+
+• **حماية الفيديو (Anti-Leak):** منع تحميل الفيديوهات + علامة مائية برقم الطالب + قفل الحساب على جهاز واحد (Single-Device Lock) بكود تحقق OTP.
+• **عزل قواعد البيانات (PostgreSQL):** كل مدرس له قاعدة طلابه وحصصه وامتحاناته ومدفوعاته معزولة تماماً بـ \`teacher_id\`.
+• **البث المباشر التفاعلي:** يدعم البث داخل المنصة أو عبر YouTube Live / Google Meet مع شات لحظي واستفتاءات وتصويت ورفع اليد، وحفظ تلقائي للحصة داخل مجلدات المراجعة.`;
+  }
+
   // Default intelligent assistant fallback
   return `### 🤖 أهلاً بك يا بطل في منصة عِلم!
 
@@ -389,8 +441,48 @@ student1.study(3)
 اكتب لي ما تحتاج شرحه بالتفصيل وسأساعدك فوراً! 🚀`;
 };
 
+// Safe lightweight Markdown renderer for clean chat formatting
+const renderInlineMarkdown = (text) => {
+  const parts = String(text).split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
+  return parts.map((part, idx) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={idx} className="font-black text-slate-900 dark:text-white">{part.slice(2, -2)}</strong>;
+    }
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return <code key={idx} className="bg-slate-100 dark:bg-slate-800 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded font-mono text-[11px] dir-ltr inline-block">{part.slice(1, -1)}</code>;
+    }
+    return <React.Fragment key={idx}>{part}</React.Fragment>;
+  });
+};
+
+const renderFormattedMessage = (text) => {
+  const lines = String(text || '').split('\n');
+  return (
+    <div className="space-y-1.5 leading-relaxed">
+      {lines.map((line, i) => {
+        const trimmed = line.trim();
+        if (!trimmed) return <div key={i} className="h-1" />;
+        if (trimmed.startsWith('### ')) {
+          return (
+            <div key={i} className="font-black text-blue-700 dark:text-amber-400 text-[13px] pt-1 pb-0.5">
+              {renderInlineMarkdown(trimmed.slice(4))}
+            </div>
+          );
+        }
+        return <div key={i}>{renderInlineMarkdown(line)}</div>;
+      })}
+    </div>
+  );
+};
+
 export const AIChatbot = () => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(() => {
+    try {
+      return new URLSearchParams(window.location.search).get('ai') === '1';
+    } catch (e) {
+      return false;
+    }
+  });
   const [messages, setMessages] = useState([
     {
       id: '1',
@@ -431,14 +523,18 @@ export const AIChatbot = () => {
     setInput('');
     setIsLoading(true);
 
-    // Try backend AI API first
+    // Try backend AI API first (with recent conversation history)
     let botReply = '';
     try {
+      const recentHistory = messages.slice(-6).map(m => ({
+        role: m.sender === 'user' ? 'user' : 'assistant',
+        content: m.text
+      }));
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: [{ role: 'user', content: textToProcess }],
+          messages: [...recentHistory, { role: 'user', content: textToProcess }],
           provider: 'gemini'
         })
       });
@@ -531,7 +627,11 @@ export const AIChatbot = () => {
                       : 'bg-white dark:bg-[#162534] text-slate-800 dark:text-slate-100 border border-slate-200/80 dark:border-slate-800 rounded-tl-none font-medium'
                   }`}
                 >
-                  <div className="whitespace-pre-wrap space-y-1">{m.text}</div>
+                  {m.sender === 'user' ? (
+                    <div className="whitespace-pre-wrap">{m.text}</div>
+                  ) : (
+                    renderFormattedMessage(m.text)
+                  )}
                 </div>
               </div>
             ))}
