@@ -2744,6 +2744,11 @@ app.get('/api/health', (req, res) => {
 // Serve static files from dist folder
 app.use(express.static(path.join(__dirname, 'dist')));
 
+// Serve Elm for Teachers Landing Page
+app.get('/for-teachers', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'for-teachers.html'));
+});
+
 // Handle React Router - send all requests to index.html
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
