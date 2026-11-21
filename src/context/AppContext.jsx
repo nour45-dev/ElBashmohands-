@@ -59,17 +59,44 @@ export const formatVideoEmbedUrl = (url) => {
   return cleanUrl;
 };
 
+const DEMO_STUDENT_PROFILE = {
+  id: 'demo_visitor',
+  code: 'DEMO-2026',
+  name: 'أستاذ زائر (معاينة حية)',
+  phone: '01000000000',
+  parentPhone: '01000000000',
+  grade: '2sec',
+  gradeName: 'الصف الثاني الثانوي (وضع المعاينة)',
+  walletBalance: 500,
+  subscriptionStatus: 'active',
+  subscriptionType: 'شهري',
+  monthlyCreditsLeft: 8,
+  points: 350,
+  streakDays: 12,
+  rank: 1,
+  unlockedLessons: ['les_1793692156441', 'les_1793695501213', 'les_1793700360237'],
+  badges: [{ id: 'b_demo', name: 'معاينة المنصة 👑', icon: '👑', desc: 'تجربة حية للمعلمين' }]
+};
+
+const isInitialDemoUrl = () => {
+  try {
+    return new URLSearchParams(window.location.search).get('demo') === '1';
+  } catch (e) {
+    return false;
+  }
+};
+
 export const AppProvider = ({ children }) => {
-  const [currentGrade, setCurrentGrade] = useState('3sec');
+  const [currentGrade, setCurrentGrade] = useState(() => (isInitialDemoUrl() ? '2sec' : '3sec'));
   const [userRole, setUserRole] = useState('student');
   const [adminIdentity, setAdminIdentity] = useState('eng_nour');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isDemoMode, setIsDemoMode] = useState(false);
-  const [loadingSession, setLoadingSession] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => isInitialDemoUrl());
+  const [isDemoMode, setIsDemoMode] = useState(() => isInitialDemoUrl());
+  const [loadingSession, setLoadingSession] = useState(() => !isInitialDemoUrl());
 
   // Core Data Lists loaded from DB API
   const [studentsDB, setStudentsDB] = useState([]);
-  const [currentStudent, setCurrentStudent] = useState(null);
+  const [currentStudent, setCurrentStudent] = useState(() => (isInitialDemoUrl() ? DEMO_STUDENT_PROFILE : null));
   const [lessons, setLessons] = useState([]);
   const [folders, setFolders] = useState([]);
   const [quizzes, setQuizzes] = useState([]);
@@ -705,6 +732,24 @@ export const AppProvider = ({ children }) => {
       return { success: false, message: 'يرجى إدخال مرجع عملية التحويل بشكل صحيح.' };
     }
 
+    if (isDemoMode) {
+      const demoReq = {
+        id: 'demo_req_' + Date.now(),
+        studentId: 'demo_visitor',
+        studentName: DEMO_STUDENT_PROFILE.name,
+        amount: Number(amount),
+        method: method || 'instapay',
+        refNumber,
+        status: 'pending',
+        requestDate: new Date().toLocaleDateString('ar-EG')
+      };
+      setPaymentRequestsDB(prev => [demoReq, ...prev]);
+      return {
+        success: true,
+        message: '✅ [تجربة مجانية] تم محاكاة إرسال طلب الشحن بنجاح! (لا يتم حفظ بيانات التجربة في قاعدة البيانات الحقيقية).'
+      };
+    }
+
     try {
       const res = await fetch('/api/payments', {
         method: 'POST',
@@ -904,6 +949,20 @@ export const AppProvider = ({ children }) => {
 
     const isMonthly = planType === 'شهري';
 
+    if (isDemoMode) {
+      setCurrentStudent(prev => ({
+        ...prev,
+        walletBalance: prev.walletBalance - price,
+        subscriptionStatus: 'active',
+        subscriptionType: planType,
+        monthlyCreditsLeft: isMonthly ? 8 : 999
+      }));
+      return {
+        success: true,
+        message: `✅ [تجربة مجانية] تم محاكاة تفعيل الاشتراك ${planType} بنجاح! (بدون تعديل قاعدة البيانات الحقيقية).`
+      };
+    }
+
     try {
       const res = await fetch('/api/students/subscribe', {
         method: 'POST',
@@ -936,6 +995,20 @@ export const AppProvider = ({ children }) => {
     }
     if (!useMonthlyCredit && currentStudent.walletBalance < price) {
       return { success: false, message: 'رصيد المحفظة لا يكفي. يرجى شحن المحفظة أولاً.' };
+    }
+
+    if (isDemoMode) {
+      setCurrentStudent(prev => ({
+        ...prev,
+        walletBalance: useMonthlyCredit ? prev.walletBalance : Math.max(0, prev.walletBalance - price),
+        monthlyCreditsLeft: useMonthlyCredit ? Math.max(0, (prev.monthlyCreditsLeft || 0) - 1) : prev.monthlyCreditsLeft,
+        unlockedLessons: [...(prev.unlockedLessons || []), lessonId]
+      }));
+      setLessons(prev => prev.map(les => les.id === lessonId ? { ...les, isUnlocked: true } : les));
+      return {
+        success: true,
+        message: '✅ [تجربة مجانية] تم فتح الحصة للمعاينة المباشرة! (بدون تعديل قاعدة البيانات الحقيقية).'
+      };
     }
 
     try {
@@ -1155,6 +1228,19 @@ https://elm.up.railway.app`;
 
   const addStudentQuestion = async (lessonId, questionText) => {
     if (!questionText.trim()) return;
+    if (isDemoMode) {
+      const demoQ = {
+        id: 'demo_q_' + Date.now(),
+        lessonId,
+        studentName: DEMO_STUDENT_PROFILE.name,
+        questionText,
+        replyText: '',
+        status: 'pending',
+        timestamp: 'الآن (معاينة)'
+      };
+      setVideoQuestions(prev => [demoQ, ...prev]);
+      return demoQ;
+    }
     try {
       const res = await fetch('/api/questions', {
         method: 'POST',
@@ -1215,6 +1301,28 @@ https://elm.up.railway.app`;
     const total = quiz.questions.length;
     const percentage = Math.round((correctCount / total) * 100);
     const pointsEarned = percentage >= 80 ? (quiz.rewardPoints || 50) : 25;
+
+    if (isDemoMode) {
+      const demoRecord = {
+        id: 'demo_ex_' + Date.now(),
+        quizId: quiz.id,
+        lessonId: quiz.lessonId,
+        quizTitle: quiz.title,
+        score: correctCount,
+        total,
+        percentage,
+        pointsEarned,
+        passed: percentage >= 60,
+        status: percentage >= 80 ? 'ممتاز 🌟' : percentage >= 60 ? 'جيد 👍' : 'يحتاج مراجعة ❌',
+        userAnswers,
+        questions: quiz.questions,
+        date: new Date().toLocaleDateString('ar-EG')
+      };
+      setExamHistory(prev => [demoRecord, ...prev]);
+      setExamAttempts(prev => ({ ...prev, [quiz.id]: demoRecord }));
+      setCurrentStudent(prev => ({ ...prev, points: (prev.points || 0) + pointsEarned }));
+      return { resultRecord: demoRecord, waPayload: null };
+    }
 
     try {
       const res = await fetch('/api/exams', {

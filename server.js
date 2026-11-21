@@ -2815,8 +2815,8 @@ app.get('/api/health', (req, res) => {
 // Serve static files from dist folder
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// Serve Elm for Teachers Landing Page
-app.get('/for-teachers', (req, res) => {
+// Serve Elm for Teachers Landing Page (clean slash URLs like /for-teachers/pricing)
+app.get(['/for-teachers', '/for-teachers/*'], (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'for-teachers.html'));
 });
 
