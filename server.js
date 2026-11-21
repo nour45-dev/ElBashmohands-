@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import { MongoClient, ObjectId } from 'mongodb';
+import { createPostgresAdapter } from './pgAdapter.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import cookieParser from 'cookie-parser';
@@ -209,9 +210,74 @@ const initialData = {
 };
 
 // Database Connection Helper
+const DATABASE_URL = process.env.DATABASE_URL;
 const MONGODB_URI = process.env.MONGODB_URI;
+let activeDbEngine = 'json'; // 'postgres' | 'mongodb' | 'json'
 
 const initializeDatabase = async () => {
+  const seedCollectionIfEmpty = async (colName, seedData) => {
+    const col = db.collection(colName);
+    const count = await col.countDocuments();
+    if (count === 0 && seedData && seedData.length > 0) {
+      console.log(`Seeding empty collection/table: ${colName}...`);
+      await col.insertMany(seedData);
+    }
+  };
+
+  if (DATABASE_URL) {
+    try {
+      console.log('Connecting to PostgreSQL database...');
+      db = await createPostgresAdapter(DATABASE_URL);
+      dbType = 'mongodb'; // Uses unified collection adapter API
+      activeDbEngine = 'postgres';
+      console.log('Successfully connected to PostgreSQL and verified schema!');
+
+      // Auto-migrate from MongoDB into PostgreSQL if Postgres is empty and MONGODB_URI is available
+      if (MONGODB_URI) {
+        const pgStudentsCount = await db.collection('students').countDocuments();
+        const pgLessonsCount = await db.collection('lessons').countDocuments();
+        if (pgStudentsCount === 0 && pgLessonsCount === 0) {
+          try {
+            console.log('Migrating existing data from MongoDB into PostgreSQL...');
+            const tmpMongo = new MongoClient(MONGODB_URI);
+            await tmpMongo.connect();
+            const mDb = tmpMongo.db();
+            const colsToMigrate = ['students', 'lessons', 'folders', 'coupons', 'payments', 'questions', 'notifications', 'exams', 'liveSessions'];
+            for (const cName of colsToMigrate) {
+              const docs = await mDb.collection(cName).find({}).toArray();
+              if (docs.length > 0) {
+                await db.collection(cName).insertMany(docs);
+                console.log(`Migrated ${docs.length} records to PostgreSQL table: ${cName}`);
+              }
+            }
+            await tmpMongo.close();
+          } catch (migErr) {
+            console.warn('MongoDB -> PostgreSQL migration skipped/failed:', migErr.message);
+          }
+        }
+      }
+
+      // Seed default tenants (teachers) & fallback initial data if still empty
+      await seedCollectionIfEmpty('tenants', [
+        { id: 'eng_nour', name: 'م / نور الدين أحمد', phone: '01002169889', email: 'nour@bashmohandis.com', subject: 'برمجة وعلوم الحاسب', plan: 'enterprise', active: true },
+        { id: 'mr_sayed', name: 'أ / سيد عبد العاطي', phone: '01094273996', email: 'sayed@bashmohandis.com', subject: 'اللغة العربية', plan: 'pro', active: true }
+      ]);
+      await seedCollectionIfEmpty('students', initialData.students);
+      await seedCollectionIfEmpty('lessons', initialData.lessons);
+      await seedCollectionIfEmpty('coupons', initialData.coupons);
+      await seedCollectionIfEmpty('payments', initialData.payments);
+      await seedCollectionIfEmpty('questions', initialData.questions);
+      await seedCollectionIfEmpty('notifications', initialData.notifications);
+      await seedCollectionIfEmpty('liveSessions', initialData.liveSessions);
+      await seedCollectionIfEmpty('folders', initialData.folders || []);
+      console.log('PostgreSQL initialization and seeding check completed.');
+      return;
+    } catch (err) {
+      console.error('FATAL: Failed to connect to PostgreSQL!', err);
+      if (isProd && !MONGODB_URI) process.exit(1);
+    }
+  }
+
   if (MONGODB_URI) {
     try {
       console.log('Connecting to MongoDB database...');
@@ -219,17 +285,8 @@ const initializeDatabase = async () => {
       await mongoClient.connect();
       db = mongoClient.db();
       dbType = 'mongodb';
+      activeDbEngine = 'mongodb';
       console.log('Successfully connected to MongoDB!');
-      
-      // Seed collections if they are empty
-      const seedCollectionIfEmpty = async (colName, seedData) => {
-        const col = db.collection(colName);
-        const count = await col.countDocuments();
-        if (count === 0 && seedData && seedData.length > 0) {
-          console.log(`Seeding empty collection: ${colName}...`);
-          await col.insertMany(seedData);
-        }
-      };
 
       await seedCollectionIfEmpty('students', initialData.students);
       await seedCollectionIfEmpty('lessons', initialData.lessons);
@@ -252,10 +309,10 @@ const initializeDatabase = async () => {
     }
   } else {
     if (isProd) {
-      console.error('FATAL: MONGODB_URI is required in production but was not provided.');
+      console.error('FATAL: DATABASE_URL or MONGODB_URI is required in production.');
       process.exit(1);
     } else {
-      console.log('MONGODB_URI not provided. Setting up local JSON database...');
+      console.log('No remote DB provided. Setting up local JSON database...');
       setupLocalJsonDB();
     }
   }
@@ -402,6 +459,7 @@ app.post('/api/auth/register', async (req, res) => {
 
       const newStudent = {
         id: uniqueId,
+        teacherId: req.body.teacherId || 'eng_nour',
         code: studentCode,
         name: name.trim(),
         email: cleanEmail,
@@ -450,6 +508,7 @@ app.post('/api/auth/register', async (req, res) => {
 
       const newStudent = {
         id: uniqueId,
+        teacherId: req.body.teacherId || 'eng_nour',
         code: studentCode,
         name: name.trim(),
         email: cleanEmail,
@@ -1096,7 +1155,8 @@ app.get('/api/coupons', requireAdmin, async (req, res) => {
     } else {
       coupons = getLocalData().coupons;
     }
-    return res.json(coupons);
+    const scoped = coupons.filter(c => (c.teacherId || 'eng_nour') === req.user.identity);
+    return res.json(scoped);
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
@@ -1164,7 +1224,8 @@ app.get('/api/payments', requireAdmin, async (req, res) => {
     } else {
       payments = getLocalData().payments;
     }
-    return res.json(payments);
+    const scoped = payments.filter(p => (p.teacherId || 'eng_nour') === req.user.identity);
+    return res.json(scoped);
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
@@ -1180,8 +1241,16 @@ app.post('/api/payments', verifyToken, async (req, res) => {
   }
 
   try {
+    let studentObj = null;
+    if (dbType === 'mongodb') {
+      studentObj = await db.collection('students').findOne({ id: req.user.id });
+    } else {
+      studentObj = getLocalData().students.find(s => s.id === req.user.id);
+    }
+
     const newRequest = {
       id: 'req_' + Date.now(),
+      teacherId: studentObj?.teacherId || 'eng_nour',
       studentId: req.user.id,
       studentName: req.user.name,
       amount: amountVal,
@@ -1266,8 +1335,10 @@ app.get('/api/students', requireAdmin, async (req, res) => {
     } else {
       students = getLocalData().students;
     }
-    // Remove passwords before sending to front-end admin
-    const safeStudents = students.map(({ password, ...rest }) => rest);
+    // Remove passwords & isolate per teacher
+    const safeStudents = students
+      .filter(s => (s.teacherId || 'eng_nour') === req.user.identity)
+      .map(({ password, ...rest }) => rest);
     return res.json(safeStudents);
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -2738,7 +2809,7 @@ app.get('/api/live/:id/signal/ice', async (req, res) => {
 
 // Health check endpoint for Railway & Monitoring
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', dbEngine: activeDbEngine, uptime: process.uptime(), timestamp: new Date().toISOString() });
 });
 
 // Serve static files from dist folder
