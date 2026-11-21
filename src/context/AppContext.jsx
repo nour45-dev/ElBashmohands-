@@ -102,7 +102,7 @@ export const AppProvider = ({ children }) => {
     }
   });
 
-  const [selectedLessonId, setSelectedLessonId] = useState(() => {
+  const [selectedLessonId, _setSelectedLessonId] = useState(() => {
     try {
       const params = new URLSearchParams(window.location.search);
       return params.get('lesson') || '';
@@ -111,7 +111,7 @@ export const AppProvider = ({ children }) => {
     }
   });
 
-  const [selectedLiveId, setSelectedLiveId] = useState(() => {
+  const [selectedLiveId, _setSelectedLiveId] = useState(() => {
     try {
       const params = new URLSearchParams(window.location.search);
       return params.get('live') || '';
@@ -132,6 +132,16 @@ export const AppProvider = ({ children }) => {
     navHistory
   });
 
+  const setSelectedLessonId = (id) => {
+    navStateRef.current.selectedLessonId = id;
+    _setSelectedLessonId(id);
+  };
+
+  const setSelectedLiveId = (id) => {
+    navStateRef.current.selectedLiveId = id;
+    _setSelectedLiveId(id);
+  };
+
   useEffect(() => {
     navStateRef.current = {
       currentTab,
@@ -141,6 +151,28 @@ export const AppProvider = ({ children }) => {
       navHistory
     };
   }, [currentTab, selectedLessonId, selectedLiveId, activeFolderId, navHistory]);
+
+  const resetNavigation = (targetTab = 'home') => {
+    navStateRef.current = {
+      currentTab: targetTab,
+      selectedLessonId: '',
+      selectedLiveId: '',
+      activeFolderId: null,
+      navHistory: []
+    };
+    _setCurrentTab(targetTab);
+    _setSelectedLessonId('');
+    _setSelectedLiveId('');
+    setActiveFolderId(null);
+    setNavHistory([]);
+    try {
+      window.history.replaceState(
+        { tab: targetTab, lessonId: '', liveId: '', folderId: null },
+        '',
+        window.location.pathname
+      );
+    } catch (e) {}
+  };
 
   const navigateTo = (newTab, params = {}) => {
     const curr = navStateRef.current;
@@ -165,13 +197,22 @@ export const AppProvider = ({ children }) => {
       return;
     }
 
+    const nextHistory = [...curr.navHistory, currentState];
+    navStateRef.current = {
+      currentTab: newTab,
+      selectedLessonId: targetLessonId,
+      selectedLiveId: targetLiveId,
+      activeFolderId: targetFolderId,
+      navHistory: nextHistory
+    };
+
     // Push previous state onto history stack
-    setNavHistory(prev => [...prev, currentState]);
+    setNavHistory(nextHistory);
 
     // Update active states
     _setCurrentTab(newTab);
-    setSelectedLessonId(targetLessonId);
-    setSelectedLiveId(targetLiveId);
+    _setSelectedLessonId(targetLessonId);
+    _setSelectedLiveId(targetLiveId);
     setActiveFolderId(targetFolderId);
 
     // Sync with browser history API
@@ -360,11 +401,12 @@ export const AppProvider = ({ children }) => {
 
   // Real-time automatic background synchronization for live broadcasts & notifications
   useEffect(() => {
+    if (!isAuthenticated) return;
     const liveSyncInterval = setInterval(async () => {
       try {
         const [resLive, resNotif] = await Promise.all([
           fetch('/api/live'),
-          fetch('/api/notifications')
+          fetch('/api/notifications', { credentials: 'include' })
         ]);
         if (resLive.ok) {
           const liveData = await resLive.json();
@@ -382,7 +424,7 @@ export const AppProvider = ({ children }) => {
     }, 3500);
 
     return () => clearInterval(liveSyncInterval);
-  }, []);
+  }, [isAuthenticated]);
 
   const markNotificationAsRead = (id) => {
     try {
@@ -489,6 +531,7 @@ export const AppProvider = ({ children }) => {
       setUserRole('student');
       setCurrentStudent(data.user);
       setCurrentGrade(data.user.grade || '3sec');
+      resetNavigation('home');
       
       return { success: true, studentCode: data.user.code, message: `تم إنشاء حسابك بنجاح! كود الطالب الخاص بك هو: ${data.user.code}` };
     } catch (err) {
@@ -530,15 +573,18 @@ export const AppProvider = ({ children }) => {
 
       if (data.role === 'admin') {
         setAdminIdentity(data.identity);
+        resetNavigation('home');
         await fetchAdminData();
         return { success: true, message: `أهلاً وسهلاً بك يا ${data.name}! تم تسجيل الدخول.` };
       } else if (data.role === 'parent') {
         setCurrentStudent(data.matchedStudent);
+        resetNavigation('parent-view');
         await fetchStudentData();
         return { success: true, matchedStudent: data.matchedStudent, message: `تم الوصول لحساب الطالب: ${data.matchedStudent.name}` };
       } else {
         setCurrentStudent(data.user);
         setCurrentGrade(data.user.grade || '3sec');
+        resetNavigation('home');
         await fetchStudentData();
         return { success: true, message: `أهلاً بعودتك يا ${data.user.name}` };
       }
@@ -589,6 +635,7 @@ export const AppProvider = ({ children }) => {
     setCurrentStudent(null);
     setExamHistory([]);
     setExamAttempts({});
+    resetNavigation('home');
   };
 
   const switchGrade = (gradeId) => {
@@ -803,19 +850,12 @@ export const AppProvider = ({ children }) => {
     }
 
     const isMonthly = planType === 'شهري';
-    const newCredits = isMonthly ? 8 : 999;
-    const newBalance = currentStudent.walletBalance - price;
 
     try {
-      const res = await fetch(`/api/students/${currentStudent.id}`, {
-        method: 'PATCH',
+      const res = await fetch('/api/students/subscribe', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          walletBalance: newBalance,
-          subscriptionStatus: 'active',
-          subscriptionType: planType,
-          monthlyCreditsLeft: newCredits
-        }),
+        body: JSON.stringify({ planType }),
         credentials: 'include'
       });
 
@@ -829,7 +869,8 @@ export const AppProvider = ({ children }) => {
             : `تم تفعيل الاشتراك السنوي الشامل بنجاح! تم فتح كافة حصص الصف كاملاً 🌟`
         };
       }
-      return { success: false, message: 'فشل تفعيل الاشتراك.' };
+      const errData = await res.json().catch(() => ({}));
+      return { success: false, message: errData.error || 'فشل تفعيل الاشتراك.' };
     } catch (err) {
       return { success: false, message: 'خطأ في الاتصال بالخادم.' };
     }
@@ -837,45 +878,18 @@ export const AppProvider = ({ children }) => {
 
   // Unlock Lesson via Wallet, Coupon, OR 1 Monthly Credit (out of 8)
   const unlockLesson = async (lessonId, price, useMonthlyCredit = false) => {
-    if (useMonthlyCredit) {
-      if ((currentStudent.monthlyCreditsLeft || 0) <= 0) {
-        return { success: false, message: 'استنفذت رصيد الـ 8 حصص المتاحة باشتراكك الشهري.' };
-      }
-
-      const newCredits = currentStudent.monthlyCreditsLeft - 1;
-
-      try {
-        const resUser = await fetch(`/api/students/${currentStudent.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ monthlyCreditsLeft: newCredits }),
-          credentials: 'include'
-        });
-
-        if (resUser.ok) {
-          const updatedUser = await resUser.json();
-          setCurrentStudent(updatedUser);
-
-          // Update lesson status in state/db
-          setLessons(prev => prev.map(les => les.id === lessonId ? { ...les, isUnlocked: true } : les));
-          return { success: true, message: `تم فتح الحصة باستخدام 1 حصة من اشتراكك الشهري! (متبقي: ${newCredits}/8 حصص)` };
-        }
-      } catch (e) {
-        return { success: false, message: 'خطأ في الاتصال بالخادم.' };
-      }
+    if (useMonthlyCredit && (currentStudent.monthlyCreditsLeft || 0) <= 0) {
+      return { success: false, message: 'استنفذت رصيد الـ 8 حصص المتاحة باشتراكك الشهري.' };
     }
-
-    if (currentStudent.walletBalance < price) {
+    if (!useMonthlyCredit && currentStudent.walletBalance < price) {
       return { success: false, message: 'رصيد المحفظة لا يكفي. يرجى شحن المحفظة أولاً.' };
     }
 
-    const newBalance = currentStudent.walletBalance - price;
-
     try {
-      const resUser = await fetch(`/api/students/${currentStudent.id}`, {
-        method: 'PATCH',
+      const resUser = await fetch('/api/students/unlock-lesson', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ walletBalance: newBalance }),
+        body: JSON.stringify({ lessonId, useMonthlyCredit }),
         credentials: 'include'
       });
 
@@ -883,8 +897,15 @@ export const AppProvider = ({ children }) => {
         const updatedUser = await resUser.json();
         setCurrentStudent(updatedUser);
         setLessons(prev => prev.map(les => les.id === lessonId ? { ...les, isUnlocked: true } : les));
-        return { success: true, message: 'تم فتح الحصة بنجاح! مشاهدة ممتعة.' };
+        return {
+          success: true,
+          message: useMonthlyCredit
+            ? `تم فتح الحصة باستخدام 1 حصة من اشتراكك الشهري! (متبقي: ${updatedUser.monthlyCreditsLeft}/8 حصص)`
+            : 'تم فتح الحصة بنجاح! مشاهدة ممتعة.'
+        };
       }
+      const errData = await resUser.json().catch(() => ({}));
+      return { success: false, message: errData.error || 'فشل فتح الحصة.' };
     } catch (e) {
       return { success: false, message: 'خطأ في الاتصال بالخادم.' };
     }

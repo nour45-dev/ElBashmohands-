@@ -360,12 +360,12 @@ const requireOwnershipOrAdmin = (req, res, next) => {
 };
 
 // Admin authentication passwords (read from env or fallback locally)
-const ADMIN_NOUR_PASS = process.env.ADMIN_NOUR_PASS || 'nour2026';
+const ADMIN_NOUR_PASS = process.env.ADMIN_NOUR_PASS || '012345';
 const ADMIN_SAYED_PASS = process.env.ADMIN_SAYED_PASS || 'sayed2026';
 
 const TEACHER_ACCOUNTS = [
-  { email: 'nour@bashmohandis.com', phone: '01002169889', passwordHash: bcrypt.hashSync(ADMIN_NOUR_PASS, 10), identity: 'eng_nour', name: 'مهندس نور' },
-  { email: 'sayed@bashmohandis.com', phone: '01094273996', passwordHash: bcrypt.hashSync(ADMIN_SAYED_PASS, 10), identity: 'mr_sayed', name: 'مستر سيد' }
+  { email: 'nour@bashmohandis.com', phone: '01002169889', passwordHash: bcrypt.hashSync(ADMIN_NOUR_PASS, 10), legacyPass: 'nour2026', identity: 'eng_nour', name: 'م / نور الدين' },
+  { email: 'sayed@bashmohandis.com', phone: '01094273996', passwordHash: bcrypt.hashSync(ADMIN_SAYED_PASS, 10), legacyPass: 'sayed2026', identity: 'mr_sayed', name: 'أ / سيد عبد العاطي' }
 ];
 
 // ==========================================
@@ -490,24 +490,25 @@ app.post('/api/auth/login', async (req, res) => {
 
   if (role === 'admin') {
     const inputPass = (creds.adminCode || creds.passInput || creds.password || creds.secretCode || '').trim();
-    const identity = creds.adminIdentity || (inputPass === 'sayed2026' ? 'mr_sayed' : 'eng_nour');
+    const identity = creds.adminIdentity || (inputPass === ADMIN_SAYED_PASS || inputPass === 'sayed2026' ? 'mr_sayed' : 'eng_nour');
 
-    if (inputPass === 'nour2026' || inputPass === 'sayed2026' || inputPass === 'bashmohandis' || inputPass === 'admin123' || inputPass === 'admin') {
-      const activeId = (inputPass === 'sayed2026' || identity === 'mr_sayed') ? 'mr_sayed' : 'eng_nour';
-      const teacherName = activeId === 'mr_sayed' ? 'أ / سيد عبد العاطي' : 'م / نور الدين';
-      const token = jwt.sign({ id: activeId, role: 'admin', identity: activeId }, ACTIVE_JWT_SECRET, { expiresIn: '7d' });
-      res.cookie('token', token, { httpOnly: true, secure: isProd, sameSite: 'lax', maxAge: 7 * 24 * 60 * 60 * 1000 });
-      return res.json({ success: true, role: 'admin', identity: activeId, name: teacherName, message: `مرحباً بك يا ${teacherName} في لوحة التحكم الإدارية 🌟` });
+    if (!inputPass) {
+      return res.status(400).json({ error: 'يرجى إدخال كلمة سر الأدمن.' });
     }
 
     const teacher = TEACHER_ACCOUNTS.find(t => t.identity === identity);
-    if (teacher && bcrypt.compareSync(inputPass, teacher.passwordHash)) {
-      const token = jwt.sign({ id: identity, role: 'admin', identity }, ACTIVE_JWT_SECRET, { expiresIn: '7d' });
+    const isValidTeacherPass = teacher && (
+      bcrypt.compareSync(inputPass, teacher.passwordHash) ||
+      (teacher.legacyPass && inputPass === teacher.legacyPass)
+    );
+
+    if (isValidTeacherPass) {
+      const token = jwt.sign({ id: teacher.identity, role: 'admin', identity: teacher.identity }, ACTIVE_JWT_SECRET, { expiresIn: '7d' });
       res.cookie('token', token, { httpOnly: true, secure: isProd, sameSite: 'lax', maxAge: 7 * 24 * 60 * 60 * 1000 });
-      return res.json({ success: true, role: 'admin', identity, name: teacher.name, message: `مرحباً بك يا ${teacher.name} في لوحة التحكم الإدارية 🌟` });
+      return res.json({ success: true, role: 'admin', identity: teacher.identity, name: teacher.name, message: `مرحباً بك يا ${teacher.name} في لوحة التحكم الإدارية 🌟` });
     }
 
-    return res.status(400).json({ error: 'كلمة سر الأدمن غير صحيحة!' });
+    return res.status(401).json({ error: 'كلمة سر الأدمن غير صحيحة!' });
   }
 
   if (role === 'parent') {
@@ -620,45 +621,35 @@ app.post('/api/auth/login', async (req, res) => {
     return res.status(400).json({ error: 'يرجى إدخال كود الطالب/رقم الهاتف وكلمة المرور.' });
   }
 
-  // Check if Admin Phone or Admin Password is used in main login
-  if (
-    inputPass === 'nour2026' || 
-    inputPass === 'sayed2026' || 
-    inputPass === 'bashmohandis' || 
-    loginSearch === '01002169889' || 
-    loginSearch === '01094273996' ||
-    loginSearch.toLowerCase() === 'nour' ||
-    loginSearch.toLowerCase() === 'sayed'
-  ) {
-    const isSayed = (inputPass === 'sayed2026' || loginSearch === '01094273996' || loginSearch.toLowerCase() === 'sayed');
-    const activeId = isSayed ? 'mr_sayed' : 'eng_nour';
-    const teacherName = isSayed ? 'أ / سيد عبد العاطي' : 'م / نور الدين';
-    const token = jwt.sign({ id: activeId, role: 'admin', identity: activeId }, ACTIVE_JWT_SECRET, { expiresIn: '7d' });
-    res.cookie('token', token, { httpOnly: true, secure: isProd, sameSite: 'lax', maxAge: 7 * 24 * 60 * 60 * 1000 });
-    return res.json({ success: true, role: 'admin', identity: activeId, name: teacherName, message: `مرحباً بك يا ${teacherName} في لوحة التحكم الإدارية 🌟` });
-  }
-
   const cleanIdentifier = normalizePhone(loginSearch);
 
   try {
-    // Quick Teacher bypass check from student login UI (phone 01002169889 or 01094273996 or passwords)
-    if (inputPass === 'nour2026' || inputPass === 'sayed2026' || inputPass === 'bashmohandis') {
-      const activeId = (inputPass === 'sayed2026' || cleanIdentifier === '1094273996') ? 'mr_sayed' : 'eng_nour';
-      const teacherName = activeId === 'mr_sayed' ? 'أ / سيد عبد العاطي' : 'م / نور الدين';
-      const token = jwt.sign({ id: activeId, role: 'admin', identity: activeId }, ACTIVE_JWT_SECRET, { expiresIn: '7d' });
-      res.cookie('token', token, { httpOnly: true, secure: isProd, sameSite: 'lax', maxAge: 7 * 24 * 60 * 60 * 1000 });
-      return res.json({ success: true, role: 'admin', identity: activeId, name: teacherName, message: `مرحباً بك يا ${teacherName} في لوحة التحكم الإدارية 🌟` });
-    }
-
-    const isTeacherPhone = TEACHER_ACCOUNTS.find(
-      t => normalizePhone(t.phone) === cleanIdentifier || t.email.toLowerCase() === loginSearch.toLowerCase()
+    // Check if logging in with a registered Teacher Account (requires valid password)
+    const matchedTeacher = TEACHER_ACCOUNTS.find(
+      t =>
+        normalizePhone(t.phone) === cleanIdentifier ||
+        t.email.toLowerCase() === loginSearch.toLowerCase() ||
+        (t.identity === 'eng_nour' && loginSearch.toLowerCase() === 'nour') ||
+        (t.identity === 'mr_sayed' && loginSearch.toLowerCase() === 'sayed')
     );
-    if (isTeacherPhone) {
-      if (bcrypt.compareSync(inputPass, isTeacherPhone.passwordHash) || inputPass === ADMIN_NOUR_PASS || inputPass === ADMIN_SAYED_PASS || inputPass === 'bashmohandis') {
-        const token = jwt.sign({ id: isTeacherPhone.identity, role: 'admin', identity: isTeacherPhone.identity }, ACTIVE_JWT_SECRET, { expiresIn: '7d' });
+
+    if (matchedTeacher) {
+      const isValidPass =
+        bcrypt.compareSync(inputPass, matchedTeacher.passwordHash) ||
+        (matchedTeacher.legacyPass && inputPass === matchedTeacher.legacyPass);
+
+      if (isValidPass) {
+        const token = jwt.sign({ id: matchedTeacher.identity, role: 'admin', identity: matchedTeacher.identity }, ACTIVE_JWT_SECRET, { expiresIn: '7d' });
         res.cookie('token', token, { httpOnly: true, secure: isProd, sameSite: 'lax', maxAge: 7 * 24 * 60 * 60 * 1000 });
-        return res.json({ success: true, role: 'admin', identity: isTeacherPhone.identity, name: isTeacherPhone.name });
+        return res.json({
+          success: true,
+          role: 'admin',
+          identity: matchedTeacher.identity,
+          name: matchedTeacher.name,
+          message: `مرحباً بك يا ${matchedTeacher.name} في لوحة التحكم الإدارية 🌟`
+        });
       }
+      return res.status(401).json({ error: 'كلمة مرور حساب المعلم غير صحيحة!' });
     }
 
     let matched = null;
@@ -1126,6 +1117,7 @@ app.post('/api/coupons', requireAdmin, async (req, res) => {
       ...couponData,
       value: value,
       id: 'coup_' + Date.now(),
+      teacherId: req.user.identity,
       usedCount: 0,
       active: true
     };
@@ -1334,6 +1326,122 @@ app.delete('/api/students/:id', requireAdmin, async (req, res) => {
       writeLocalData(data);
     }
     return res.json({ success: true });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Secure Student Subscription Purchase
+app.post('/api/students/subscribe', verifyToken, async (req, res) => {
+  if (req.user.role !== 'student') {
+    return res.status(403).json({ error: 'هذه العملية متاحة لحسابات الطلاب فقط.' });
+  }
+  const { planType } = req.body;
+  const isMonthly = planType === 'شهري';
+  const isAnnual = planType === 'سنوي';
+  if (!isMonthly && !isAnnual) {
+    return res.status(400).json({ error: 'نوع الاشتراك غير صالح.' });
+  }
+  const price = isMonthly ? 150 : 1200;
+  const newCredits = isMonthly ? 8 : 999;
+
+  try {
+    let student = null;
+    if (dbType === 'mongodb') {
+      student = await db.collection('students').findOne({ id: req.user.id });
+    } else {
+      const data = getLocalData();
+      student = data.students.find(s => s.id === req.user.id);
+    }
+    if (!student) return res.status(404).json({ error: 'حساب الطالب غير موجود.' });
+    if ((student.walletBalance || 0) < price) {
+      return res.status(400).json({ error: `رصيد المحفظة لا يكفي الاشتراك (${price} ج.م). يرجى شحن المحفظة أولاً.` });
+    }
+
+    const updates = {
+      walletBalance: (student.walletBalance || 0) - price,
+      subscriptionStatus: 'active',
+      subscriptionType: planType,
+      monthlyCreditsLeft: newCredits
+    };
+
+    if (dbType === 'mongodb') {
+      await db.collection('students').updateOne({ id: req.user.id }, { $set: updates });
+      const updatedUser = await db.collection('students').findOne({ id: req.user.id });
+      const { password, ...cleanUser } = updatedUser;
+      return res.json(cleanUser);
+    } else {
+      const data = getLocalData();
+      const idx = data.students.findIndex(s => s.id === req.user.id);
+      data.students[idx] = { ...data.students[idx], ...updates };
+      writeLocalData(data);
+      const { password, ...cleanUser } = data.students[idx];
+      return res.json(cleanUser);
+    }
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Secure Student Lesson Unlock (Wallet or Monthly Credit)
+app.post('/api/students/unlock-lesson', verifyToken, async (req, res) => {
+  if (req.user.role !== 'student') {
+    return res.status(403).json({ error: 'هذه العملية متاحة لحسابات الطلاب فقط.' });
+  }
+  const { lessonId, useMonthlyCredit } = req.body;
+  if (!lessonId) return res.status(400).json({ error: 'معرف الحصة مطلوب.' });
+
+  try {
+    let student = null;
+    let lesson = null;
+    if (dbType === 'mongodb') {
+      student = await db.collection('students').findOne({ id: req.user.id });
+      lesson = await db.collection('lessons').findOne({ id: lessonId });
+    } else {
+      const data = getLocalData();
+      student = data.students.find(s => s.id === req.user.id);
+      lesson = data.lessons.find(l => l.id === lessonId);
+    }
+
+    if (!student) return res.status(404).json({ error: 'حساب الطالب غير موجود.' });
+    if (!lesson) return res.status(404).json({ error: 'الحصة غير موجودة.' });
+
+    const unlockedList = Array.isArray(student.unlockedLessons) ? [...student.unlockedLessons] : [];
+    if (unlockedList.includes(lessonId)) {
+      const { password, ...cleanUser } = student;
+      return res.json(cleanUser);
+    }
+
+    const lessonPrice = Number(lesson.price) || 0;
+    const updates = { unlockedLessons: [...unlockedList, lessonId] };
+
+    if (lessonPrice > 0) {
+      if (useMonthlyCredit) {
+        if ((student.monthlyCreditsLeft || 0) <= 0) {
+          return res.status(400).json({ error: 'استنفذت رصيد الحصص المتاحة باشتراكك الشهري.' });
+        }
+        updates.monthlyCreditsLeft = student.monthlyCreditsLeft - 1;
+      } else {
+        if ((student.walletBalance || 0) < lessonPrice) {
+          return res.status(400).json({ error: 'رصيد المحفظة لا يكفي. يرجى شحن المحفظة أولاً.' });
+        }
+        updates.walletBalance = (student.walletBalance || 0) - lessonPrice;
+      }
+    }
+
+    if (dbType === 'mongodb') {
+      await db.collection('students').updateOne({ id: req.user.id }, { $set: updates });
+      const updatedUser = await db.collection('students').findOne({ id: req.user.id });
+      const { password, ...cleanUser } = updatedUser;
+      return res.json(cleanUser);
+    } else {
+      const data = getLocalData();
+      const idx = data.students.findIndex(s => s.id === req.user.id);
+      data.students[idx] = { ...data.students[idx], ...updates };
+      writeLocalData(data);
+      const { password, ...cleanUser } = data.students[idx];
+      return res.json(cleanUser);
+    }
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
@@ -1687,21 +1795,38 @@ app.post('/api/chat', async (req, res) => {
         }
       };
 
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`;
-      const response = await fetch(geminiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bodyPayload)
-      });
+      const geminiModels = ['gemini-flash-latest', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+      let botResponse = null;
+      let lastErr = '';
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Gemini API error: ${errorText}`);
+      for (const modelName of geminiModels) {
+        try {
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
+          const response = await fetch(geminiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(bodyPayload)
+          });
+          if (response.ok) {
+            const data = await response.json();
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text) {
+              botResponse = text;
+              break;
+            }
+          } else {
+            lastErr = await response.text();
+          }
+        } catch (e) {
+          lastErr = e.message;
+        }
       }
 
-      const data = await response.json();
-      const botResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || 'عذراً، حدث خطأ في معالجة طلبك.';
-      return res.json({ response: botResponse });
+      if (botResponse) {
+        return res.json({ response: botResponse });
+      }
+      console.warn('All Gemini models busy/failed, returning graceful fallback:', lastErr);
+      return res.json({ response: null, fallback: true });
 
     } else {
       // Default to OpenRouter

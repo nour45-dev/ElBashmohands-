@@ -177,6 +177,7 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
     const isArabic = les.subject === 'اللغة العربية' || les.subject?.includes('عرب');
     if (isSayedAdmin && !isArabic) return false;
     if (isNourAdmin && isArabic) return false;
+    if (userRole === 'student' && student?.grade && les.grade && les.grade !== student.grade) return false;
     return true;
   });
 

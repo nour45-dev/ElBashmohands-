@@ -881,7 +881,15 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
   };
 
   const pendingPaymentsCount = paymentRequestsDB.filter(r => r.status === 'pending').length;
-  const pendingQAQuestionsCount = videoQuestions.filter(q => q.status === 'pending').length;
+  const teacherLessonIds = new Set(
+    lessons
+      .filter(l => {
+        const isArab = l.subject === 'اللغة العربية' || l.subject?.includes('عرب');
+        return isSayedAdmin ? isArab : !isArab;
+      })
+      .map(l => l.id)
+  );
+  const pendingQAQuestionsCount = videoQuestions.filter(q => q.status === 'pending' && teacherLessonIds.has(q.lessonId)).length;
 
   return (
     <div className="space-y-8 pb-16">
