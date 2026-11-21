@@ -46,7 +46,7 @@ export const Navbar = ({ currentTab, setCurrentTab, setSelectedLiveId, setSelect
   return (
     <header className="sticky top-0 z-50 bg-white/95 dark:bg-[#0D1B2A]/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shadow-xs transition-colors">
       
-      <div className="container py-3 flex items-center justify-between">
+      <div className="container py-3 flex items-center justify-between gap-2">
         
         {/* Brand Logo & Back Button */}
         <div className="flex items-center gap-2 sm:gap-3">
@@ -67,7 +67,7 @@ export const Navbar = ({ currentTab, setCurrentTab, setSelectedLiveId, setSelect
         </div>
 
         {/* Desktop Navigation Items */}
-        <nav className="hidden lg:flex items-center gap-1.5 bg-slate-100/90 dark:bg-[#162534] p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
+        <nav className="hidden xl:flex items-center gap-1 bg-slate-100/90 dark:bg-[#162534] p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-2xs whitespace-nowrap">
           
           {userRole !== 'parent' && (
             <>
@@ -343,7 +343,7 @@ export const Navbar = ({ currentTab, setCurrentTab, setSelectedLiveId, setSelect
           {/* Mobile Menu Toggle Button */}
           <button 
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+            className="xl:hidden p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -355,7 +355,7 @@ export const Navbar = ({ currentTab, setCurrentTab, setSelectedLiveId, setSelect
 
       {/* Mobile Drawer Navigation Menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0D1B2A] p-4 space-y-2 animate-in slide-in-from-top duration-200">
+        <div className="xl:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0D1B2A] p-4 space-y-2 animate-in slide-in-from-top duration-200">
           {userRole !== 'parent' && (
             <>
               <button 
