@@ -46,46 +46,46 @@ export const Navbar = ({ currentTab, setCurrentTab, setSelectedLiveId, setSelect
   return (
     <header className="sticky top-0 z-50 bg-white/95 dark:bg-[#0D1B2A]/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shadow-xs transition-colors">
       
-      <div className="container py-3 flex items-center justify-between gap-2">
+      <div className="w-full max-w-[1440px] mx-auto px-3 sm:px-5 py-2.5 flex items-center justify-between gap-2">
         
         {/* Brand Logo & Back Button */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 shrink-0">
           {canGoBack && (
             <button
               onClick={goBack}
               title="رجوع للصفحة السابقة"
-              className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-black bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/70 dark:hover:bg-blue-900 dark:text-blue-300 border border-blue-200 dark:border-blue-800 transition-all shadow-xs hover:scale-105 active:scale-95 animate-in fade-in"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-black bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-950/70 dark:hover:bg-blue-900 dark:text-blue-300 border border-blue-200 dark:border-blue-800 transition-all shadow-xs hover:scale-105 active:scale-95 animate-in fade-in"
             >
               <ArrowRight className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span>رجوع</span>
+              <span className="hidden sm:inline">رجوع</span>
             </button>
           )}
 
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setCurrentTab('home')}>
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => setCurrentTab('home')}>
             <ElmLogo variant="horizontal" />
           </div>
         </div>
 
         {/* Desktop Navigation Items */}
-        <nav className="hidden xl:flex items-center gap-1 bg-slate-100/90 dark:bg-[#162534] p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-2xs whitespace-nowrap">
+        <nav className="hidden xl:flex items-center gap-1 bg-slate-100/90 dark:bg-[#162534] p-1 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-2xs whitespace-nowrap min-w-0">
           
           {userRole !== 'parent' && (
             <>
               <button 
                 onClick={() => setCurrentTab('home')}
-                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${
+                className={`px-2.5 2xl:px-3.5 py-2 rounded-xl text-[11px] 2xl:text-xs font-extrabold transition-all flex items-center gap-1 ${
                   currentTab === 'home' 
                     ? 'bg-white text-blue-700 shadow-sm dark:bg-blue-600 dark:text-white dark:shadow-md' 
                     : 'text-slate-600 hover:text-slate-900 hover:bg-white/60 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800/80'
                 }`}
               >
-                <BookOpen className="w-4 h-4" />
-                الرئيسية
+                <BookOpen className="w-3.5 h-3.5 2xl:w-4 2xl:h-4 shrink-0" />
+                <span>الرئيسية</span>
               </button>
 
               <button 
                 onClick={() => setCurrentTab('live')}
-                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${
+                className={`px-2.5 2xl:px-3.5 py-2 rounded-xl text-[11px] 2xl:text-xs font-extrabold transition-all flex items-center gap-1 ${
                   currentTab === 'live' 
                     ? 'bg-rose-600 text-white shadow-md' 
                     : isLiveActive 
@@ -93,7 +93,7 @@ export const Navbar = ({ currentTab, setCurrentTab, setSelectedLiveId, setSelect
                       : 'text-slate-600 hover:text-slate-900 hover:bg-white/60 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800/80'
                 }`}
               >
-                <Radio className={`w-4 h-4 ${isLiveActive ? 'text-rose-500' : ''}`} />
+                <Radio className={`w-3.5 h-3.5 2xl:w-4 2xl:h-4 shrink-0 ${isLiveActive ? 'text-rose-500' : ''}`} />
                 <span>البث المباشر</span>
                 {isLiveActive && (
                   <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
@@ -102,38 +102,38 @@ export const Navbar = ({ currentTab, setCurrentTab, setSelectedLiveId, setSelect
 
               <button 
                 onClick={() => setCurrentTab('lessons')}
-                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${
+                className={`px-2.5 2xl:px-3.5 py-2 rounded-xl text-[11px] 2xl:text-xs font-extrabold transition-all flex items-center gap-1 ${
                   currentTab === 'lessons' || currentTab === 'lesson-detail' 
                     ? 'bg-white text-blue-700 shadow-sm dark:bg-blue-600 dark:text-white dark:shadow-md' 
                     : 'text-slate-600 hover:text-slate-900 hover:bg-white/60 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800/80'
                 }`}
               >
-                <Video className="w-4 h-4" />
-                الحصص والدروس
+                <Video className="w-3.5 h-3.5 2xl:w-4 2xl:h-4 shrink-0" />
+                <span>الحصص والدروس</span>
               </button>
 
               <button 
                 onClick={() => setCurrentTab('exams')}
-                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${
+                className={`px-2.5 2xl:px-3.5 py-2 rounded-xl text-[11px] 2xl:text-xs font-extrabold transition-all flex items-center gap-1 ${
                   currentTab === 'exams' 
                     ? 'bg-white text-blue-700 shadow-sm dark:bg-blue-600 dark:text-white dark:shadow-md' 
                     : 'text-slate-600 hover:text-slate-900 hover:bg-white/60 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800/80'
                 }`}
               >
-                <Award className="w-4 h-4" />
-                الامتحانات والواجبات
+                <Award className="w-3.5 h-3.5 2xl:w-4 2xl:h-4 shrink-0" />
+                <span>الامتحانات</span>
               </button>
 
               <button 
                 onClick={() => setCurrentTab('wallet')}
-                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${
+                className={`px-2.5 2xl:px-3.5 py-2 rounded-xl text-[11px] 2xl:text-xs font-extrabold transition-all flex items-center gap-1 ${
                   currentTab === 'wallet' 
                     ? 'bg-white text-blue-700 shadow-sm dark:bg-blue-600 dark:text-white dark:shadow-md' 
                     : 'text-slate-600 hover:text-slate-900 hover:bg-white/60 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800/80'
                 }`}
               >
-                <Wallet className="w-4 h-4" />
-                المحفظة والرصيد
+                <Wallet className="w-3.5 h-3.5 2xl:w-4 2xl:h-4 shrink-0" />
+                <span>المحفظة</span>
               </button>
             </>
           )}
@@ -142,35 +142,35 @@ export const Navbar = ({ currentTab, setCurrentTab, setSelectedLiveId, setSelect
           {(userRole === 'parent' || userRole === 'admin') && (
             <button 
               onClick={() => setCurrentTab('parent-view')}
-              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${
+              className={`px-2.5 2xl:px-3.5 py-2 rounded-xl text-[11px] 2xl:text-xs font-extrabold transition-all flex items-center gap-1 ${
                 currentTab === 'parent-view' 
                   ? 'bg-white text-blue-700 shadow-sm dark:bg-blue-600 dark:text-white dark:shadow-md' 
                   : 'text-slate-600 hover:text-slate-900 hover:bg-white/60 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800/80'
               }`}
             >
-              <Users className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              متابعة ولي الأمر
+              <Users className="w-3.5 h-3.5 2xl:w-4 2xl:h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span>ولي الأمر</span>
             </button>
           )}
 
           {userRole === 'admin' && (
             <button 
               onClick={() => setCurrentTab('admin')}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
+              className={`px-2.5 2xl:px-3.5 py-2 rounded-xl text-[11px] 2xl:text-xs font-black transition-all flex items-center gap-1 ${
                 currentTab === 'admin' 
                   ? 'bg-slate-900 text-amber-400 shadow-sm dark:bg-amber-500 dark:text-slate-950 dark:shadow-md' 
                   : 'bg-slate-900/10 text-slate-900 hover:bg-slate-900 hover:text-white dark:bg-amber-500/15 dark:text-amber-400 dark:hover:bg-amber-500 dark:hover:text-slate-950'
               }`}
             >
-              <ShieldCheck className="w-4 h-4 text-amber-500 dark:text-amber-400" />
-              لوحة عِلم
+              <ShieldCheck className="w-3.5 h-3.5 2xl:w-4 2xl:h-4 text-amber-500 dark:text-amber-400 shrink-0" />
+              <span>لوحة عِلم</span>
             </button>
           )}
 
         </nav>
 
         {/* Right User Bar & Profile Actions */}
-        <div className="flex items-center gap-3.5 mr-auto lg:mr-6">
+        <div className="flex items-center gap-2 shrink-0">
           
           {/* Subtle Vertical Divider */}
           <div className="hidden lg:block w-[1px] h-6 bg-slate-200 dark:bg-slate-700/60 ml-2" />
@@ -309,15 +309,15 @@ export const Navbar = ({ currentTab, setCurrentTab, setSelectedLiveId, setSelect
           </div>
 
           {/* User Profile Neutral Avatar */}
-          <div className="flex items-center gap-2.5 bg-slate-100/90 dark:bg-[#162534] p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-2xs">
-            <div className="w-8 h-8 rounded-xl bg-slate-900 dark:bg-amber-500 text-amber-400 dark:text-slate-950 flex items-center justify-center font-black text-xs shadow-xs">
+          <div className="flex items-center gap-1.5 bg-slate-100/90 dark:bg-[#162534] p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-2xs shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-slate-900 dark:bg-amber-500 text-amber-400 dark:text-slate-950 flex items-center justify-center font-black text-xs shadow-xs shrink-0">
               {userRole === 'admin' ? '👨‍💻' : (student?.name?.[0] || '👤')}
             </div>
-            <div className="hidden md:block text-right pr-1">
-              <div className="text-xs font-black text-slate-900 dark:text-white leading-none">
+            <div className="hidden sm:block text-right pr-0.5 max-w-[95px] truncate">
+              <div className="text-[11px] font-black text-slate-900 dark:text-white leading-none truncate">
                 {userRole === 'admin' ? 'المعلم (الأدمن)' : (student?.name || 'جاري التحميل...')}
               </div>
-              <div className="text-[10px] text-amber-600 dark:text-amber-400 font-mono font-bold mt-0.5">
+              <div className="text-[10px] text-amber-600 dark:text-amber-400 font-mono font-bold mt-0.5 truncate">
                 {userRole === 'admin' ? 'الإدارة المركزية' : `كود: ${student?.code || '...'}`}
               </div>
             </div>
@@ -326,7 +326,7 @@ export const Navbar = ({ currentTab, setCurrentTab, setSelectedLiveId, setSelect
             <button 
               onClick={toggleTheme}
               title={theme === 'light' ? 'الوضع الداكن 🌙' : 'الوضع المضيء ☀️'}
-              className="p-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-amber-300 transition-all ml-1 text-sm leading-none border border-slate-200/80 dark:border-slate-700 shadow-2xs"
+              className="p-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-amber-300 transition-all text-sm leading-none border border-slate-200/80 dark:border-slate-700 shadow-2xs shrink-0"
             >
               {theme === 'light' ? '🌙' : '☀️'}
             </button>
@@ -334,7 +334,7 @@ export const Navbar = ({ currentTab, setCurrentTab, setSelectedLiveId, setSelect
             <button 
               onClick={logoutUser}
               title="تسجيل الخروج"
-              className="p-1.5 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-400 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-all mr-1"
+              className="p-1.5 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-all shrink-0"
             >
               <LogOut className="w-4 h-4" />
             </button>
