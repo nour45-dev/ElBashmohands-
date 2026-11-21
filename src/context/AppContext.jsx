@@ -120,7 +120,14 @@ export const AppProvider = ({ children }) => {
     }
   });
 
-  const [activeFolderId, setActiveFolderId] = useState(null);
+  const [activeFolderId, setActiveFolderId] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('folder') || null;
+    } catch (e) {
+      return null;
+    }
+  });
   const [navHistory, setNavHistory] = useState([]);
 
   // Ref to always hold fresh state across async / event boundaries
@@ -152,24 +159,40 @@ export const AppProvider = ({ children }) => {
     };
   }, [currentTab, selectedLessonId, selectedLiveId, activeFolderId, navHistory]);
 
-  const resetNavigation = (targetTab = 'home') => {
+  const resetNavigation = (targetTab = 'home', preserveUrlParams = false) => {
+    let nextTab = targetTab;
+    let nextLesson = '';
+    let nextLive = '';
+    let nextFolder = null;
+
+    if (preserveUrlParams) {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('tab')) nextTab = params.get('tab');
+        else if (params.get('live')) nextTab = 'live';
+        if (params.get('lesson')) nextLesson = params.get('lesson');
+        if (params.get('live')) nextLive = params.get('live');
+        if (params.get('folder')) nextFolder = params.get('folder');
+      } catch (e) {}
+    }
+
     navStateRef.current = {
-      currentTab: targetTab,
-      selectedLessonId: '',
-      selectedLiveId: '',
-      activeFolderId: null,
+      currentTab: nextTab,
+      selectedLessonId: nextLesson,
+      selectedLiveId: nextLive,
+      activeFolderId: nextFolder,
       navHistory: []
     };
-    _setCurrentTab(targetTab);
-    _setSelectedLessonId('');
-    _setSelectedLiveId('');
-    setActiveFolderId(null);
+    _setCurrentTab(nextTab);
+    _setSelectedLessonId(nextLesson);
+    _setSelectedLiveId(nextLive);
+    setActiveFolderId(nextFolder);
     setNavHistory([]);
     try {
       window.history.replaceState(
-        { tab: targetTab, lessonId: '', liveId: '', folderId: null },
+        { tab: nextTab, lessonId: nextLesson, liveId: nextLive, folderId: nextFolder },
         '',
-        window.location.pathname
+        window.location.pathname + (preserveUrlParams ? window.location.search : '')
       );
     } catch (e) {}
   };
@@ -531,7 +554,7 @@ export const AppProvider = ({ children }) => {
       setUserRole('student');
       setCurrentStudent(data.user);
       setCurrentGrade(data.user.grade || '3sec');
-      resetNavigation('home');
+      resetNavigation('home', true);
       
       return { success: true, studentCode: data.user.code, message: `تم إنشاء حسابك بنجاح! كود الطالب الخاص بك هو: ${data.user.code}` };
     } catch (err) {
@@ -573,18 +596,18 @@ export const AppProvider = ({ children }) => {
 
       if (data.role === 'admin') {
         setAdminIdentity(data.identity);
-        resetNavigation('home');
+        resetNavigation('home', true);
         await fetchAdminData();
         return { success: true, message: `أهلاً وسهلاً بك يا ${data.name}! تم تسجيل الدخول.` };
       } else if (data.role === 'parent') {
         setCurrentStudent(data.matchedStudent);
-        resetNavigation('parent-view');
+        resetNavigation('parent-view', false);
         await fetchStudentData();
         return { success: true, matchedStudent: data.matchedStudent, message: `تم الوصول لحساب الطالب: ${data.matchedStudent.name}` };
       } else {
         setCurrentStudent(data.user);
         setCurrentGrade(data.user.grade || '3sec');
-        resetNavigation('home');
+        resetNavigation('home', true);
         await fetchStudentData();
         return { success: true, message: `أهلاً بعودتك يا ${data.user.name}` };
       }
