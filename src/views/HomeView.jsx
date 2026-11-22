@@ -370,7 +370,7 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveId
                   .filter(l => l.folderId === activeFolderExplorer.id)
                   .map(les => {
                     const isFree = les.price === 0;
-                    const isUnlocked = isFree || student?.unlockedLessons?.includes(les.id);
+                    const isUnlocked = isFree || (student?.subscriptionType === 'سنوي') || student?.unlockedLessons?.includes(les.id);
                     return (
                       <div
                         key={les.id}
@@ -547,7 +547,7 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveId
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {(arabicFolders.length > 0 ? arabicLessons.filter(l => !l.folderId) : arabicLessons).map(les => {
                   const isFree = les.price === 0;
-                  const isUnlocked = isFree || student?.unlockedLessons?.includes(les.id);
+                  const isUnlocked = isFree || (student?.subscriptionType === 'سنوي') || student?.unlockedLessons?.includes(les.id);
                   return (
                     <div
                       key={les.id}
@@ -726,7 +726,7 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveId
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {(programmingFolders.length > 0 ? programmingLessons.filter(l => !l.folderId) : programmingLessons).map(les => {
                   const isFree = les.price === 0;
-                  const isUnlocked = isFree || student?.unlockedLessons?.includes(les.id);
+                  const isUnlocked = isFree || (student?.subscriptionType === 'سنوي') || student?.unlockedLessons?.includes(les.id);
                   return (
                     <div
                       key={les.id}

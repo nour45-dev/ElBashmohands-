@@ -992,6 +992,7 @@ export const AppProvider = ({ children }) => {
     }
 
     const isMonthly = planType === 'شهري';
+    const monthlyCredits = Number(subscriptionPlans?.monthly?.credits || 8);
 
     if (isDemoMode) {
       setCurrentStudent(prev => ({
@@ -999,7 +1000,7 @@ export const AppProvider = ({ children }) => {
         walletBalance: prev.walletBalance - price,
         subscriptionStatus: 'active',
         subscriptionType: planType,
-        monthlyCreditsLeft: isMonthly ? 8 : 999
+        monthlyCreditsLeft: isMonthly ? monthlyCredits : 999
       }));
       return {
         success: true,

@@ -134,7 +134,7 @@ export const WalletView = () => {
           </h1>
 
           <p className="text-xs text-slate-400 font-medium">
-            حالة الاشتراك الحالي: <span className="text-emerald-400 font-bold">{student.subscriptionType || 'غير مشترك'}</span> {student.subscriptionType === 'شهري' && `(رصيدك: ${student.monthlyCreditsLeft || 0}/8 حصص)`} • صف الطالب: ({student.gradeName})
+            حالة الاشتراك الحالي: <span className="text-emerald-400 font-bold">{student.subscriptionType || 'غير مشترك'}</span> {student.subscriptionType === 'شهري' && `(رصيدك: ${student.monthlyCreditsLeft || 0}/${subscriptionPlans?.monthly?.credits || 8} حصص)`} • صف الطالب: ({student.gradeName})
           </p>
         </div>
 

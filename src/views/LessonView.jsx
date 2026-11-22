@@ -149,6 +149,7 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
     getExamAttempt,
     adminIdentity,
     adminUpdateLesson,
+    subscriptionPlans,
     goBack,
     canGoBack
   } = useApp();
@@ -238,22 +239,28 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
   // Next video unlocked if: no exam for this lesson, OR exam was attempted AND passed
   const canGoNextVideo = !quiz || (alreadyAttempted && attemptRecord?.passed);
 
-  // Admin bypasses paywall automatically! Student needs free or unlocked.
-  const isVideoAccessible = (userRole === 'admin') || (lesson.price === 0) || lesson.isUnlocked;
+  // Admin & Annual Subscriber bypass paywall automatically! Monthly subscriber uses their 8 credits / unlockedLessons.
+  const isAnnualSubscriber = student?.subscriptionType === 'سنوي';
+  const isVideoAccessible =
+    (userRole === 'admin') ||
+    (lesson.price === 0) ||
+    isAnnualSubscriber ||
+    lesson.isUnlocked ||
+    Boolean(student?.unlockedLessons?.includes(lesson.id));
 
   // Format embed URL for YouTube / web videos
   const formattedEmbedUrl = formatVideoEmbedUrl(lesson.videoUrl);
 
   // Unlock via Wallet cash balance
-  const handleUnlockWithWallet = () => {
-    const res = unlockLesson(lesson.id, lesson.price, false);
-    setUnlockMessage(res.message);
+  const handleUnlockWithWallet = async () => {
+    const res = await unlockLesson(lesson.id, lesson.price, false);
+    if (res?.message) setUnlockMessage(res.message);
   };
 
-  // Unlock via 1 Monthly Subscription Credit (out of 8)
-  const handleUnlockWithMonthlyCredit = () => {
-    const res = unlockLesson(lesson.id, lesson.price, true);
-    setUnlockMessage(res.message);
+  // Unlock via 1 Monthly Subscription Credit
+  const handleUnlockWithMonthlyCredit = async () => {
+    const res = await unlockLesson(lesson.id, lesson.price, true);
+    if (res?.message) setUnlockMessage(res.message);
   };
 
   const handleApplyCoupon = (e) => {
@@ -385,7 +392,7 @@ export const LessonView = ({ lessonId, setCurrentTab, setSelectedLessonId }) => 
                   <div className="bg-amber-500/10 p-3 rounded-2xl border border-amber-500/30 w-full max-w-md space-y-2">
                     <div className="text-xs font-black text-amber-300 flex items-center justify-center gap-1.5">
                       <Zap className="w-4 h-4 text-amber-400" />
-                      <span>متاح باشتراكك الشهري رصيد: ({student.monthlyCreditsLeft}/8 حصص)</span>
+                      <span>متاح باشتراكك الشهري رصيد: ({student.monthlyCreditsLeft}/{subscriptionPlans?.monthly?.credits || 8} حصص)</span>
                     </div>
                     <button
                       onClick={handleUnlockWithMonthlyCredit}
