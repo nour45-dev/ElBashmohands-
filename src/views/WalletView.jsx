@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 
 export const WalletView = () => {
-  const { student, submitPaymentRequest, purchaseSubscription, paymentRequestsDB, userRole, goBack, canGoBack } = useApp();
+  const { student, submitPaymentRequest, purchaseSubscription, subscriptionPlans, paymentRequestsDB, userRole, goBack, canGoBack } = useApp();
 
   if (userRole === 'admin') {
     return (
@@ -351,50 +351,67 @@ export const WalletView = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             {/* Plan 1: Monthly Subscription */}
-            <div className="bg-white dark:bg-[#162534] p-6 rounded-3xl border-2 border-slate-200 dark:border-slate-800 hover:border-blue-500 shadow-md space-y-4 flex flex-col justify-between transition-all">
-              <div className="space-y-3">
-                <div className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-black px-3 py-1 rounded-full">
-                  <GraduationCap className="w-4 h-4" />
-                  <span>الاشتراك الشهري (8 حصص اختيارية) 📅</span>
+            {subscriptionPlans?.monthly?.enabled !== false && (
+              <div className="bg-white dark:bg-[#162534] p-6 rounded-3xl border-2 border-slate-200 dark:border-slate-800 hover:border-blue-500 shadow-md space-y-4 flex flex-col justify-between transition-all">
+                <div className="space-y-3">
+                  <div className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-black px-3 py-1 rounded-full">
+                    <GraduationCap className="w-4 h-4" />
+                    <span>{subscriptionPlans?.monthly?.title || 'الاشتراك الشهري'} ({subscriptionPlans?.monthly?.credits || 8} حصص اختيارية) 📅</span>
+                  </div>
+
+                  <h3 className="text-2xl font-black text-slate-900 dark:text-white">
+                    {Number(subscriptionPlans?.monthly?.price ?? 150).toLocaleString('en-US')} جنيه <span className="text-xs text-slate-500 dark:text-slate-400 font-bold">/ شهرياً</span>
+                  </h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
+                    {subscriptionPlans?.monthly?.description || `يمنحك رصيد ${subscriptionPlans?.monthly?.credits || 8} حصص اختيارية لفتح الفيديوهات التي تختارها بنفسك في صفك الدراسي (${student.gradeName}).`}
+                  </p>
                 </div>
 
-                <h3 className="text-2xl font-black text-slate-900 dark:text-white">150 جنيه <span className="text-xs text-slate-500 dark:text-slate-400 font-bold">/ شهرياً</span></h3>
-                <p className="text-xs text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
-                  يمنحك رصيد 8 حصص اختيارية لفتح أي 8 فيديوهات تختارها بنفسك في صفك الدراسي ({student.gradeName}).
-                </p>
+                <button
+                  onClick={() => handleSubscribe('شهري', Number(subscriptionPlans?.monthly?.price ?? 150))}
+                  className="w-full btn-primary text-xs font-black py-3.5 rounded-xl justify-center shadow-md shadow-blue-500/20"
+                >
+                  تفعيل {subscriptionPlans?.monthly?.title || 'الاشتراك الشهري'} بـ {subscriptionPlans?.monthly?.price ?? 150} ج.م 🚀
+                </button>
               </div>
-
-              <button
-                onClick={() => handleSubscribe('شهري', 150)}
-                className="w-full btn-primary text-xs font-black py-3.5 rounded-xl justify-center shadow-md shadow-blue-500/20"
-              >
-                تفعيل الاشتراك الشهري بـ 150 ج.م 🚀
-              </button>
-            </div>
+            )}
 
             {/* Plan 2: Annual Subscription */}
-            <div className="bg-gradient-to-b from-slate-900 to-blue-950 text-white p-6 rounded-3xl border-2 border-amber-500/50 shadow-xl space-y-4 flex flex-col justify-between relative overflow-hidden">
-              <div className="space-y-3 z-10">
-                <div className="inline-flex items-center gap-1.5 bg-amber-500/20 text-amber-300 text-xs font-black px-3 py-1 rounded-full border border-amber-500/30">
-                  <Sparkles className="w-4 h-4 text-amber-400" />
-                  <span>الاشتراك السنوي الكامل 🎓</span>
+            {subscriptionPlans?.annual?.enabled !== false && (
+              <div
+                style={{ background: 'linear-gradient(to bottom, #0f172a, #172554)' }}
+                className="text-white p-6 rounded-3xl border-2 border-amber-500/50 shadow-xl space-y-4 flex flex-col justify-between relative overflow-hidden"
+              >
+                <div className="space-y-3 z-10">
+                  <div className="inline-flex items-center gap-1.5 bg-amber-500/20 text-amber-300 text-xs font-black px-3 py-1 rounded-full border border-amber-500/30">
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    <span>{subscriptionPlans?.annual?.title || 'الاشتراك السنوي الكامل'} 🎓</span>
+                  </div>
+
+                  <h3 className="text-3xl font-black text-white">
+                    {Number(subscriptionPlans?.annual?.price ?? 1200).toLocaleString('en-US')} جنيه <span className="text-xs text-slate-300 font-bold">/ للعام كاملاً</span>
+                  </h3>
+                  <p className="text-xs text-slate-200 font-medium leading-relaxed">
+                    {subscriptionPlans?.annual?.description || 'يفتح لك كافة الحصص الحالية والجديدة طوال العام الدراسي بالإضافة لمراجعات ليلة الامتحان والـ PDF.'}
+                  </p>
                 </div>
 
-                <h3 className="text-3xl font-black text-white">1,200 جنيه <span className="text-xs text-slate-300 font-bold">/ للعام كاملاً</span></h3>
-                <p className="text-xs text-slate-300 font-medium leading-relaxed">
-                  يفتح لك كافة الحصص الحالية والجديدة طوال العام الدراسي بالإضافة لمراجعات ليلة الامتحان والـ PDF.
-                </p>
+                <button
+                  onClick={() => handleSubscribe('سنوي', Number(subscriptionPlans?.annual?.price ?? 1200))}
+                  className="w-full btn-accent text-xs font-black py-3.5 rounded-xl justify-center shadow-lg shadow-amber-500/20 z-10"
+                >
+                  تفعيل {subscriptionPlans?.annual?.title || 'الاشتراك السنوي'} بـ {subscriptionPlans?.annual?.price ?? 1200} ج.م 🌟
+                </button>
               </div>
-
-              <button
-                onClick={() => handleSubscribe('سنوي', 1200)}
-                className="w-full btn-accent text-xs font-black py-3.5 rounded-xl justify-center shadow-lg shadow-amber-500/20 z-10"
-              >
-                تفعيل الاشتراك السنوي بـ 1200 ج.م 🌟
-              </button>
-            </div>
+            )}
 
           </div>
+
+          {subscriptionPlans?.monthly?.enabled === false && subscriptionPlans?.annual?.enabled === false && (
+            <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border text-center text-xs font-bold text-slate-500">
+              الباقات الشهرية والسنوية متوقفة مؤقتاً من قِبل المعلم. يمكنك فتح الحصص فردياً من المحفظة.
+            </div>
+          )}
 
           {feedback && (
             <div className={`p-4 rounded-2xl text-xs font-bold flex items-center gap-2 border ${feedback.success ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-rose-50 text-rose-800 border-rose-200'}`}>

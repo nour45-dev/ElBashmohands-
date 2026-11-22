@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
   Users, 
@@ -76,6 +76,8 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
     setActiveWhatsAppModal,
     goBack,
     canGoBack,
+    subscriptionPlans,
+    adminUpdateSubscriptionPlans,
     // Live Studio functions
     liveSessionsDB,
     adminCreateLiveSession,
@@ -93,6 +95,29 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
   // Broadcast Modal State
   const [broadcastModal, setBroadcastModal] = useState(null); // { lessonTitle, links: [{studentName, phone, whatsappUrl}] }
   const [smsModal, setSmsModal] = useState(null); // { phone, msgText, whatsappFallbackUrl }
+
+  // Subscription Plans Management State
+  const [subPlanForm, setSubPlanForm] = useState(subscriptionPlans || {
+    monthly: { enabled: true, title: 'الاشتراك الشهري', price: 150, credits: 8, description: '' },
+    annual: { enabled: true, title: 'الاشتراك السنوي الكامل', price: 1200, credits: 999, description: '' }
+  });
+  const [isSavingSubPlans, setIsSavingSubPlans] = useState(false);
+  const [subPlanFeedback, setSubPlanFeedback] = useState(null);
+
+  useEffect(() => {
+    if (subscriptionPlans) {
+      setSubPlanForm(subscriptionPlans);
+    }
+  }, [subscriptionPlans]);
+
+  const handleSaveSubscriptionPlans = async (e) => {
+    e.preventDefault();
+    setIsSavingSubPlans(true);
+    setSubPlanFeedback(null);
+    const res = await adminUpdateSubscriptionPlans(subPlanForm);
+    setSubPlanFeedback(res);
+    setIsSavingSubPlans(false);
+  };
   const [isAutoSending, setIsAutoSending] = useState(false);
   const [autoSendProgress, setAutoSendProgress] = useState(0);
 
@@ -979,6 +1004,14 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
         </button>
 
         <button
+          onClick={() => setAdminTab('subscriptions')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all whitespace-nowrap ${adminTab === 'subscriptions' ? 'bg-emerald-800 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
+        >
+          <Award className="w-4 h-4 text-emerald-500" />
+          <span>الاشتراكات والباقات 💎</span>
+        </button>
+
+        <button
           onClick={() => setAdminTab('qa')}
           className={`px-4 py-2.5 rounded-xl text-xs font-extrabold flex items-center gap-2 transition-all whitespace-nowrap ${adminTab === 'qa' ? 'bg-blue-900 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
         >
@@ -1719,6 +1752,155 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
       )}
 
       {/* Tab: Notifications */}
+      {/* ═══ Tab: Subscription Plans Control (إدارة الباقات الشهرية والسنوية) ═══ */}
+      {adminTab === 'subscriptions' && (
+        <div className="space-y-6 animate-in fade-in" dir="rtl">
+          <div className="bg-white dark:bg-[#162534] p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-md space-y-6">
+            <div className="border-b border-slate-100 dark:border-slate-800 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="font-black text-slate-900 dark:text-white text-lg flex items-center gap-2">
+                  <Award className="w-5 h-5 text-emerald-600" />
+                  <span>إدارة الاشتراكات الشهري والسنوي للطلاب 💎</span>
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">
+                  تحكم في أسعار الباقات، عدد الحصص المتاحة في الاشتراك الشهري، أو إيقاف وتفعيل أي باقة — وتظهر التعديلات للطلاب في المحفظة فوراً.
+                </p>
+              </div>
+            </div>
+
+            {subPlanFeedback && (
+              <div className={`p-4 rounded-2xl text-xs font-bold flex items-center gap-2 border ${subPlanFeedback.success ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-rose-50 text-rose-800 border-rose-200'}`}>
+                {subPlanFeedback.success ? <CheckCircle2 className="w-5 h-5 text-emerald-600" /> : <AlertCircle className="w-5 h-5 text-rose-600" />}
+                <span>{subPlanFeedback.message}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveSubscriptionPlans} className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Monthly Plan Settings */}
+                <div className="bg-slate-50 dark:bg-slate-900/70 p-6 rounded-3xl border-2 border-blue-200/80 dark:border-blue-500/30 space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <span className="font-black text-base text-blue-700 dark:text-blue-400">📅 إعدادات الاشتراك الشهري</span>
+                    <label className="inline-flex items-center gap-2 cursor-pointer text-xs font-black">
+                      <input
+                        type="checkbox"
+                        checked={subPlanForm.monthly?.enabled !== false}
+                        onChange={(e) => setSubPlanForm(prev => ({ ...prev, monthly: { ...prev.monthly, enabled: e.target.checked } }))}
+                        className="w-4 h-4 accent-blue-600 rounded"
+                      />
+                      <span className={subPlanForm.monthly?.enabled !== false ? 'text-emerald-600' : 'text-rose-500'}>
+                        {subPlanForm.monthly?.enabled !== false ? 'مُفعل للطلاب ✅' : 'مُعطل ❌'}
+                      </span>
+                    </label>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">اسم الباقة:</label>
+                    <input
+                      type="text"
+                      value={subPlanForm.monthly?.title || ''}
+                      onChange={(e) => setSubPlanForm(prev => ({ ...prev, monthly: { ...prev.monthly, title: e.target.value } }))}
+                      className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">سعر الاشتراك (ج.م):</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={subPlanForm.monthly?.price ?? 150}
+                        onChange={(e) => setSubPlanForm(prev => ({ ...prev, monthly: { ...prev.monthly, price: Number(e.target.value) } }))}
+                        className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs font-mono font-black outline-none focus:border-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">عدد الحصص المتاحة:</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={subPlanForm.monthly?.credits ?? 8}
+                        onChange={(e) => setSubPlanForm(prev => ({ ...prev, monthly: { ...prev.monthly, credits: Number(e.target.value) } }))}
+                        className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs font-mono font-black outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">وصف الباقة للطالب:</label>
+                    <textarea
+                      rows={3}
+                      value={subPlanForm.monthly?.description || ''}
+                      onChange={(e) => setSubPlanForm(prev => ({ ...prev, monthly: { ...prev.monthly, description: e.target.value } }))}
+                      className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:border-blue-500 resize-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Annual Plan Settings */}
+                <div className="bg-slate-50 dark:bg-slate-900/70 p-6 rounded-3xl border-2 border-amber-300/80 dark:border-amber-500/30 space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <span className="font-black text-base text-amber-600 dark:text-amber-400">🎓 إعدادات الاشتراك السنوي</span>
+                    <label className="inline-flex items-center gap-2 cursor-pointer text-xs font-black">
+                      <input
+                        type="checkbox"
+                        checked={subPlanForm.annual?.enabled !== false}
+                        onChange={(e) => setSubPlanForm(prev => ({ ...prev, annual: { ...prev.annual, enabled: e.target.checked } }))}
+                        className="w-4 h-4 accent-amber-500 rounded"
+                      />
+                      <span className={subPlanForm.annual?.enabled !== false ? 'text-emerald-600' : 'text-rose-500'}>
+                        {subPlanForm.annual?.enabled !== false ? 'مُفعل للطلاب ✅' : 'مُعطل ❌'}
+                      </span>
+                    </label>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">اسم الباقة:</label>
+                    <input
+                      type="text"
+                      value={subPlanForm.annual?.title || ''}
+                      onChange={(e) => setSubPlanForm(prev => ({ ...prev, annual: { ...prev.annual, title: e.target.value } }))}
+                      className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:border-amber-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">سعر الاشتراك السنوي الكامل (ج.م):</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={subPlanForm.annual?.price ?? 1200}
+                      onChange={(e) => setSubPlanForm(prev => ({ ...prev, annual: { ...prev.annual, price: Number(e.target.value) } }))}
+                      className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs font-mono font-black outline-none focus:border-amber-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">وصف الباقة للطالب:</label>
+                    <textarea
+                      rows={3}
+                      value={subPlanForm.annual?.description || ''}
+                      onChange={(e) => setSubPlanForm(prev => ({ ...prev, annual: { ...prev.annual, description: e.target.value } }))}
+                      className="w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:border-amber-500 resize-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSavingSubPlans}
+                className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-lg flex items-center justify-center gap-2 transition-all"
+              >
+                <Check className="w-4 h-4" />
+                <span>{isSavingSubPlans ? 'جاري الحفظ... ⏳' : 'حفظ إعدادات الاشتراكات وتطبيقها فوراً ✅'}</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
       {adminTab === 'notifications' && (
         <div className="space-y-8 animate-in fade-in" dir="rtl">
           {/* Send New Notification Form */}

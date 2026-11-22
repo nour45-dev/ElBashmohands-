@@ -106,6 +106,22 @@ export const AppProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [examHistory, setExamHistory] = useState([]);
   const [examAttempts, setExamAttempts] = useState({});
+  const [subscriptionPlans, setSubscriptionPlans] = useState({
+    monthly: {
+      enabled: true,
+      title: 'الاشتراك الشهري',
+      price: 150,
+      credits: 8,
+      description: 'يمنحك رصيد حصص اختيارية لفتح الفيديوهات التي تختارها بنفسك في صفك الدراسي.'
+    },
+    annual: {
+      enabled: true,
+      title: 'الاشتراك السنوي الكامل',
+      price: 1200,
+      credits: 999,
+      description: 'يفتح لك كافة الحصص الحالية والجديدة طوال العام الدراسي بالإضافة لمراجعات ليلة الامتحان والـ PDF.'
+    }
+  });
 
   // Local helper UI logs
   const [whatsappLogs, setWhatsappLogs] = useState([]);
@@ -456,6 +472,14 @@ export const AppProvider = ({ children }) => {
         if (resFolders.ok) {
           const dataFolders = await resFolders.json();
           setFolders(dataFolders);
+        }
+      } catch(e) {}
+      try {
+        const tid = userRole === 'admin' ? adminIdentity : (currentStudent?.teacherId || 'eng_nour');
+        const resPlans = await fetch(`/api/subscription-plans?teacherId=${encodeURIComponent(tid)}`);
+        if (resPlans.ok) {
+          const dataPlans = await resPlans.json();
+          setSubscriptionPlans(dataPlans);
         }
       } catch(e) {}
       const resNotifs = await fetch('/api/notifications');
@@ -942,6 +966,26 @@ export const AppProvider = ({ children }) => {
   };
 
   // Purchase Monthly (8 Video Credits) or Annual Subscription
+  const adminUpdateSubscriptionPlans = async (plansData) => {
+    try {
+      const res = await fetch('/api/subscription-plans', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(plansData),
+        credentials: 'include'
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setSubscriptionPlans(updated);
+        return { success: true, plans: updated, message: 'تم حفظ إعدادات الاشتراكات الشهري والسنوي بنجاح ✅' };
+      }
+      const errData = await res.json().catch(() => ({}));
+      return { success: false, message: errData.error || 'فشل حفظ إعدادات الاشتراكات.' };
+    } catch (err) {
+      return { success: false, message: 'خطأ في الاتصال بالخادم.' };
+    }
+  };
+
   const purchaseSubscription = async (planType, price) => {
     if (currentStudent.walletBalance < price) {
       return { success: false, message: `رصيد المحفظة لا يكفي الاشتراك (${price} ج.م). يرجى شحن المحفظة أولاً.` };
@@ -1877,6 +1921,8 @@ https://elm.up.railway.app`;
       applyCoupon,
       adminCreateCoupon,
       purchaseSubscription,
+      subscriptionPlans,
+      adminUpdateSubscriptionPlans,
       addStudentQuestion,
       adminReplyToQuestion,
       recordExamResult,

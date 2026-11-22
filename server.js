@@ -1402,6 +1402,95 @@ app.delete('/api/students/:id', requireAdmin, async (req, res) => {
   }
 });
 
+// Default Subscription Plans Helper
+const DEFAULT_SUBSCRIPTION_PLANS = {
+  monthly: {
+    enabled: true,
+    title: 'الاشتراك الشهري',
+    price: 150,
+    credits: 8,
+    description: 'يمنحك رصيد حصص اختيارية لفتح الفيديوهات التي تختارها بنفسك في صفك الدراسي.'
+  },
+  annual: {
+    enabled: true,
+    title: 'الاشتراك السنوي الكامل',
+    price: 1200,
+    credits: 999,
+    description: 'يفتح لك كافة الحصص الحالية والجديدة طوال العام الدراسي بالإضافة لمراجعات ليلة الامتحان والـ PDF.'
+  }
+};
+
+const getTeacherSubscriptionPlans = async (teacherId = 'eng_nour') => {
+  try {
+    if (dbType === 'mongodb') {
+      const tenant = await db.collection('tenants').findOne({ id: teacherId });
+      if (tenant?.subscriptionPlans) {
+        return {
+          monthly: { ...DEFAULT_SUBSCRIPTION_PLANS.monthly, ...tenant.subscriptionPlans.monthly },
+          annual: { ...DEFAULT_SUBSCRIPTION_PLANS.annual, ...tenant.subscriptionPlans.annual }
+        };
+      }
+    } else {
+      const data = getLocalData();
+      if (data.subscriptionPlans && data.subscriptionPlans[teacherId]) {
+        return {
+          monthly: { ...DEFAULT_SUBSCRIPTION_PLANS.monthly, ...data.subscriptionPlans[teacherId].monthly },
+          annual: { ...DEFAULT_SUBSCRIPTION_PLANS.annual, ...data.subscriptionPlans[teacherId].annual }
+        };
+      }
+    }
+  } catch (e) {}
+  return DEFAULT_SUBSCRIPTION_PLANS;
+};
+
+app.get('/api/subscription-plans', async (req, res) => {
+  const teacherId = req.query.teacherId || 'eng_nour';
+  const plans = await getTeacherSubscriptionPlans(teacherId);
+  return res.json(plans);
+});
+
+app.put('/api/subscription-plans', requireAdmin, async (req, res) => {
+  const teacherId = req.user.identity || 'eng_nour';
+  const { monthly, annual } = req.body || {};
+
+  const sanitizePlan = (incoming, fallback) => ({
+    enabled: incoming?.enabled !== false,
+    title: String(incoming?.title || fallback.title).trim(),
+    price: Math.max(0, Number(incoming?.price ?? fallback.price) || 0),
+    credits: Math.max(1, Number(incoming?.credits ?? fallback.credits) || fallback.credits),
+    description: String(incoming?.description || fallback.description).trim()
+  });
+
+  const nextPlans = {
+    monthly: sanitizePlan(monthly, DEFAULT_SUBSCRIPTION_PLANS.monthly),
+    annual: sanitizePlan(annual, DEFAULT_SUBSCRIPTION_PLANS.annual)
+  };
+
+  try {
+    if (dbType === 'mongodb') {
+      const existing = await db.collection('tenants').findOne({ id: teacherId });
+      if (existing) {
+        await db.collection('tenants').updateOne({ id: teacherId }, { $set: { subscriptionPlans: nextPlans } });
+      } else {
+        await db.collection('tenants').insertOne({
+          id: teacherId,
+          name: teacherId === 'mr_sayed' ? 'أ / سيد عبد العاطي' : 'م / نور الدين أحمد',
+          active: true,
+          subscriptionPlans: nextPlans
+        });
+      }
+    } else {
+      const data = getLocalData();
+      if (!data.subscriptionPlans) data.subscriptionPlans = {};
+      data.subscriptionPlans[teacherId] = nextPlans;
+      writeLocalData(data);
+    }
+    return res.json(nextPlans);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // Secure Student Subscription Purchase
 app.post('/api/students/subscribe', verifyToken, async (req, res) => {
   if (req.user.role !== 'student') {
@@ -1413,8 +1502,6 @@ app.post('/api/students/subscribe', verifyToken, async (req, res) => {
   if (!isMonthly && !isAnnual) {
     return res.status(400).json({ error: 'نوع الاشتراك غير صالح.' });
   }
-  const price = isMonthly ? 150 : 1200;
-  const newCredits = isMonthly ? 8 : 999;
 
   try {
     let student = null;
@@ -1425,6 +1512,16 @@ app.post('/api/students/subscribe', verifyToken, async (req, res) => {
       student = data.students.find(s => s.id === req.user.id);
     }
     if (!student) return res.status(404).json({ error: 'حساب الطالب غير موجود.' });
+
+    const plans = await getTeacherSubscriptionPlans(student.teacherId || 'eng_nour');
+    const selectedPlan = isMonthly ? plans.monthly : plans.annual;
+    if (selectedPlan.enabled === false) {
+      return res.status(400).json({ error: 'هذا الاشتراك غير متاح حالياً من قِبل المعلم.' });
+    }
+
+    const price = Number(selectedPlan.price) || 0;
+    const newCredits = isMonthly ? (Number(selectedPlan.credits) || 8) : (Number(selectedPlan.credits) || 999);
+
     if ((student.walletBalance || 0) < price) {
       return res.status(400).json({ error: `رصيد المحفظة لا يكفي الاشتراك (${price} ج.م). يرجى شحن المحفظة أولاً.` });
     }
