@@ -523,9 +523,11 @@ export const AIChatbot = () => {
     setInput('');
     setIsLoading(true);
 
-    // Try backend AI API first (with recent conversation history)
+    // Try backend AI API first (with recent conversation history & 9s timeout)
     let botReply = '';
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 9000);
       const recentHistory = messages.slice(-6).map(m => ({
         role: m.sender === 'user' ? 'user' : 'assistant',
         content: m.text
@@ -533,11 +535,13 @@ export const AIChatbot = () => {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           messages: [...recentHistory, { role: 'user', content: textToProcess }],
           provider: 'gemini'
         })
       });
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         const data = await response.json();
@@ -586,7 +590,7 @@ export const AIChatbot = () => {
         <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl w-[92vw] sm:w-[420px] h-[550px] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200">
           
           {/* Header */}
-          <div className="bg-gradient-to-l from-slate-950 via-slate-900 to-indigo-950 p-4 text-white flex items-center justify-between border-b border-slate-800">
+          <div className="bg-slate-900 p-4 text-white flex items-center justify-between border-b border-slate-800">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950 flex items-center justify-center font-black text-base shadow-md">
                 🤖
@@ -605,7 +609,7 @@ export const AIChatbot = () => {
 
             <button
               onClick={() => setIsOpen(false)}
-              className="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800/80 transition-all"
+              className="text-white bg-slate-800 hover:bg-slate-700 p-1.5 rounded-xl transition-all border border-slate-700"
             >
               <X className="w-5 h-5" />
             </button>

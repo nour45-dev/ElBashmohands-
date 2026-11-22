@@ -98,6 +98,7 @@ export const ExamView = ({ setCurrentTab }) => {
     setActiveWhatsAppModal,
     adminIdentity,
     userRole,
+    isDemoMode,
     goBack,
     canGoBack
   } = useApp();
@@ -166,6 +167,29 @@ export const ExamView = ({ setCurrentTab }) => {
     }))
   ];
 
+  if (isDemoMode && dynamicQuizzes.length === 0) {
+    dynamicQuizzes.push({
+      id: 'demo_quiz_1',
+      lessonId: 'les_1793692156441',
+      title: 'اختبار تجريبي تفاعلي: أساسيات البرمجة والمنصة 🚀',
+      durationMinutes: 10,
+      rewardPoints: 50,
+      totalQuestions: 2,
+      questions: [
+        {
+          question: 'ما هي الميزة الأساسية لنظام الامتحانات في منصة عِلم؟',
+          options: ['تصحيح إلكتروني فوري + تقرير لولي الأمر', 'تصحيح يدوي بعد أسبوع', 'بدون درجات'],
+          correctIndex: 0
+        },
+        {
+          question: 'أي من وسائل الدفع التالية مدعومة تلقائياً داخل المحفظة؟',
+          options: ['InstaPay وفودافون كاش وأكواد السنتر', 'التحويل البريدي فقط', 'لا يوجد دفع إلكتروني'],
+          correctIndex: 0
+        }
+      ]
+    });
+  }
+
   useEffect(() => {
     if (!activeQuiz || quizCompleted) return;
     if (timeLeft <= 0) { handleSubmitExam(); return; }
@@ -223,14 +247,17 @@ export const ExamView = ({ setCurrentTab }) => {
         )}
 
         {/* Header Banner */}
-        <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white p-8 rounded-3xl border border-blue-800/80 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+        <div
+          style={{ background: 'linear-gradient(to left, #0f172a, #1e1b4b, #1e3a8a)' }}
+          className="text-white p-8 rounded-3xl border border-blue-800/80 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6"
+        >
           <div className="space-y-2 text-right">
             <div className="inline-flex items-center gap-2 bg-amber-500/20 text-amber-300 text-xs font-black px-3 py-1 rounded-full border border-amber-500/30">
               <Sparkles className="w-3.5 h-3.5" />
               <span>نظام الاختبارات الإلكترونية والتصحيح الفوري</span>
             </div>
-            <h1 className="text-2xl md:text-3xl font-black">الامتحانات والواجبات الإلكترونية 📝</h1>
-            <p className="text-xs md:text-sm text-slate-300 font-medium max-w-xl">
+            <h1 className="text-2xl md:text-3xl font-black text-white">الامتحانات والواجبات الإلكترونية 📝</h1>
+            <p className="text-xs md:text-sm text-slate-200 font-medium max-w-xl">
               اختبر مستواك في البرمجة، واحصل على التصحيح التلقائي فوراً، مع إرسال تقرير النتيجة لولي الأمر 📲
             </p>
           </div>

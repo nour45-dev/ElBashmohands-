@@ -69,13 +69,13 @@ export const WalletView = () => {
     if (file) setProofFile(file);
   };
 
-  const handleSubscribe = (planType, price) => {
+  const handleSubscribe = async (planType, price) => {
     setFeedback(null);
-    const res = purchaseSubscription(planType, price);
+    const res = await purchaseSubscription(planType, price);
     setFeedback(res);
   };
 
-  const handlePaymentSubmit = (e) => {
+  const handlePaymentSubmit = async (e) => {
     e.preventDefault();
     setFeedback(null);
 
@@ -91,7 +91,7 @@ export const WalletView = () => {
 
     const proofImageUrl = URL.createObjectURL(proofFile);
 
-    const res = submitPaymentRequest({
+    const res = await submitPaymentRequest({
       amount: selectedAmount,
       method: paymentMethod,
       refNumber: refNumber.trim(),
@@ -106,7 +106,7 @@ export const WalletView = () => {
   };
 
   return (
-    <div className="space-y-8 pb-16 max-w-4xl mx-auto">
+    <div className="space-y-8 pb-24 max-w-4xl mx-auto">
 
       {canGoBack && (
         <div className="flex items-center justify-start">

@@ -1866,18 +1866,22 @@ app.post('/api/chat', async (req, res) => {
         }
       };
 
-      const geminiModels = ['gemini-flash-latest', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+      const geminiModels = ['gemini-2.0-flash', 'gemini-flash-latest', 'gemini-1.5-flash'];
       let botResponse = null;
       let lastErr = '';
 
       for (const modelName of geminiModels) {
         try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 6000);
           const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
           const response = await fetch(geminiUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
             body: JSON.stringify(bodyPayload)
           });
+          clearTimeout(timeoutId);
           if (response.ok) {
             const data = await response.json();
             const text = data.candidates?.[0]?.content?.parts?.[0]?.text;

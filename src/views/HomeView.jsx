@@ -318,9 +318,12 @@ export const HomeView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveId
             <img
               src={activeFolderExplorer.thumbnail || "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&q=80&w=1200"}
               alt={activeFolderExplorer.title}
-              className="absolute inset-0 w-full h-full object-cover opacity-40 blur-xs scale-105"
+              className="absolute inset-0 w-full h-full object-cover opacity-30 blur-xs scale-105"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/70 to-transparent" />
+            <div
+              style={{ background: 'linear-gradient(to top, rgba(2,6,23,0.95), rgba(2,6,23,0.78), rgba(2,6,23,0.55))' }}
+              className="absolute inset-0"
+            />
             
             <div className="relative z-10 p-6 md:p-8 w-full flex flex-col sm:flex-row sm:items-end justify-between gap-4 text-white">
               <div className="space-y-2">
