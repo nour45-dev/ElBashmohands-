@@ -2220,43 +2220,60 @@ app.post('/api/live', requireAdmin, async (req, res) => {
   }
 });
 
-// Admin update live session status (scheduled -> live -> ended)
+// Admin update live session status (scheduled -> live -> ended) and/or attach recording
 app.patch('/api/live/:id/status', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, recordingUrl, streamUrl } = req.body;
-    if (!['scheduled', 'live', 'ended'].includes(status)) {
+    const { status, recordingUrl, streamUrl, folderId, lessonTitle, duration } = req.body;
+    if (status !== undefined && status !== null && !['scheduled', 'live', 'ended'].includes(status)) {
       return res.status(400).json({ error: 'حالة البث غير صالحة' });
     }
 
-    const updateFields = { status };
-    if (recordingUrl !== undefined) updateFields.recordingUrl = recordingUrl;
-    if (streamUrl !== undefined) updateFields.streamUrl = streamUrl;
+    const updateFields = {};
+    if (status) updateFields.status = status;
+    if (recordingUrl !== undefined && recordingUrl !== null) updateFields.recordingUrl = recordingUrl;
+    if (streamUrl !== undefined && streamUrl !== null) updateFields.streamUrl = streamUrl;
+    if (folderId !== undefined) updateFields.recordingFolderId = folderId || null;
+
+    const buildAutoLesson = (sessionDoc) => ({
+      id: `les_live_${sessionDoc.id}`,
+      teacherId: sessionDoc.teacherId || req.user.identity || 'eng_nour',
+      folderId: folderId || null,
+      title: (lessonTitle && String(lessonTitle).trim()) || `📺 تسجيل البث: ${sessionDoc.title}`,
+      subject: sessionDoc.subject || 'برمجة وعلوم الحاسب',
+      grade: sessionDoc.grade === 'all' ? '3sec' : (sessionDoc.grade || '3sec'),
+      price: 0,
+      duration: duration || '45 دقيقة',
+      videoUrl: recordingUrl,
+      thumbnail: null,
+      description: `تسجيل تلقائي لحصة البث المباشر (${sessionDoc.title}) مع ${sessionDoc.instructor || 'المعلم'}.`,
+      createdAt: new Date().toISOString()
+    });
 
     if (dbType === 'mongodb') {
-      await db.collection('liveSessions').updateOne({ id }, { $set: updateFields });
+      if (Object.keys(updateFields).length > 0) {
+        await db.collection('liveSessions').updateOne({ id }, { $set: updateFields });
+      }
       const sessionDoc = await db.collection('liveSessions').findOne({ id });
 
-      // Automatically add recorded live session as a Lesson in "الحصص والدروس"
+      // Automatically add recorded live session as a Lesson in "الحصص والدروس" (or selected folder)
       if (recordingUrl && sessionDoc) {
         const autoLessonId = `les_live_${sessionDoc.id}`;
         const existingLesson = await db.collection('lessons').findOne({ id: autoLessonId });
         if (!existingLesson) {
-          await db.collection('lessons').insertOne({
-            id: autoLessonId,
-            teacherId: sessionDoc.teacherId || req.user.identity || 'eng_nour',
-            title: `📺 تسجيل البث: ${sessionDoc.title}`,
-            subject: sessionDoc.subject || 'برمجة وعلوم الحاسب',
-            grade: sessionDoc.grade === 'all' ? '3sec' : (sessionDoc.grade || '3sec'),
-            price: 0,
-            duration: '45 دقيقة',
-            videoUrl: recordingUrl,
-            thumbnail: null,
-            description: `تسجيل تلقائي لحصة البث المباشر (${sessionDoc.title}) مع ${sessionDoc.instructor || 'المعلم'}.`,
-            createdAt: new Date().toISOString()
-          });
+          await db.collection('lessons').insertOne(buildAutoLesson(sessionDoc));
         } else {
-          await db.collection('lessons').updateOne({ id: autoLessonId }, { $set: { videoUrl: recordingUrl } });
+          await db.collection('lessons').updateOne(
+            { id: autoLessonId },
+            {
+              $set: {
+                videoUrl: recordingUrl,
+                folderId: folderId !== undefined ? (folderId || null) : (existingLesson.folderId || null),
+                ...(lessonTitle && String(lessonTitle).trim() ? { title: String(lessonTitle).trim() } : {}),
+                ...(duration ? { duration } : {})
+              }
+            }
+          );
         }
       }
 
@@ -2280,8 +2297,26 @@ app.patch('/api/live/:id/status', requireAdmin, async (req, res) => {
       const idx = data.liveSessions.findIndex(s => s.id === id);
       if (idx !== -1) {
         data.liveSessions[idx] = { ...data.liveSessions[idx], ...updateFields };
+        const sessionItem = data.liveSessions[idx];
+
+        if (recordingUrl) {
+          if (!data.lessons) data.lessons = [];
+          const autoLessonId = `les_live_${sessionItem.id}`;
+          const lessonIdx = data.lessons.findIndex(l => l.id === autoLessonId);
+          if (lessonIdx === -1) {
+            data.lessons.unshift(buildAutoLesson(sessionItem));
+          } else {
+            data.lessons[lessonIdx] = {
+              ...data.lessons[lessonIdx],
+              videoUrl: recordingUrl,
+              folderId: folderId !== undefined ? (folderId || null) : (data.lessons[lessonIdx].folderId || null),
+              ...(lessonTitle && String(lessonTitle).trim() ? { title: String(lessonTitle).trim() } : {}),
+              ...(duration ? { duration } : {})
+            };
+          }
+        }
+
         if (status === 'live') {
-          const sessionItem = data.liveSessions[idx];
           if (!data.notifications) data.notifications = [];
           data.notifications.unshift({
             id: `n_${Date.now()}`,
@@ -2298,7 +2333,10 @@ app.patch('/api/live/:id/status', requireAdmin, async (req, res) => {
       }
     }
 
-    return res.json({ success: true, message: `تم تحديث حالة البث إلى (${status === 'live' ? 'مباشر الآن 🔴' : status === 'ended' ? 'منتهي' : 'مجدول'}) بنجاح` });
+    const statusMsg = status
+      ? `تم تحديث حالة البث إلى (${status === 'live' ? 'مباشر الآن 🔴' : status === 'ended' ? 'منتهي' : 'مجدول'}) بنجاح`
+      : 'تم حفظ تسجيل البث المباشر بنجاح';
+    return res.json({ success: true, message: statusMsg });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

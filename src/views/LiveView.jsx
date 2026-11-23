@@ -41,7 +41,11 @@ import {
   VolumeX,
   BarChart2,
   Plus,
-  X
+  X,
+  Folder,
+  Globe,
+  Upload,
+  Download
 } from 'lucide-react';
 import { LiveWhiteboard } from '../components/LiveWhiteboard';
 
@@ -59,6 +63,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
     admitStudentLive,
     admitAllStudentsLive,
     sendLiveHeartbeat,
+    folders,
     student, 
     userRole, 
     adminIdentity,
@@ -738,7 +743,15 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
   // In-App Live Broadcast Recording Controller
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const recordingSecondsRef = useRef(0);
   const [recordingSavedUrl, setRecordingSavedUrl] = useState(currentSession?.recordingUrl || null);
+  const [showRecordingUploadModal, setShowRecordingUploadModal] = useState(false);
+  const [pendingRecording, setPendingRecording] = useState(null);
+  const [recordingUploadTarget, setRecordingUploadTarget] = useState('public'); // 'public' | 'folder'
+  const [recordingTargetFolderId, setRecordingTargetFolderId] = useState('');
+  const [recordingLessonTitle, setRecordingLessonTitle] = useState('');
+  const [recordingUploadProgress, setRecordingUploadProgress] = useState(0);
+  const [recordingUploadError, setRecordingUploadError] = useState('');
   const mediaRecorderRef = useRef(null);
   const recordedChunksRef = useRef([]);
 
@@ -747,7 +760,11 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
   useEffect(() => {
     let interval;
     if (isRecording) {
-      interval = setInterval(() => setRecordingSeconds(prev => prev + 1), 1000);
+      recordingSecondsRef.current = 0;
+      interval = setInterval(() => {
+        recordingSecondsRef.current += 1;
+        setRecordingSeconds(prev => prev + 1);
+      }, 1000);
     } else {
       setRecordingSeconds(0);
     }
@@ -778,26 +795,29 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
         }
       };
 
-      recorder.onstop = async () => {
+      recorder.onstop = () => {
         setIsRecording(false);
-        setIsUploadingRecording(true);
+        const totalSecs = recordingSecondsRef.current;
+        const durationLabel = totalSecs >= 60 ? `${Math.max(1, Math.round(totalSecs / 60))} دقيقة` : `${Math.max(1, totalSecs)} ثانية`;
         const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
-        const file = new File([blob], `live_record_${currentSession.id}.webm`, { type: 'video/webm' });
+        const sessionId = currentSession?.id || Date.now();
+        const file = new File([blob], `live_record_${sessionId}.webm`, { type: 'video/webm' });
+        const previewUrl = URL.createObjectURL(blob);
 
-        try {
-          const uploadRes = await uploadVideoFile(file);
-          const finalUrl = uploadRes?.url || URL.createObjectURL(blob);
-          setRecordingSavedUrl(finalUrl);
-          
-          // Save recording automatically to live session & lesson archive
-          await adminUpdateLiveStatus(currentSession.id, currentSession.status, finalUrl);
-          await refreshLiveSession(currentSession.id);
-          alert('تم حفظ تسجيل الحصة تلقائياً وإضافته إلى أرشيف الحصص بنجاح! 💾🎉');
-        } catch (e) {
-          console.error('Auto upload error', e);
-        } finally {
-          setIsUploadingRecording(false);
-        }
+        setPendingRecording({
+          blob,
+          file,
+          previewUrl,
+          duration: durationLabel,
+          sessionId: currentSession?.id,
+          sessionTitle: currentSession?.title || 'حصة مباشرة'
+        });
+        setRecordingLessonTitle(`📺 تسجيل البث: ${currentSession?.title || 'حصة مباشرة'}`);
+        setRecordingUploadTarget('public');
+        setRecordingTargetFolderId(folders?.[0]?.id || '');
+        setRecordingUploadProgress(0);
+        setRecordingUploadError('');
+        setShowRecordingUploadModal(true);
       };
 
       recorder.start(1000);
@@ -812,6 +832,81 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
     }
+  };
+
+  const handleConfirmRecordingUpload = async (e) => {
+    e.preventDefault();
+    if (!pendingRecording || isUploadingRecording) return;
+    if (recordingUploadTarget === 'folder' && !recordingTargetFolderId) {
+      setRecordingUploadError('يرجى اختيار المجلد المطلوب أولاً.');
+      return;
+    }
+
+    setIsUploadingRecording(true);
+    setRecordingUploadError('');
+    setRecordingUploadProgress(0);
+
+    try {
+      const uploadRes = await uploadVideoFile(pendingRecording.file, (pct) => {
+        setRecordingUploadProgress(pct);
+      });
+      const finalUrl = uploadRes?.url;
+      if (!finalUrl) {
+        throw new Error('لم يُرجع الخادم رابط الفيديو بعد الرفع.');
+      }
+
+      setRecordingSavedUrl(finalUrl);
+      const chosenFolderId = recordingUploadTarget === 'folder' ? recordingTargetFolderId : null;
+
+      await adminUpdateLiveStatus(
+        pendingRecording.sessionId,
+        null,
+        finalUrl,
+        null,
+        {
+          folderId: chosenFolderId,
+          lessonTitle: recordingLessonTitle.trim() || `📺 تسجيل البث: ${pendingRecording.sessionTitle}`,
+          duration: pendingRecording.duration
+        }
+      );
+      if (pendingRecording.sessionId) {
+        await refreshLiveSession(pendingRecording.sessionId);
+      }
+
+      URL.revokeObjectURL(pendingRecording.previewUrl);
+      setPendingRecording(null);
+      setShowRecordingUploadModal(false);
+      alert(
+        chosenFolderId
+          ? 'تم رفع تسجيل الحصة وإضافته داخل المجلد المحدد بنجاح! 📁🎉'
+          : 'تم رفع تسجيل الحصة وإضافته في الحصص العامة بنجاح! 🌐🎉'
+      );
+    } catch (err) {
+      console.error('Recording upload error:', err);
+      setRecordingUploadError('حدث خطأ أثناء رفع الفيديو على الخادم. يمكنك إعادة المحاولة أو تحميل نسخة على جهازك.');
+    } finally {
+      setIsUploadingRecording(false);
+    }
+  };
+
+  const handleDownloadPendingRecording = () => {
+    if (!pendingRecording) return;
+    const a = document.createElement('a');
+    a.href = pendingRecording.previewUrl;
+    a.download = pendingRecording.file.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const handleDiscardPendingRecording = () => {
+    if (isUploadingRecording) return;
+    if (pendingRecording?.previewUrl) {
+      URL.revokeObjectURL(pendingRecording.previewUrl);
+    }
+    setPendingRecording(null);
+    setShowRecordingUploadModal(false);
+    setRecordingUploadError('');
   };
 
   const stopLocalStream = () => {
@@ -2330,6 +2425,173 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
             >
               {isLaunchingPoll ? 'جاري الإطلاق...' : 'إطلاق السؤال على شاشة الطلاب الآن 🚀'}
             </button>
+          </form>
+        </div>
+      )}
+
+      {/* Recording Upload Destination Modal (Public vs Folder) */}
+      {showRecordingUploadModal && pendingRecording && (
+        <div className="fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4" dir="rtl">
+          <form
+            onSubmit={handleConfirmRecordingUpload}
+            className="w-full max-w-lg bg-white dark:bg-[#1e222d] border border-slate-200 dark:border-slate-700 rounded-3xl p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h3 className="font-black text-base text-slate-900 dark:text-white flex items-center gap-2">
+                <Upload className="w-5 h-5 text-blue-500" />
+                <span>حفظ ورفع تسجيل البث المباشر</span>
+              </h3>
+              <button
+                type="button"
+                disabled={isUploadingRecording}
+                onClick={handleDiscardPendingRecording}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white disabled:opacity-40"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Video Preview */}
+            <div className="rounded-2xl overflow-hidden bg-black border border-slate-200 dark:border-slate-700">
+              <video
+                src={pendingRecording.previewUrl}
+                controls
+                className="w-full max-h-48 object-contain"
+              />
+            </div>
+
+            {/* Lesson Title */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-slate-700 dark:text-slate-300">
+                عنوان الحصة المسجلة ({pendingRecording.duration})
+              </label>
+              <input
+                type="text"
+                required
+                disabled={isUploadingRecording}
+                value={recordingLessonTitle}
+                onChange={(e) => setRecordingLessonTitle(e.target.value)}
+                placeholder="أدخل عنوان الحصة..."
+                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 dark:text-white"
+              />
+            </div>
+
+            {/* Upload Destination Choice */}
+            <div className="space-y-2">
+              <label className="text-xs font-black text-slate-700 dark:text-slate-300">
+                أين تريد رفع الفيديو المسجل؟
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  disabled={isUploadingRecording}
+                  onClick={() => setRecordingUploadTarget('public')}
+                  className={`p-3 rounded-2xl border-2 text-right transition-all flex items-start gap-2.5 ${
+                    recordingUploadTarget === 'public'
+                      ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+                      : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 text-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  <Globe className="w-5 h-5 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="text-xs font-black">رفع عام</div>
+                    <div className="text-[11px] opacity-80">يظهر في قائمة الحصص العامة</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  disabled={isUploadingRecording}
+                  onClick={() => setRecordingUploadTarget('folder')}
+                  className={`p-3 rounded-2xl border-2 text-right transition-all flex items-start gap-2.5 ${
+                    recordingUploadTarget === 'folder'
+                      ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300'
+                      : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 text-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  <Folder className="w-5 h-5 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="text-xs font-black">رفع داخل مجلد</div>
+                    <div className="text-[11px] opacity-80">إضافة داخل وحدة دراسية محددة</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Folder Selector when 'folder' is selected */}
+            {recordingUploadTarget === 'folder' && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-slate-700 dark:text-slate-300">
+                  اختر المجلد / الوحدة
+                </label>
+                {folders && folders.length > 0 ? (
+                  <select
+                    required
+                    disabled={isUploadingRecording}
+                    value={recordingTargetFolderId}
+                    onChange={(e) => setRecordingTargetFolderId(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 dark:text-white"
+                  >
+                    <option value="">-- اختر المجلد --</option>
+                    {folders.map((fld) => (
+                      <option key={fld.id} value={fld.id}>
+                        📁 {fld.title} {fld.grade ? `(${fld.grade})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs font-bold">
+                    لا توجد مجلدات منشأة حالياً. يمكنك اختيار "رفع عام" أو إنشاء مجلد أولاً من لوحة التحكم.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Upload Progress Bar */}
+            {isUploadingRecording && (
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs font-black text-blue-600 dark:text-blue-400">
+                  <span>جاري رفع الفيديو إلى السيرفر...</span>
+                  <span>{recordingUploadProgress}%</span>
+                </div>
+                <div className="w-full h-2.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-blue-600 transition-all duration-300"
+                    style={{ width: `${recordingUploadProgress}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Error Alert */}
+            {recordingUploadError && (
+              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-bold">
+                {recordingUploadError}
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex flex-wrap items-center gap-2 pt-2">
+              <button
+                type="submit"
+                disabled={isUploadingRecording || (recordingUploadTarget === 'folder' && (!folders || folders.length === 0))}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-black text-xs py-3 px-4 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2"
+              >
+                <Upload className="w-4 h-4" />
+                <span>{isUploadingRecording ? 'جاري الرفع...' : 'تأكيد الرفع والحفظ'}</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={isUploadingRecording}
+                onClick={handleDownloadPendingRecording}
+                className="px-4 py-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-black text-xs transition-all flex items-center gap-1.5"
+                title="تحميل نسخة احتياطية على جهازك"
+              >
+                <Download className="w-4 h-4" />
+                <span>تحميل</span>
+              </button>
+            </div>
           </form>
         </div>
       )}

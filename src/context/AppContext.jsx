@@ -1662,19 +1662,42 @@ https://elm.up.railway.app`;
     }
   };
 
-  const adminUpdateLiveStatus = async (sessionId, status, recordingUrl = null, streamUrl = null) => {
+  const adminUpdateLiveStatus = async (sessionId, status, recordingUrl = null, streamUrl = null, options = {}) => {
     try {
+      const payload = {
+        ...(status !== undefined && status !== null ? { status } : {}),
+        ...(recordingUrl !== undefined && recordingUrl !== null ? { recordingUrl } : {}),
+        ...(streamUrl !== undefined && streamUrl !== null ? { streamUrl } : {}),
+        ...(options?.folderId !== undefined ? { folderId: options.folderId } : {}),
+        ...(options?.lessonTitle ? { lessonTitle: options.lessonTitle } : {}),
+        ...(options?.duration ? { duration: options.duration } : {})
+      };
       const res = await fetch(`/api/live/${sessionId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status, recordingUrl, streamUrl }),
+        body: JSON.stringify(payload),
         credentials: 'include'
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        setLiveSessionsDB(prev => prev.map(s => s.id === sessionId ? { ...s, status, ...(recordingUrl ? { recordingUrl } : {}), ...(streamUrl ? { streamUrl } : {}) } : s));
+        const patchState = {
+          ...(status ? { status } : {}),
+          ...(recordingUrl ? { recordingUrl } : {}),
+          ...(streamUrl ? { streamUrl } : {}),
+          ...(options?.folderId !== undefined ? { recordingFolderId: options.folderId } : {})
+        };
+        setLiveSessionsDB(prev => prev.map(s => s.id === sessionId ? { ...s, ...patchState } : s));
         if (activeLiveSession?.id === sessionId) {
-          setActiveLiveSession(prev => ({ ...prev, status, ...(recordingUrl ? { recordingUrl } : {}), ...(streamUrl ? { streamUrl } : {}) }));
+          setActiveLiveSession(prev => ({ ...prev, ...patchState }));
+        }
+        if (recordingUrl) {
+          try {
+            const resLessons = await fetch('/api/lessons');
+            if (resLessons.ok) {
+              const lessonsData = await resLessons.json();
+              if (Array.isArray(lessonsData)) setLessonsDB(lessonsData);
+            }
+          } catch (e) {}
         }
         return { success: true, message: data.message };
       }
