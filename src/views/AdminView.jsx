@@ -95,6 +95,7 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
   // Broadcast Modal State
   const [broadcastModal, setBroadcastModal] = useState(null); // { lessonTitle, links: [{studentName, phone, whatsappUrl}] }
   const [smsModal, setSmsModal] = useState(null); // { phone, msgText, whatsappFallbackUrl }
+  const [publishRecordingModal, setPublishRecordingModal] = useState(null); // { session, title, publishScope: 'public' | 'folder', folderId: '', price: 0 }
 
   // Subscription Plans Management State
   const [subPlanForm, setSubPlanForm] = useState(subscriptionPlans || {
@@ -1686,26 +1687,19 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
 
                     <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
                       <button
-                        onClick={async () => {
+                        onClick={() => {
                           if (!session.recordingUrl) {
                             alert('تنبيه: يرجى تسجيل أو رفع فيديو الحصة أولاً عبر زر [📁 رفع فيديو] قبل النشر للطلاب.');
                             return;
                           }
-                          const isDirectFile = session.recordingUrl.includes('/uploads/') || session.recordingUrl.endsWith('.mp4') || session.recordingUrl.endsWith('.webm');
-                          const newLessonObj = {
-                            id: `lesson_live_${session.id}`,
+                          const matchingFolders = folders.filter(f => !f.grade || f.grade === session.grade);
+                          setPublishRecordingModal({
+                            session,
                             title: `📼 تسجيل: ${session.title}`,
-                            description: session.description || `تسجيل الحصة المباشرة لمادة ${session.subject}`,
-                            videoUrl: session.recordingUrl,
-                            videoType: isDirectFile ? 'file' : 'youtube',
-                            grade: session.grade,
-                            subject: session.subject === 'اللغة العربية' ? 'arabic' : 'programming',
-                            duration: session.duration || 'حصة مسجلة',
-                            price: 0,
-                            isFree: true
-                          };
-                          await adminAddLesson(newLessonObj);
-                          alert('تم نشر تسجيل الحصة بنجاح في كروت المواد للطلاب! 🎉 ستظهر الآن في الصفحة الرئيسية.');
+                            publishScope: 'public',
+                            folderId: matchingFolders[0]?.id || '',
+                            price: 0
+                          });
                         }}
                         className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-black px-4 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1.5"
                       >
@@ -3822,6 +3816,144 @@ export const AdminView = ({ setCurrentTab, setSelectedLessonId, setSelectedLiveI
                 className="btn-primary text-xs font-black py-2.5 px-6 rounded-xl"
               >
                 إغلاق النافذة ✓
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Publish Live Recording Destination Modal (Public vs Folder) */}
+      {publishRecordingModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-[#162534] border border-slate-200 dark:border-slate-700 rounded-3xl p-6 w-full max-w-md space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <FolderOpen className="w-5 h-5 text-blue-600" />
+                <span>نشر تسجيل البث المباشر للطلاب</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setPublishRecordingModal(null)}
+                className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-rose-500"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-slate-700 dark:text-slate-300">عنوان الحصة المسجلة</label>
+              <input
+                type="text"
+                value={publishRecordingModal.title}
+                onChange={(e) => setPublishRecordingModal(prev => ({ ...prev, title: e.target.value }))}
+                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 dark:text-white"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-black text-slate-700 dark:text-slate-300">مكان النشر</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPublishRecordingModal(prev => ({ ...prev, publishScope: 'public' }))}
+                  className={`p-3 rounded-2xl border-2 text-xs font-black transition-all text-center ${
+                    publishRecordingModal.publishScope === 'public'
+                      ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
+                  }`}
+                >
+                  🌐 نشر عام للجميع
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPublishRecordingModal(prev => ({ ...prev, publishScope: 'folder' }))}
+                  className={`p-3 rounded-2xl border-2 text-xs font-black transition-all text-center ${
+                    publishRecordingModal.publishScope === 'folder'
+                      ? 'border-amber-500 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
+                  }`}
+                >
+                  📁 داخل مجلد / كورس
+                </button>
+              </div>
+            </div>
+
+            {publishRecordingModal.publishScope === 'folder' && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-black text-slate-700 dark:text-slate-300">اختر المجلد المستهدف</label>
+                {folders.length === 0 ? (
+                  <p className="text-xs font-bold text-rose-500 bg-rose-500/10 p-2.5 rounded-xl">
+                    لا توجد مجلدات منشأة حالياً. يمكنك النشر عاماً أو إنشاء مجلد من تبويب المجلدات.
+                  </p>
+                ) : (
+                  <select
+                    value={publishRecordingModal.folderId}
+                    onChange={(e) => setPublishRecordingModal(prev => ({ ...prev, folderId: e.target.value }))}
+                    className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 dark:text-white"
+                  >
+                    <option value="">-- اختر المجلد --</option>
+                    {folders.map(f => (
+                      <option key={f.id} value={f.id}>
+                        📁 {f.title} ({f.grade === '3sec' ? '3 ثانوي' : f.grade === '2sec' ? '2 ثانوي' : '1 ثانوي'})
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-slate-700 dark:text-slate-300">السعر (اتركه 0 ليكون مجانياً)</label>
+              <input
+                type="number"
+                min="0"
+                value={publishRecordingModal.price}
+                onChange={(e) => setPublishRecordingModal(prev => ({ ...prev, price: Number(e.target.value) || 0 }))}
+                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 dark:text-white"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setPublishRecordingModal(null)}
+                className="px-4 py-2.5 rounded-xl text-xs font-black text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                إلغاء
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const { session, title, publishScope, folderId, price } = publishRecordingModal;
+                  if (publishScope === 'folder' && !folderId) {
+                    alert('يرجى اختيار المجلد المستهدف أولاً أو اختيار النشر العام.');
+                    return;
+                  }
+                  const isDirectFile = session.recordingUrl.includes('/uploads/') || session.recordingUrl.endsWith('.mp4') || session.recordingUrl.endsWith('.webm');
+                  const newLessonObj = {
+                    id: `lesson_live_${session.id}`,
+                    title: title.trim() || `📼 تسجيل: ${session.title}`,
+                    description: session.description || `تسجيل الحصة المباشرة لمادة ${session.subject}`,
+                    videoUrl: session.recordingUrl,
+                    videoType: isDirectFile ? 'file' : 'youtube',
+                    grade: session.grade,
+                    subject: session.subject === 'اللغة العربية' ? 'arabic' : 'programming',
+                    duration: session.duration || 'حصة مسجلة',
+                    folderId: publishScope === 'folder' ? folderId : null,
+                    price: Number(price) || 0,
+                    isFree: (Number(price) || 0) === 0
+                  };
+                  await adminAddLesson(newLessonObj);
+                  setPublishRecordingModal(null);
+                  alert(
+                    publishScope === 'folder'
+                      ? 'تم نشر تسجيل الحصة داخل المجلد المحدد بنجاح! 📁🎉'
+                      : 'تم نشر تسجيل الحصة عاماً في كروت المواد للطلاب بنجاح! 🌐🎉'
+                  );
+                }}
+                className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-black px-5 py-2.5 rounded-xl shadow-lg transition-all"
+              >
+                تأكيد النشر الآن 🚀
               </button>
             </div>
           </div>
