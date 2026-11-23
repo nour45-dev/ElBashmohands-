@@ -2611,12 +2611,15 @@ app.post('/api/live/:id/poll', requireAdmin, async (req, res) => {
     };
 
     if (dbType === 'mongodb') {
+      const session = await db.collection('liveSessions').findOne({ id });
+      const updatedPolls = (Array.isArray(session?.polls) ? session.polls : []).map(p => ({
+        ...p,
+        isActive: false
+      }));
+      updatedPolls.push(poll);
       await db.collection('liveSessions').updateOne(
-        { id }, 
-        { 
-          $set: { "polls.$[].isActive": false },
-          $push: { polls: poll }
-        }
+        { id },
+        { $set: { polls: updatedPolls } }
       );
     } else {
       const data = getLocalData();
@@ -2647,12 +2650,15 @@ app.post('/api/live/:id/poll/vote', async (req, res) => {
       if (session && session.polls) {
         const poll = session.polls.find(p => p.id === pollId);
         if (poll && poll.isActive) {
-          const votes = poll.votes || {};
+          const votes = { ...(poll.votes || {}) };
           votes[optionIndex] = (votes[optionIndex] || 0) + 1;
           const totalVotes = (poll.totalVotes || 0) + 1;
+          const updatedPolls = session.polls.map(p =>
+            p.id === pollId ? { ...p, votes, totalVotes } : p
+          );
           await db.collection('liveSessions').updateOne(
-            { id, "polls.id": pollId },
-            { $set: { "polls.$.votes": votes, "polls.$.totalVotes": totalVotes } }
+            { id },
+            { $set: { polls: updatedPolls } }
           );
         }
       }

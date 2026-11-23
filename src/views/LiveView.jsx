@@ -1795,10 +1795,10 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                           }`}
                         >
                           <div className="flex items-center justify-between">
-                            <span className={`font-black flex items-center gap-1 ${isTeacher ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'}`}>
-                              {isTeacher && <span>🎓</span>}
+                            <span className={`font-black flex items-center gap-1 ${isMsgTeacher ? 'text-amber-600 dark:text-amber-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                              {isMsgTeacher && <span>🎓</span>}
                               <span>{msg.senderName}</span>
-                              {isTeacher && <span className="text-[10px] bg-amber-500 text-slate-950 px-1.5 py-0.2 rounded font-black">المعلم</span>}
+                              {isMsgTeacher && <span className="text-[10px] bg-amber-500 text-slate-950 px-1.5 py-0.2 rounded font-black">المعلم</span>}
                             </span>
                             <span className="text-[10px] text-slate-400 font-mono">{msg.timestamp || 'الآن'}</span>
                           </div>
