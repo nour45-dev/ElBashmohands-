@@ -14,6 +14,9 @@ import { AdminView } from './views/AdminView';
 import { ParentView } from './views/ParentView';
 import { LiveView } from './views/LiveView';
 import { NotificationBanner } from './components/NotificationBanner';
+import { initSecurityShield } from './utils/securityShield';
+
+initSecurityShield();
 
 // Error Boundary to prevent crashes
 class ErrorBoundary extends Component {

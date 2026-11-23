@@ -132,46 +132,98 @@ export const AppProvider = ({ children }) => {
   const [liveSessionsDB, setLiveSessionsDB] = useState([]);
   const [activeLiveSession, setActiveLiveSession] = useState(null);
 
-  // ── Navigation & History Stack Engine ───────────────────────────────────
-  const [currentTab, _setCurrentTab] = useState(() => {
+  // ── Navigation & Clean Slash-URL History Stack Engine ───────────────────
+  const parseRouteFromLocation = () => {
     try {
+      const path = (window.location.pathname || '/').replace(/\/+$/, '') || '/';
       const params = new URLSearchParams(window.location.search);
-      const tabParam = params.get('tab');
-      if (tabParam) return tabParam;
-      if (params.get('live')) return 'live';
-      const role = localStorage.getItem('user_role');
-      return role === 'parent' ? 'parent-view' : 'home';
-    } catch (e) {
-      return 'home';
-    }
-  });
+      const segments = path.split('/').filter(Boolean);
 
-  const [selectedLessonId, _setSelectedLessonId] = useState(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      return params.get('lesson') || '';
-    } catch (e) {
-      return '';
-    }
-  });
+      let tab = null;
+      let lessonId = params.get('lesson') || '';
+      let liveId = params.get('live') || '';
+      let folderId = params.get('folder') || null;
 
-  const [selectedLiveId, _setSelectedLiveId] = useState(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      return params.get('live') || '';
-    } catch (e) {
-      return '';
-    }
-  });
+      if (segments[0] === 'folder' && segments[1]) {
+        tab = 'home';
+        folderId = decodeURIComponent(segments[1]);
+      } else if (segments[0] === 'lesson' && segments[1]) {
+        tab = 'lesson-detail';
+        lessonId = decodeURIComponent(segments[1]);
+      } else if (segments[0] === 'lessons') {
+        tab = 'lessons';
+      } else if (segments[0] === 'live') {
+        tab = 'live';
+        if (segments[1]) liveId = decodeURIComponent(segments[1]);
+      } else if (segments[0] === 'exams') {
+        tab = 'exams';
+      } else if (segments[0] === 'wallet') {
+        tab = 'wallet';
+      } else if (segments[0] === 'leaderboard') {
+        tab = 'leaderboard';
+      } else if (segments[0] === 'parent' || segments[0] === 'parent-view') {
+        tab = 'parent-view';
+      } else if (segments[0] === 'admin') {
+        tab = 'admin';
+      } else if (segments[0] === 'home') {
+        tab = 'home';
+      }
 
-  const [activeFolderId, setActiveFolderId] = useState(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      return params.get('folder') || null;
+      if (!tab) {
+        if (params.get('tab')) tab = params.get('tab');
+        else if (params.get('live')) tab = 'live';
+        else {
+          const role = localStorage.getItem('user_role');
+          tab = role === 'parent' ? 'parent-view' : 'home';
+        }
+      }
+
+      return { tab, lessonId, liveId, folderId };
     } catch (e) {
-      return null;
+      return { tab: 'home', lessonId: '', liveId: '', folderId: null };
     }
-  });
+  };
+
+  const buildUrlFromState = ({ tab, lessonId, liveId, folderId }) => {
+    let basePath = '/';
+    if (tab === 'home' && folderId) {
+      basePath = `/folder/${encodeURIComponent(folderId)}`;
+    } else if (tab === 'lesson-detail' && lessonId) {
+      basePath = `/lesson/${encodeURIComponent(lessonId)}`;
+    } else if (tab === 'lessons') {
+      basePath = '/lessons';
+    } else if (tab === 'live') {
+      basePath = liveId ? `/live/${encodeURIComponent(liveId)}` : '/live';
+    } else if (tab === 'exams') {
+      basePath = '/exams';
+    } else if (tab === 'wallet') {
+      basePath = '/wallet';
+    } else if (tab === 'leaderboard') {
+      basePath = '/leaderboard';
+    } else if (tab === 'parent-view') {
+      basePath = '/parent';
+    } else if (tab === 'admin') {
+      basePath = '/admin';
+    }
+
+    try {
+      const currentParams = new URLSearchParams(window.location.search);
+      const nextParams = new URLSearchParams();
+      if (isDemoMode || currentParams.get('demo') === '1') {
+        nextParams.set('demo', '1');
+      }
+      const qs = nextParams.toString();
+      return qs ? `${basePath}?${qs}` : basePath;
+    } catch (e) {
+      return basePath;
+    }
+  };
+
+  const initialRoute = parseRouteFromLocation();
+  const [currentTab, _setCurrentTab] = useState(() => initialRoute.tab);
+  const [selectedLessonId, _setSelectedLessonId] = useState(() => initialRoute.lessonId);
+  const [selectedLiveId, _setSelectedLiveId] = useState(() => initialRoute.liveId);
+  const [activeFolderId, setActiveFolderId] = useState(() => initialRoute.folderId);
   const [navHistory, setNavHistory] = useState([]);
 
   // Ref to always hold fresh state across async / event boundaries
@@ -233,10 +285,11 @@ export const AppProvider = ({ children }) => {
     setActiveFolderId(nextFolder);
     setNavHistory([]);
     try {
+      const nextUrl = buildUrlFromState({ tab: nextTab, lessonId: nextLesson, liveId: nextLive, folderId: nextFolder });
       window.history.replaceState(
         { tab: nextTab, lessonId: nextLesson, liveId: nextLive, folderId: nextFolder },
         '',
-        window.location.pathname + (preserveUrlParams ? window.location.search : '')
+        nextUrl
       );
     } catch (e) {}
   };
@@ -282,8 +335,14 @@ export const AppProvider = ({ children }) => {
     _setSelectedLiveId(targetLiveId);
     setActiveFolderId(targetFolderId);
 
-    // Sync with browser history API
+    // Sync with browser history API using clean slash URLs
     try {
+      const nextUrl = buildUrlFromState({
+        tab: newTab,
+        lessonId: targetLessonId,
+        liveId: targetLiveId,
+        folderId: targetFolderId
+      });
       window.history.pushState(
         {
           tab: newTab,
@@ -292,7 +351,7 @@ export const AppProvider = ({ children }) => {
           folderId: targetFolderId
         },
         '',
-        window.location.pathname
+        nextUrl
       );
     } catch (e) {
       console.warn('history.pushState failed:', e);
@@ -316,6 +375,12 @@ export const AppProvider = ({ children }) => {
       setActiveFolderId(prev.folderId || null);
 
       try {
+        const prevUrl = buildUrlFromState({
+          tab: prev.tab,
+          lessonId: prev.lessonId || '',
+          liveId: prev.liveId || '',
+          folderId: prev.folderId || null
+        });
         window.history.replaceState(
           {
             tab: prev.tab,
@@ -324,7 +389,7 @@ export const AppProvider = ({ children }) => {
             folderId: prev.folderId || null
           },
           '',
-          window.location.pathname
+          prevUrl
         );
       } catch (e) {}
       return;
