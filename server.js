@@ -2230,21 +2230,44 @@ app.patch('/api/live/:id/status', requireAdmin, async (req, res) => {
 
     if (dbType === 'mongodb') {
       await db.collection('liveSessions').updateOne({ id }, { $set: updateFields });
-      if (status === 'live') {
-        const sessionDoc = await db.collection('liveSessions').findOne({ id });
-        if (sessionDoc) {
-          const liveNotif = {
-            id: `n_${Date.now()}`,
-            title: `🔴 بث مباشر بدأ الآن: ${sessionDoc.title}`,
-            body: `المستر بدأ حصة البث المباشر الآن! اضغط هنا للانضمام فوراً وتفاعل مع الشرح.`,
-            time: 'الآن',
-            unread: true,
-            actionTab: 'live',
-            actionId: sessionDoc.id,
-            targetGrade: sessionDoc.grade || 'all'
-          };
-          await db.collection('notifications').insertOne(liveNotif);
+      const sessionDoc = await db.collection('liveSessions').findOne({ id });
+
+      // Automatically add recorded live session as a Lesson in "الحصص والدروس"
+      if (recordingUrl && sessionDoc) {
+        const autoLessonId = `les_live_${sessionDoc.id}`;
+        const existingLesson = await db.collection('lessons').findOne({ id: autoLessonId });
+        if (!existingLesson) {
+          await db.collection('lessons').insertOne({
+            id: autoLessonId,
+            teacherId: sessionDoc.teacherId || req.user.identity || 'eng_nour',
+            title: `📺 تسجيل البث: ${sessionDoc.title}`,
+            subject: sessionDoc.subject || 'برمجة وعلوم الحاسب',
+            grade: sessionDoc.grade === 'all' ? '3sec' : (sessionDoc.grade || '3sec'),
+            price: 0,
+            duration: '45 دقيقة',
+            videoUrl: recordingUrl,
+            thumbnail: null,
+            description: `تسجيل تلقائي لحصة البث المباشر (${sessionDoc.title}) مع ${sessionDoc.instructor || 'المعلم'}.`,
+            createdAt: new Date().toISOString()
+          });
+        } else {
+          await db.collection('lessons').updateOne({ id: autoLessonId }, { $set: { videoUrl: recordingUrl } });
         }
+      }
+
+      if (status === 'live' && sessionDoc) {
+        const liveNotif = {
+          id: `n_${Date.now()}`,
+          teacherId: sessionDoc.teacherId || req.user.identity || 'eng_nour',
+          title: `🔴 بث مباشر بدأ الآن: ${sessionDoc.title}`,
+          body: `المستر بدأ حصة البث المباشر الآن! اضغط هنا للانضمام فوراً وتفاعل مع الشرح.`,
+          time: 'الآن',
+          unread: true,
+          actionTab: 'live',
+          actionId: sessionDoc.id,
+          targetGrade: sessionDoc.grade || 'all'
+        };
+        await db.collection('notifications').insertOne(liveNotif);
       }
     } else {
       const data = getLocalData();

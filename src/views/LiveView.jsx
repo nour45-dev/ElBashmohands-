@@ -589,7 +589,13 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
     try {
       const stream = activeMediaStream || await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" }, audio: true });
       recordedChunksRef.current = [];
-      const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus' });
+      const preferredTypes = [
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus',
+        'video/webm'
+      ];
+      const supportedMime = preferredTypes.find(t => typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(t));
+      const recorder = supportedMime ? new MediaRecorder(stream, { mimeType: supportedMime }) : new MediaRecorder(stream);
 
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
@@ -917,6 +923,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
             <button
               onClick={async () => {
                 if (window.confirm('هل أنت متأكد من إنهاء وإيقاف البث المباشر لجميع الطلاب الآن؟')) {
+                  if (isRecording) handleStopRecording();
                   stopLocalStream();
                   await adminUpdateLiveStatus(currentSession.id, 'ended');
                   await refreshLiveSession(currentSession.id);
