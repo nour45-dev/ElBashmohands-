@@ -2966,10 +2966,16 @@ app.post('/api/live/:id/admit', requireAdmin, async (req, res) => {
     const newStatus = allow ? 'admitted' : 'rejected';
 
     if (dbType === 'mongodb') {
-      await db.collection('liveSessions').updateOne(
-        { id, "joinRequests.id": requestId },
-        { $set: { "joinRequests.$.status": newStatus } }
-      );
+      const session = await db.collection('liveSessions').findOne({ id });
+      if (session && Array.isArray(session.joinRequests)) {
+        const updatedRequests = session.joinRequests.map(r =>
+          r.id === requestId ? { ...r, status: newStatus } : r
+        );
+        await db.collection('liveSessions').updateOne(
+          { id },
+          { $set: { joinRequests: updatedRequests } }
+        );
+      }
     } else {
       const data = getLocalData();
       if (!data.liveSessions) data.liveSessions = [];
@@ -2995,11 +3001,16 @@ app.post('/api/live/:id/admit-all', requireAdmin, async (req, res) => {
     const { id } = req.params;
 
     if (dbType === 'mongodb') {
-      await db.collection('liveSessions').updateOne(
-        { id },
-        { $set: { "joinRequests.$[elem].status": 'admitted' } },
-        { arrayFilters: [{ "elem.status": 'pending' }] }
-      );
+      const session = await db.collection('liveSessions').findOne({ id });
+      if (session && Array.isArray(session.joinRequests)) {
+        const updatedRequests = session.joinRequests.map(r =>
+          r.status === 'pending' ? { ...r, status: 'admitted' } : r
+        );
+        await db.collection('liveSessions').updateOne(
+          { id },
+          { $set: { joinRequests: updatedRequests } }
+        );
+      }
     } else {
       const data = getLocalData();
       if (!data.liveSessions) data.liveSessions = [];

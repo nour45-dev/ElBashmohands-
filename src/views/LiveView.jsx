@@ -1047,11 +1047,17 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
     }, 2500);
   };
 
-  // Handle Poll Vote
+  // Handle Poll Vote (with localStorage persistence across reloads)
   const handleVotePoll = async (pollId, optIdx) => {
     if (pollVoted || selectedPollOption !== null) return;
     setSelectedPollOption(optIdx);
     setPollVoted(true);
+    try {
+      const storageKey = `elm_voted_polls_${studentCode}`;
+      const existing = JSON.parse(localStorage.getItem(storageKey) || '{}');
+      existing[pollId] = optIdx;
+      localStorage.setItem(storageKey, JSON.stringify(existing));
+    } catch {}
     await submitLivePollVote(currentSession.id, pollId, optIdx);
   };
 
@@ -1099,6 +1105,28 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
 
   // Active Poll
   const activePoll = currentSession?.polls?.find(p => p.isActive);
+
+  // Restore saved poll vote on reload or when activePoll changes
+  useEffect(() => {
+    if (!activePoll?.id) {
+      setPollVoted(false);
+      setSelectedPollOption(null);
+      return;
+    }
+    try {
+      const saved = JSON.parse(localStorage.getItem(`elm_voted_polls_${studentCode}`) || '{}');
+      if (saved[activePoll.id] !== undefined) {
+        setSelectedPollOption(saved[activePoll.id]);
+        setPollVoted(true);
+      } else {
+        setSelectedPollOption(null);
+        setPollVoted(false);
+      }
+    } catch {
+      setSelectedPollOption(null);
+      setPollVoted(false);
+    }
+  }, [activePoll?.id, studentCode]);
 
   if (!currentSession) {
     return (
@@ -1482,7 +1510,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                 localStream ? (
                   <div className="relative w-full h-full min-h-[520px] flex items-center justify-center bg-[#202124] overflow-hidden rounded-3xl">
                     {isCameraOff ? (
-                      <div className="w-full h-full min-h-[480px] flex flex-col items-center justify-center bg-[#202124] text-white space-y-3">
+                      <div className="w-full h-full flex flex-col items-center justify-center bg-[#202124] text-white space-y-3">
                         <div className="w-24 h-24 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-4xl shadow-xl">
                           👨‍🏫
                         </div>
@@ -1883,7 +1911,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
               
               {/* Left / Teacher Studio End Stream & Recording Indicator */}
               <div className="flex flex-wrap items-center gap-2">
-                {isTeacher && (
+                {isTeacher && currentSession?.status === 'live' && (
                   <button
                     onClick={async () => {
                       if (window.confirm('هل أنت متأكد من إنهاء وإيقاف البث المباشر لجميع الطلاب الآن؟')) {

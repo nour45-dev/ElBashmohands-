@@ -157,7 +157,7 @@ export const LiveWhiteboard = ({ isTeacher, whiteboardState, onSyncWhiteboard, o
   };
 
   return (
-    <div className="relative w-full h-full min-h-[460px] bg-white rounded-3xl overflow-hidden flex flex-col border-2 border-blue-500/40 shadow-2xl">
+    <div className="relative w-full h-full bg-white rounded-3xl overflow-hidden flex flex-col border-2 border-blue-500/40 shadow-2xl">
       {/* Top Toolbar */}
       <div className="bg-slate-900 text-white px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-xs font-bold z-20">
         <div className="flex items-center gap-2">
@@ -258,7 +258,7 @@ export const LiveWhiteboard = ({ isTeacher, whiteboardState, onSyncWhiteboard, o
       </div>
 
       {/* Drawing Canvas */}
-      <div className="flex-1 relative bg-white overflow-hidden">
+      <div className="flex-1 min-h-0 relative bg-white overflow-hidden">
         <canvas
           ref={canvasRef}
           width={1280}
