@@ -34,8 +34,16 @@ import {
   VideoOff,
   Monitor,
   PhoneOff,
-  Settings
+  Settings,
+  LayoutGrid,
+  Pencil,
+  UserX,
+  VolumeX,
+  BarChart2,
+  Plus,
+  X
 } from 'lucide-react';
+import { LiveWhiteboard } from '../components/LiveWhiteboard';
 
 export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
   const { 
@@ -136,8 +144,23 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
     return () => clearInterval(interval);
   }, [currentSession?.id]);
 
-  // Tab: 'chat' | 'qa' | 'archive'
+  // Tab: 'chat' | 'participants' | 'archive'
   const [sidebarTab, setSidebarTab] = useState('chat');
+
+  // Google Meet Pro Features State
+  const [participants, setParticipants] = useState([]);
+  const [layoutMode, setLayoutMode] = useState('spotlight'); // 'spotlight' | 'grid'
+  const [showWhiteboard, setShowWhiteboard] = useState(false);
+  const [remoteStudentStreams, setRemoteStudentStreams] = useState([]); // [{ id, stream }]
+  const [isStudentCamActive, setIsStudentCamActive] = useState(false);
+  const [studentCamStream, setStudentCamStream] = useState(null);
+  const lastMuteAllAtRef = useRef(0);
+
+  // In-studio Quick Poll Creator for Teacher
+  const [showQuickPollModal, setShowQuickPollModal] = useState(false);
+  const [quickPollQuestion, setQuickPollQuestion] = useState('');
+  const [quickPollOptions, setQuickPollOptions] = useState(['نعم', 'لا']);
+  const [isLaunchingPoll, setIsLaunchingPoll] = useState(false);
   
   // Chat input
   const [chatInput, setChatInput] = useState('');
@@ -368,7 +391,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
       connectedStudentCallsRef.current.push(incomingCall);
       incomingCall.answer(activeStreamRef.current || stream);
 
-      // Listen for incoming student microphone voice
+      // Listen for incoming student microphone voice & camera
       incomingCall.on('stream', (studentStream) => {
         try {
           if (studentStream && studentStream.getAudioTracks().length > 0) {
@@ -376,9 +399,20 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
             studentAudio.srcObject = studentStream;
             studentAudio.play().catch(() => {});
           }
+          if (studentStream) {
+            const callId = incomingCall.peer || `peer_${Date.now()}`;
+            setRemoteStudentStreams(prev => {
+              const filtered = prev.filter(item => item.id !== callId);
+              return [...filtered, { id: callId, stream: studentStream }];
+            });
+          }
         } catch (err) {
-          console.log('Error playing student audio on teacher device:', err);
+          console.log('Error playing student stream on teacher device:', err);
         }
+      });
+      incomingCall.on('close', () => {
+        const callId = incomingCall.peer;
+        if (callId) setRemoteStudentStreams(prev => prev.filter(item => item.id !== callId));
       });
     });
 
@@ -419,6 +453,147 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
       }
     } catch (e) {
       alert('يرجى السماح بصلاحيات الميكروفون للتحدث مع المعلم في الحصة!');
+    }
+  };
+
+  // Student toggle live camera to appear in Teacher Grid View
+  const toggleStudentCam = async () => {
+    try {
+      if (isStudentCamActive && studentCamStream) {
+        studentCamStream.getTracks().forEach(t => t.stop());
+        setStudentCamStream(null);
+        setIsStudentCamActive(false);
+      } else {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 480, height: 360 } });
+        setStudentCamStream(stream);
+        setIsStudentCamActive(true);
+
+        if (studentCallRef.current?.peerConnection) {
+          const senders = studentCallRef.current.peerConnection.getSenders();
+          const videoSender = senders.find(s => s.track && s.track.kind === 'video');
+          if (videoSender && stream.getVideoTracks()[0]) {
+            videoSender.replaceTrack(stream.getVideoTracks()[0]);
+          }
+        }
+      }
+    } catch (e) {
+      alert('يرجى السماح بصلاحيات الكاميرا للمشاركة بالفيديو!');
+    }
+  };
+
+  // Google Meet Participants Presence Heartbeat, Mute-All & Kick Listener
+  useEffect(() => {
+    if (!currentSession?.id) return;
+    const myUserId = isTeacher ? `teacher_${adminIdentity || 'admin'}` : (student?.id || studentCode);
+
+    const sendPresence = async () => {
+      try {
+        const res = await fetch(`/api/live/${currentSession.id}/participants/heartbeat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            userId: myUserId,
+            name: studentDisplayName,
+            role: isTeacher ? 'teacher' : 'student',
+            isMuted: isTeacher ? isMicMuted : !isStudentMicActive,
+            isCameraOn: isTeacher ? (localStream && !isCameraOff) : isStudentCamActive,
+            handRaised
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setParticipants(data.participants || []);
+          if (!isTeacher && data.isKicked) {
+            alert('تم إخراجك من قاعة البث المباشر بواسطة المعلم.');
+            if (onBack) onBack();
+            return;
+          }
+          if (!isTeacher && data.muteAllAt && data.muteAllAt > lastMuteAllAtRef.current) {
+            lastMuteAllAtRef.current = data.muteAllAt;
+            if (isStudentMicActive && studentMicStream) {
+              studentMicStream.getTracks().forEach(t => t.stop());
+              setStudentMicStream(null);
+              setIsStudentMicActive(false);
+            }
+          }
+        }
+      } catch (e) {}
+    };
+
+    sendPresence();
+    const timer = setInterval(sendPresence, 2500);
+    return () => clearInterval(timer);
+  }, [currentSession?.id, isTeacher, adminIdentity, student?.id, studentCode, studentDisplayName, isMicMuted, isStudentMicActive, localStream, isCameraOff, isStudentCamActive, handRaised]);
+
+  const handleMuteAllStudents = async () => {
+    if (!currentSession?.id) return;
+    try {
+      const res = await fetch(`/api/live/${currentSession.id}/participants/mute-all`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setParticipants(prev => prev.map(p => p.role === 'teacher' ? p : { ...p, isMuted: true }));
+      }
+    } catch (e) {}
+  };
+
+  const handleKickParticipant = async (userId, name) => {
+    if (!currentSession?.id) return;
+    if (!window.confirm(`هل تريد إزالة "${name}" من قاعة البث؟`)) return;
+    try {
+      const res = await fetch(`/api/live/${currentSession.id}/participants/kick`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ userId })
+      });
+      if (res.ok) {
+        setParticipants(prev => prev.filter(p => p.userId !== userId));
+      }
+    } catch (e) {}
+  };
+
+  const handleSyncWhiteboard = async (active, dataUrl) => {
+    if (!currentSession?.id || !isTeacher) return;
+    try {
+      await fetch(`/api/live/${currentSession.id}/whiteboard`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ active, dataUrl })
+      });
+    } catch (e) {}
+  };
+
+  const handleToggleWhiteboard = async () => {
+    const next = !showWhiteboard;
+    setShowWhiteboard(next);
+    await handleSyncWhiteboard(next, currentSession?.whiteboardState?.dataUrl || null);
+  };
+
+  const handleLaunchQuickPoll = async (e) => {
+    e.preventDefault();
+    const validOpts = quickPollOptions.map(o => o.trim()).filter(Boolean);
+    if (!quickPollQuestion.trim() || validOpts.length < 2) return;
+    setIsLaunchingPoll(true);
+    try {
+      const res = await fetch(`/api/live/${currentSession.id}/poll`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ question: quickPollQuestion.trim(), options: validOpts })
+      });
+      if (res.ok) {
+        setQuickPollQuestion('');
+        setQuickPollOptions(['نعم', 'لا']);
+        setShowQuickPollModal(false);
+        await refreshLiveSession(currentSession.id);
+      }
+    } finally {
+      setIsLaunchingPoll(false);
     }
   };
 
@@ -1273,6 +1448,49 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                           <Monitor className="w-5 h-5" />
                         </button>
 
+                        {/* Whiteboard Toggle Button */}
+                        <button
+                          onClick={handleToggleWhiteboard}
+                          title={showWhiteboard ? 'إغلاق السبورة' : 'فتح السبورة التفاعلية'}
+                          className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                            showWhiteboard ? 'bg-indigo-600 text-white' : 'bg-[#3c4043] hover:bg-[#4a4e51] text-white'
+                          }`}
+                        >
+                          <Pencil className="w-5 h-5" />
+                        </button>
+
+                        {/* Quick Poll Button */}
+                        <button
+                          onClick={() => setShowQuickPollModal(true)}
+                          title="إطلاق سؤال تفاعلي للطلاب"
+                          className="w-11 h-11 rounded-full bg-[#3c4043] hover:bg-amber-500 hover:text-slate-950 text-white flex items-center justify-center transition-all"
+                        >
+                          <BarChart2 className="w-5 h-5" />
+                        </button>
+
+                        {/* Grid / Spotlight Layout Toggle */}
+                        <button
+                          onClick={() => setLayoutMode(prev => prev === 'grid' ? 'spotlight' : 'grid')}
+                          title={layoutMode === 'grid' ? 'وضع التركيز على الشرح' : 'عرض شبكة المشاركين (Grid)'}
+                          className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                            layoutMode === 'grid' ? 'bg-emerald-600 text-white' : 'bg-[#3c4043] hover:bg-[#4a4e51] text-white'
+                          }`}
+                        >
+                          <LayoutGrid className="w-5 h-5" />
+                        </button>
+
+                        {/* Participants Drawer Shortcut */}
+                        <button
+                          onClick={() => setSidebarTab('participants')}
+                          title="قائمة المشاركين"
+                          className="relative w-11 h-11 rounded-full bg-[#3c4043] hover:bg-[#4a4e51] text-white flex items-center justify-center transition-all"
+                        >
+                          <Users className="w-5 h-5" />
+                          <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-[9px] font-black px-1.5 rounded-full">
+                            {participants.length || 1}
+                          </span>
+                        </button>
+
                         {/* Record Button */}
                         <button
                           onClick={isRecording ? handleStopRecording : handleStartRecording}
@@ -1288,6 +1506,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                         <button
                           onClick={async () => {
                             if (window.confirm('هل أنت متأكد من إنهاء المكالمة وإيقاف البث لجميع الطلاب؟')) {
+                              if (isRecording) handleStopRecording();
                               stopLocalStream();
                               await adminUpdateLiveStatus(currentSession.id, 'ended');
                               await refreshLiveSession(currentSession.id);
@@ -1301,6 +1520,41 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                         </button>
                       </div>
                     </div>
+
+                    {/* Interactive Whiteboard Overlay when toggled by Teacher */}
+                    {showWhiteboard && (
+                      <div className="absolute inset-0 z-30 pb-20">
+                        <LiveWhiteboard
+                          isTeacher={true}
+                          whiteboardState={currentSession?.whiteboardState}
+                          onSyncWhiteboard={handleSyncWhiteboard}
+                          onClose={handleToggleWhiteboard}
+                        />
+                      </div>
+                    )}
+
+                    {/* Google Meet Grid View Overlay for Connected Student Tiles */}
+                    {!showWhiteboard && layoutMode === 'grid' && (
+                      <div className="absolute top-4 left-4 right-4 z-20 grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto pointer-events-auto">
+                        {participants.filter(p => p.role !== 'teacher').map(p => {
+                          const matchedStream = remoteStudentStreams.find(s => s.stream);
+                          return (
+                            <div key={p.userId} className="bg-slate-900/90 border border-white/15 rounded-2xl p-2.5 flex items-center justify-between text-white text-xs shadow-lg">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center font-black flex-shrink-0">
+                                  {p.name?.charAt(0) || 'ط'}
+                                </div>
+                                <span className="font-bold truncate">{p.name}</span>
+                              </div>
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                {p.handRaised && <span title="رافع يده">✋</span>}
+                                {p.isMuted ? <MicOff className="w-3.5 h-3.5 text-rose-400" /> : <Mic className="w-3.5 h-3.5 text-emerald-400" />}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="relative w-full h-full min-h-[520px] flex flex-col items-center justify-center p-6 md:p-10 text-center bg-[#202124] text-white space-y-6 animate-in fade-in rounded-3xl">
@@ -1323,7 +1577,7 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                       </p>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-md">
+                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-2xl">
                       <button
                         onClick={startTeacherCamera}
                         className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black text-xs md:text-sm py-4 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2 hover:scale-[1.02]"
@@ -1339,6 +1593,14 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                         <Monitor className="w-5 h-5" />
                         <span>مشاركة الشاشة والشرح 🖥️</span>
                       </button>
+
+                      <button
+                        onClick={() => { setLocalStream(true); setIsCameraOff(true); setShowWhiteboard(true); handleSyncWhiteboard(true, null); }}
+                        className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs md:text-sm py-4 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2 hover:scale-[1.02]"
+                      >
+                        <Pencil className="w-5 h-5" />
+                        <span>فتح السبورة التفاعلية ✏️</span>
+                      </button>
                     </div>
                   </div>
                 )
@@ -1352,11 +1614,21 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                     ref={remoteVideoRef}
                     autoPlay
                     playsInline
-                    className={`w-full h-full object-contain ${hasRemoteVideo ? 'block' : 'hidden'}`}
+                    className={`w-full h-full object-contain ${hasRemoteVideo && !currentSession?.whiteboardState?.active ? 'block' : 'hidden'}`}
                   />
 
+                  {/* Student View of Live Teacher Whiteboard */}
+                  {currentSession?.whiteboardState?.active && (
+                    <div className="absolute inset-0 z-30 pb-20">
+                      <LiveWhiteboard
+                        isTeacher={false}
+                        whiteboardState={currentSession.whiteboardState}
+                      />
+                    </div>
+                  )}
+
                   {/* If waiting for teacher to turn on camera */}
-                  {!hasRemoteVideo && (
+                  {!hasRemoteVideo && !currentSession?.whiteboardState?.active && (
                     <div className="flex flex-col items-center justify-center p-8 text-center text-white space-y-4 max-w-md animate-in fade-in">
                       <div className="w-20 h-20 rounded-full bg-emerald-500/20 border-2 border-emerald-500/50 flex items-center justify-center text-4xl shadow-2xl animate-pulse">
                         👨‍🏫
@@ -1418,6 +1690,17 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
                         }`}
                       >
                         {isStudentMicActive ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5 text-rose-400" />}
+                      </button>
+
+                      {/* Camera Button for Student */}
+                      <button
+                        onClick={toggleStudentCam}
+                        title={isStudentCamActive ? 'إيقاف الكاميرا' : 'تشغيل الكاميرا'}
+                        className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                          isStudentCamActive ? 'bg-blue-600 text-white shadow-lg' : 'bg-[#3c4043] hover:bg-[#4a4e51] text-white'
+                        }`}
+                      >
+                        {isStudentCamActive ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5 text-slate-300" />}
                       </button>
 
                       {/* Leave Meeting Button */}
@@ -1553,9 +1836,9 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
 
             {/* 2. Scheduled Live Countdown Screen */}
             {currentSession?.status === 'scheduled' && (
-              <div className="w-full h-full relative flex flex-col items-center justify-center p-6 text-center space-y-5 bg-gradient-to-br from-slate-950 via-slate-900 to-[#0D1B2A] text-white">
+              <div className="w-full h-full min-h-[420px] relative flex flex-col items-center justify-center p-4 sm:p-6 text-center space-y-3 sm:space-y-4 bg-gradient-to-br from-slate-950 via-slate-900 to-[#0D1B2A] text-white overflow-y-auto">
                 
-                <div className="w-16 h-16 rounded-3xl bg-blue-500/20 border border-blue-500/40 flex items-center justify-center text-3xl shadow-xl animate-bounce">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-3xl bg-blue-500/20 border border-blue-500/40 flex items-center justify-center text-2xl sm:text-3xl shadow-xl animate-bounce">
                   ⏳
                 </div>
 
@@ -1674,21 +1957,23 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
               ))}
             </div>
 
-            {/* Student Hand Raise Button */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleHandRaise}
-                disabled={handRaised}
-                className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center gap-2 shadow-md ${
-                  handRaised 
-                    ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' 
-                    : 'bg-amber-500 hover:bg-amber-400 text-slate-950 hover:scale-105'
-                }`}
-              >
-                <Hand className={`w-4 h-4 ${handRaised ? 'text-emerald-500' : 'text-slate-950 animate-bounce'}`} />
-                <span>{handRaised ? 'تم طلب المداخلة ✋' : 'طلب مداخلة مع المستر'}</span>
-              </button>
-            </div>
+            {/* Student Hand Raise Button (Students Only) */}
+            {!isTeacher && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleHandRaise}
+                  disabled={handRaised}
+                  className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all flex items-center gap-2 shadow-md ${
+                    handRaised 
+                      ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' 
+                      : 'bg-amber-500 hover:bg-amber-400 text-slate-950 hover:scale-105'
+                  }`}
+                >
+                  <Hand className={`w-4 h-4 ${handRaised ? 'text-emerald-500' : 'text-slate-950 animate-bounce'}`} />
+                  <span>{handRaised ? 'تم طلب المداخلة ✋' : 'طلب مداخلة مع المستر'}</span>
+                </button>
+              </div>
+            )}
 
           </div>
 
@@ -1739,29 +2024,41 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
           <div className="lg:col-span-4 bg-white dark:bg-[#162534] rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden flex flex-col h-[640px]">
             
             {/* Sidebar Tabs Switcher */}
-            <div className="bg-slate-100 dark:bg-slate-900/80 p-1.5 border-b border-slate-200 dark:border-slate-800 flex items-center gap-1 text-xs font-black">
+            <div className="bg-slate-100 dark:bg-slate-900/80 p-1.5 border-b border-slate-200 dark:border-slate-800 flex items-center gap-1 text-[11px] font-black">
               <button
                 onClick={() => setSidebarTab('chat')}
-                className={`flex-1 py-2.5 rounded-xl transition-all text-center flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-2.5 rounded-xl transition-all text-center flex items-center justify-center gap-1 ${
                   sidebarTab === 'chat'
                     ? 'bg-white dark:bg-blue-600 text-blue-600 dark:text-white shadow-xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <MessageSquare className="w-3.5 h-3.5" />
-                <span>الدردشة الحية 💬</span>
+                <span>الدردشة 💬</span>
+              </button>
+
+              <button
+                onClick={() => setSidebarTab('participants')}
+                className={`flex-1 py-2.5 rounded-xl transition-all text-center flex items-center justify-center gap-1 ${
+                  sidebarTab === 'participants'
+                    ? 'bg-white dark:bg-blue-600 text-blue-600 dark:text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>المشاركون ({participants.length || 1})</span>
               </button>
 
               <button
                 onClick={() => setSidebarTab('archive')}
-                className={`flex-1 py-2.5 rounded-xl transition-all text-center flex items-center justify-center gap-1.5 ${
+                className={`flex-1 py-2.5 rounded-xl transition-all text-center flex items-center justify-center gap-1 ${
                   sidebarTab === 'archive'
                     ? 'bg-white dark:bg-blue-600 text-blue-600 dark:text-white shadow-xs'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 <Radio className="w-3.5 h-3.5" />
-                <span>كل البثوث ({filteredSessions.length})</span>
+                <span>البثوث ({filteredSessions.length})</span>
               </button>
             </div>
 
@@ -1832,7 +2129,82 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
               </div>
             )}
 
-            {/* TAB 2: All Live Sessions & Archive List */}
+            {/* TAB 2: Google Meet Participants Panel */}
+            {sidebarTab === 'participants' && (
+              <div className="flex-1 flex flex-col overflow-hidden">
+                {isTeacher && (
+                  <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-between gap-2">
+                    <span className="text-xs font-black text-slate-700 dark:text-slate-300">
+                      إدارة القاعة ({participants.length})
+                    </span>
+                    <button
+                      onClick={handleMuteAllStudents}
+                      className="bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-black px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm transition-all"
+                    >
+                      <VolumeX className="w-3.5 h-3.5" />
+                      <span>كتم الكل 🔇</span>
+                    </button>
+                  </div>
+                )}
+
+                <div className="flex-1 p-3 space-y-2 overflow-y-auto custom-scrollbar">
+                  {participants.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center text-center p-4 text-slate-400 space-y-2">
+                      <Users className="w-8 h-8 opacity-40" />
+                      <p className="text-xs font-bold">جاري مزامنة قائمة المتصلين...</p>
+                    </div>
+                  ) : (
+                    participants.map((p) => (
+                      <div
+                        key={p.userId}
+                        className="p-2.5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-2"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0 ${
+                            p.role === 'teacher' ? 'bg-amber-500 text-slate-950' : 'bg-blue-600 text-white'
+                          }`}>
+                            {p.name?.charAt(0) || 'م'}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-black text-slate-900 dark:text-white truncate">{p.name}</span>
+                              {p.role === 'teacher' && (
+                                <span className="text-[9px] bg-amber-500/20 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded font-black">المعلم</span>
+                              )}
+                              {p.handRaised && <span title="رافع يده">✋</span>}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {p.isMuted ? (
+                            <MicOff className="w-3.5 h-3.5 text-rose-500" title="مكتوم" />
+                          ) : (
+                            <Mic className="w-3.5 h-3.5 text-emerald-500" title="المايك مفتوح" />
+                          )}
+                          {p.isCameraOn ? (
+                            <Video className="w-3.5 h-3.5 text-blue-500" title="الكاميرا مفتوحة" />
+                          ) : (
+                            <VideoOff className="w-3.5 h-3.5 text-slate-400" title="الكاميرا مغلقة" />
+                          )}
+                          {isTeacher && p.role !== 'teacher' && (
+                            <button
+                              onClick={() => handleKickParticipant(p.userId, p.name)}
+                              title="إزالة من القاعة"
+                              className="p-1 rounded-lg bg-rose-500/10 hover:bg-rose-600 text-rose-500 hover:text-white transition-all"
+                            >
+                              <UserX className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: All Live Sessions & Archive List */}
             {sidebarTab === 'archive' && (
               <div className="flex-1 p-3.5 space-y-3 overflow-y-auto custom-scrollbar">
                 <div className="text-xs font-black text-slate-700 dark:text-slate-300 mb-1">
@@ -1885,6 +2257,82 @@ export const LiveView = ({ selectedLiveId, onBack, onSelectLive }) => {
         )}
 
       </div>
+
+      {/* In-Studio Quick Poll Modal for Teacher */}
+      {isTeacher && showQuickPollModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <form onSubmit={handleLaunchQuickPoll} className="bg-white dark:bg-[#162534] border border-slate-200 dark:border-slate-700 rounded-3xl p-6 w-full max-w-md space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                <BarChart2 className="w-5 h-5 text-amber-500" />
+                <span>إطلاق سؤال تفاعلي مباشر 🎯</span>
+              </h3>
+              <button type="button" onClick={() => setShowQuickPollModal(false)} className="p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-rose-500">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-black text-slate-700 dark:text-slate-300">السؤال</label>
+              <input
+                type="text"
+                required
+                value={quickPollQuestion}
+                onChange={(e) => setQuickPollQuestion(e.target.value)}
+                placeholder="مثال: هل الشرح واضح حتى الآن؟"
+                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 dark:text-white"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-black text-slate-700 dark:text-slate-300">الخيارات</label>
+              {quickPollOptions.map((opt, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    required
+                    value={opt}
+                    onChange={(e) => {
+                      const next = [...quickPollOptions];
+                      next[idx] = e.target.value;
+                      setQuickPollOptions(next);
+                    }}
+                    placeholder={`خيار ${idx + 1}`}
+                    className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white"
+                  />
+                  {quickPollOptions.length > 2 && (
+                    <button
+                      type="button"
+                      onClick={() => setQuickPollOptions(quickPollOptions.filter((_, i) => i !== idx))}
+                      className="p-2 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              ))}
+              {quickPollOptions.length < 4 && (
+                <button
+                  type="button"
+                  onClick={() => setQuickPollOptions([...quickPollOptions, ''])}
+                  className="text-xs font-black text-blue-600 dark:text-blue-400 flex items-center gap-1"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>إضافة خيار</span>
+                </button>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLaunchingPoll}
+              className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs py-3 rounded-2xl shadow-lg transition-all"
+            >
+              {isLaunchingPoll ? 'جاري الإطلاق...' : 'إطلاق السؤال على شاشة الطلاب الآن 🚀'}
+            </button>
+          </form>
+        </div>
+      )}
 
     </div>
   );

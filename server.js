@@ -2173,10 +2173,11 @@ app.get('/api/live/:id', async (req, res) => {
 // Admin create / schedule live session
 app.post('/api/live', requireAdmin, async (req, res) => {
   try {
-    const { title, instructor, instructorId, subject, grade, gradeName, scheduledAt, description, streamType, streamUrl, thumbnail } = req.body;
+    const { title, instructor, instructorId, subject, grade, gradeName, scheduledAt, description, streamType, streamUrl, thumbnail, status } = req.body;
     if (!title || !subject || !grade) {
       return res.status(400).json({ error: 'يرجى إدخال عنوان البث والمادة والصف الدراسي' });
     }
+    const initialStatus = status === 'live' ? 'live' : 'scheduled';
     const newSession = {
       id: `live_${Date.now()}`,
       title,
@@ -2185,7 +2186,7 @@ app.post('/api/live', requireAdmin, async (req, res) => {
       subject,
       grade,
       gradeName: gradeName || (grade === '3sec' ? 'الصف الثالث الثانوي' : grade === '2sec' ? 'الصف الثاني الثانوي' : 'الصف الأول الثانوي'),
-      status: 'scheduled',
+      status: initialStatus,
       scheduledAt: scheduledAt || new Date().toISOString(),
       description: description || '',
       streamType: streamType || 'youtube_live',
@@ -2196,6 +2197,10 @@ app.post('/api/live', requireAdmin, async (req, res) => {
       chatMessages: [],
       polls: [],
       handRaises: [],
+      participants: [],
+      kickedUserIds: [],
+      muteAllAt: 0,
+      whiteboardState: { active: false, dataUrl: null, updatedAt: 0 },
       recordingUrl: null,
       createdAt: new Date().toISOString()
     };
@@ -2679,6 +2684,155 @@ app.post('/api/live/:id/poll/vote', async (req, res) => {
     }
 
     return res.json({ success: true, message: 'تم تسجيل إجابتك بنجاح! 👏' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Live Room Participants Heartbeat (Google Meet style presence)
+app.post('/api/live/:id/participants/heartbeat', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId, name, role, isMuted, isCameraOn, handRaised } = req.body;
+    if (!userId) return res.status(400).json({ error: 'userId required' });
+
+    const now = Date.now();
+    const activeCutoff = now - 25000; // 25s presence window
+    let participants = [];
+    let isKicked = false;
+    let muteAllAt = 0;
+
+    const mergeParticipant = (list) => {
+      const filtered = (Array.isArray(list) ? list : []).filter(p => p.lastSeen > activeCutoff && p.userId !== userId);
+      filtered.push({
+        userId,
+        name: name || 'مشارك',
+        role: role || 'student',
+        isMuted: !!isMuted,
+        isCameraOn: !!isCameraOn,
+        handRaised: !!handRaised,
+        lastSeen: now
+      });
+      return filtered;
+    };
+
+    if (dbType === 'mongodb') {
+      const session = await db.collection('liveSessions').findOne({ id });
+      if (!session) return res.status(404).json({ error: 'Session not found' });
+      const kicked = Array.isArray(session.kickedUserIds) ? session.kickedUserIds : [];
+      isKicked = kicked.includes(userId);
+      muteAllAt = session.muteAllAt || 0;
+      if (!isKicked) {
+        participants = mergeParticipant(session.participants);
+        await db.collection('liveSessions').updateOne(
+          { id },
+          { $set: { participants, viewersCount: participants.length } }
+        );
+      } else {
+        participants = (Array.isArray(session.participants) ? session.participants : []).filter(p => p.userId !== userId);
+      }
+    } else {
+      const data = getLocalData();
+      const idx = (data.liveSessions || []).findIndex(s => s.id === id);
+      if (idx === -1) return res.status(404).json({ error: 'Session not found' });
+      const session = data.liveSessions[idx];
+      const kicked = Array.isArray(session.kickedUserIds) ? session.kickedUserIds : [];
+      isKicked = kicked.includes(userId);
+      muteAllAt = session.muteAllAt || 0;
+      if (!isKicked) {
+        participants = mergeParticipant(session.participants);
+        session.participants = participants;
+        session.viewersCount = participants.length;
+        writeLocalData(data);
+      }
+    }
+
+    return res.json({ success: true, participants, isKicked, muteAllAt });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Teacher Mute All Students
+app.post('/api/live/:id/participants/mute-all', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const muteAllAt = Date.now();
+    if (dbType === 'mongodb') {
+      const session = await db.collection('liveSessions').findOne({ id });
+      const participants = (Array.isArray(session?.participants) ? session.participants : []).map(p =>
+        p.role === 'teacher' ? p : { ...p, isMuted: true }
+      );
+      await db.collection('liveSessions').updateOne({ id }, { $set: { muteAllAt, participants } });
+    } else {
+      const data = getLocalData();
+      const idx = (data.liveSessions || []).findIndex(s => s.id === id);
+      if (idx !== -1) {
+        data.liveSessions[idx].muteAllAt = muteAllAt;
+        data.liveSessions[idx].participants = (data.liveSessions[idx].participants || []).map(p =>
+          p.role === 'teacher' ? p : { ...p, isMuted: true }
+        );
+        writeLocalData(data);
+      }
+    }
+    return res.json({ success: true, muteAllAt, message: 'تم كتم جميع الطلاب في القاعة 🔇' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Teacher Kick / Remove Participant
+app.post('/api/live/:id/participants/kick', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: 'userId required' });
+    if (dbType === 'mongodb') {
+      const session = await db.collection('liveSessions').findOne({ id });
+      const kickedUserIds = Array.from(new Set([...(session?.kickedUserIds || []), userId]));
+      const participants = (Array.isArray(session?.participants) ? session.participants : []).filter(p => p.userId !== userId);
+      await db.collection('liveSessions').updateOne(
+        { id },
+        { $set: { kickedUserIds, participants, viewersCount: participants.length } }
+      );
+    } else {
+      const data = getLocalData();
+      const idx = (data.liveSessions || []).findIndex(s => s.id === id);
+      if (idx !== -1) {
+        const session = data.liveSessions[idx];
+        session.kickedUserIds = Array.from(new Set([...(session.kickedUserIds || []), userId]));
+        session.participants = (session.participants || []).filter(p => p.userId !== userId);
+        session.viewersCount = session.participants.length;
+        writeLocalData(data);
+      }
+    }
+    return res.json({ success: true, message: 'تم إخراج المشارك من القاعة' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Teacher Interactive Whiteboard Sync
+app.post('/api/live/:id/whiteboard', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { active, dataUrl } = req.body;
+    const whiteboardState = {
+      active: !!active,
+      dataUrl: dataUrl || null,
+      updatedAt: Date.now()
+    };
+    if (dbType === 'mongodb') {
+      await db.collection('liveSessions').updateOne({ id }, { $set: { whiteboardState } });
+    } else {
+      const data = getLocalData();
+      const idx = (data.liveSessions || []).findIndex(s => s.id === id);
+      if (idx !== -1) {
+        data.liveSessions[idx].whiteboardState = whiteboardState;
+        writeLocalData(data);
+      }
+    }
+    return res.json({ success: true, whiteboardState });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
