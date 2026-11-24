@@ -96,6 +96,69 @@ const MainContent = () => {
     }
   }, [userRole, currentTab]);
 
+  // Dynamic per-route SEO title, description, canonical & robots
+  React.useEffect(() => {
+    const seoMap = {
+      home: {
+        title: 'منصة عِلم التعليمية | دروس أونلاين، بث مباشر تفاعلي، وامتحانات إلكترونية',
+        desc: 'منصة عِلم التعليمية — أفضل منصة تعليمية متكاملة في مصر للطلاب والمدرسين: حصص مسجلة، بث مباشر، امتحانات فورية، ومساعد ذكاء اصطناعي.',
+        robots: 'index, follow'
+      },
+      lessons: {
+        title: 'الحصص والدروس المسجلة | منصة عِلم التعليمية',
+        desc: 'تصفح الحصص والمحاضرات المسجلة والملخصات لجميع الصفوف الدراسية على منصة عِلم.',
+        robots: 'index, follow'
+      },
+      'lesson-detail': {
+        title: 'مشاهدة الحصة | منصة عِلم التعليمية',
+        desc: 'مشاهدة الحصة التعليمية مع الأسئلة التفاعلية ومساعد الذكاء الاصطناعي على منصة عِلم.',
+        robots: 'index, follow'
+      },
+      exams: {
+        title: 'الامتحانات الإلكترونية | منصة عِلم التعليمية',
+        desc: 'اختبارات إلكترونية تفاعلية بتصحيح فوري وشرح الإجابات على منصة عِلم التعليمية.',
+        robots: 'index, follow'
+      },
+      live: {
+        title: 'البث المباشر التفاعلي | منصة عِلم التعليمية',
+        desc: 'قاعة البث المباشر التفاعلية بنظام Google Meet مع السبورة التفاعلية والدردشة الحية.',
+        robots: 'index, follow'
+      },
+      leaderboard: {
+        title: 'لوحة الشرف وأوائل الطلاب | منصة عِلم التعليمية',
+        desc: 'قائمة أوائل الطلاب المتفوقين ونقاط التميز على منصة عِلم التعليمية.',
+        robots: 'index, follow'
+      },
+      wallet: {
+        title: 'المحفظة والاشتراكات | منصة عِلم التعليمية',
+        desc: 'إدارة رصيد المحفظة وتفعيل أكواد الشحن والاشتراكات الشهرية والسنوية.',
+        robots: 'noindex, nofollow'
+      },
+      'parent-view': {
+        title: 'بوابة متابعة ولي الأمر | منصة عِلم التعليمية',
+        desc: 'متابعة حضور الطالب ودرجات الامتحانات وتفاصيل الاشتراكات.',
+        robots: 'noindex, nofollow'
+      },
+      admin: {
+        title: 'لوحة إدارة المعلم | منصة عِلم التعليمية',
+        desc: 'لوحة تحكم المعلم لإدارة الحصص، البث المباشر، الطلاب، والمدفوعات.',
+        robots: 'noindex, nofollow'
+      }
+    };
+
+    const info = seoMap[currentTab] || seoMap.home;
+    document.title = info.title;
+    const setMeta = (selector, attr, val) => {
+      const el = document.querySelector(selector);
+      if (el) el.setAttribute(attr, val);
+    };
+    setMeta('meta[name="description"]', 'content', info.desc);
+    setMeta('meta[name="robots"]', 'content', info.robots);
+    setMeta('meta[property="og:title"]', 'content', info.title);
+    setMeta('meta[property="og:description"]', 'content', info.desc);
+    setMeta('link[rel="canonical"]', 'href', window.location.origin + window.location.pathname);
+  }, [currentTab]);
+
   // Forced Login Entry Screen if not authenticated
   if (!isAuthenticated) {
     return <LoginView />;

@@ -3145,6 +3145,81 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', dbEngine: activeDbEngine, uptime: process.uptime(), timestamp: new Date().toISOString() });
 });
 
+// SEO: robots.txt
+app.get('/robots.txt', (req, res) => {
+  const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+  const host = req.get('host') || 'elm.up.railway.app';
+  const baseUrl = `${proto}://${host}`;
+  res.type('text/plain');
+  res.send([
+    'User-agent: *',
+    'Allow: /',
+    'Allow: /for-teachers',
+    'Allow: /lessons',
+    'Allow: /exams',
+    'Allow: /live',
+    'Allow: /leaderboard',
+    'Disallow: /admin',
+    'Disallow: /wallet',
+    'Disallow: /parent',
+    'Disallow: /api/',
+    '',
+    `Sitemap: ${baseUrl}/sitemap.xml`
+  ].join('\n'));
+});
+
+// SEO: Dynamic XML Sitemap from live database
+app.get('/sitemap.xml', async (req, res) => {
+  try {
+    const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+    const host = req.get('host') || 'elm.up.railway.app';
+    const baseUrl = `${proto}://${host}`;
+    const today = new Date().toISOString().split('T')[0];
+
+    const staticPages = [
+      { loc: '/', changefreq: 'daily', priority: '1.0' },
+      { loc: '/for-teachers', changefreq: 'weekly', priority: '0.95' },
+      { loc: '/for-teachers/features', changefreq: 'weekly', priority: '0.85' },
+      { loc: '/for-teachers/pricing', changefreq: 'weekly', priority: '0.9' },
+      { loc: '/lessons', changefreq: 'daily', priority: '0.9' },
+      { loc: '/exams', changefreq: 'daily', priority: '0.85' },
+      { loc: '/live', changefreq: 'hourly', priority: '0.9' },
+      { loc: '/leaderboard', changefreq: 'daily', priority: '0.7' }
+    ];
+
+    let lessonsList = [];
+    let foldersList = [];
+    let liveList = [];
+
+    if (dbType === 'mongodb') {
+      lessonsList = await db.collection('lessons').find({}).toArray();
+      foldersList = await db.collection('folders').find({}).toArray();
+      liveList = await db.collection('liveSessions').find({}).toArray();
+    } else {
+      const data = getLocalData();
+      lessonsList = data.lessons || [];
+      foldersList = data.folders || [];
+      liveList = data.liveSessions || [];
+    }
+
+    const dynamicUrls = [
+      ...lessonsList.filter(l => l.id).map(l => ({ loc: `/lesson/${encodeURIComponent(l.id)}`, changefreq: 'weekly', priority: '0.8' })),
+      ...foldersList.filter(f => f.id).map(f => ({ loc: `/folder/${encodeURIComponent(f.id)}`, changefreq: 'weekly', priority: '0.75' })),
+      ...liveList.filter(s => s.id).map(s => ({ loc: `/live/${encodeURIComponent(s.id)}`, changefreq: 'daily', priority: '0.75' }))
+    ];
+
+    const escapeXml = (str) => String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const urlTags = [...staticPages, ...dynamicUrls].map(u =>
+      `  <url>\n    <loc>${escapeXml(baseUrl + u.loc)}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>${u.changefreq}</changefreq>\n    <priority>${u.priority}</priority>\n  </url>`
+    ).join('\n');
+
+    res.type('application/xml');
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urlTags}\n</urlset>`);
+  } catch (err) {
+    res.status(500).type('text/plain').send('Error generating sitemap');
+  }
+});
+
 // Serve static files from dist folder
 app.use(express.static(path.join(__dirname, 'dist')));
 
@@ -3153,9 +3228,56 @@ app.get(['/for-teachers', '/for-teachers/*'], (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'for-teachers.html'));
 });
 
-// Handle React Router - send all requests to index.html
+// Handle React Router - send all requests to index.html with route-specific SEO tags
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  const indexPath = path.join(__dirname, 'dist', 'index.html');
+  try {
+    let html = fs.readFileSync(indexPath, 'utf8');
+    const reqPath = (req.path || '/').toLowerCase();
+    const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+    const host = req.get('host') || 'elm.up.railway.app';
+    const canonicalUrl = `${proto}://${host}${req.path === '/' ? '/' : req.path}`;
+
+    const routeMeta = {
+      '/lessons': {
+        title: 'الحصص والدروس المسجلة | منصة عِلم التعليمية',
+        desc: 'تصفح جميع الحصص والمحاضرات المسجلة في البرمجة وعلوم الحاسب واللغة العربية لجميع صفوف الثانوية على منصة عِلم.'
+      },
+      '/exams': {
+        title: 'الامتحانات الإلكترونية وبنوك الأسئلة | منصة عِلم التعليمية',
+        desc: 'اختبر مستواك عبر امتحانات إلكترونية تفاعلية بتصحيح فوري وتقارير أداء دقيقة على منصة عِلم التعليمية.'
+      },
+      '/live': {
+        title: 'البث المباشر التفاعلي | منصة عِلم التعليمية',
+        desc: 'احضر حصص البث المباشر التفاعلية مع المعلمين، شارك بالصوت والسبورة التفاعلية والأسئلة الفورية على منصة عِلم.'
+      },
+      '/leaderboard': {
+        title: 'لوحة الشرف وأوائل الطلاب | منصة عِلم التعليمية',
+        desc: 'تعرف على أوائل الطلاب المتفوقين ونقاط التميز على منصة عِلم التعليمية.'
+      }
+    };
+
+    const matched = Object.entries(routeMeta).find(([prefix]) => reqPath.startsWith(prefix));
+    if (matched) {
+      const [, meta] = matched;
+      html = html
+        .replace(/<title>[^<]*<\/title>/i, `<title>${meta.title}</title>`)
+        .replace(/<meta name="description" content="[^"]*"/i, `<meta name="description" content="${meta.desc}"`)
+        .replace(/<meta property="og:title" content="[^"]*"/i, `<meta property="og:title" content="${meta.title}"`)
+        .replace(/<meta property="og:description" content="[^"]*"/i, `<meta property="og:description" content="${meta.desc}"`);
+    }
+    html = html
+      .replace(/<link rel="canonical" href="[^"]*"/i, `<link rel="canonical" href="${canonicalUrl}"`)
+      .replace(/<meta property="og:url" content="[^"]*"/i, `<meta property="og:url" content="${canonicalUrl}"`);
+
+    if (reqPath.startsWith('/admin') || reqPath.startsWith('/wallet') || reqPath.startsWith('/parent')) {
+      html = html.replace(/<meta name="robots" content="[^"]*"/i, '<meta name="robots" content="noindex, nofollow"');
+    }
+
+    return res.send(html);
+  } catch {
+    return res.sendFile(indexPath);
+  }
 });
 
 // Initialize database then start server
