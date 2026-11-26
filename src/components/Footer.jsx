@@ -80,10 +80,10 @@ export const Footer = ({ setCurrentTab }) => {
           <div>
             © 2026 جميع الحقوق محفوظة لمنصة عِلم التعليمية ⚡
           </div>
-          <div className="flex items-center gap-1">
-            <span>تم التطوير بكل</span>
-            <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 inline" />
-            <span>لأبطال الثانوية العامة</span>
+          <div className="flex items-center gap-1.5">
+            <span>تم التطوير بكل حب </span>
+            <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 inline" aria-hidden="true" />
+            <span> لأبطال الثانوية العامة</span>
           </div>
         </div>
 

@@ -2224,7 +2224,7 @@ app.post('/api/live', requireAdmin, async (req, res) => {
 app.patch('/api/live/:id/status', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, recordingUrl, streamUrl, folderId, lessonTitle, duration } = req.body;
+    const { status, recordingUrl, streamUrl, folderId, lessonTitle, duration, publishToLessons } = req.body;
     if (status !== undefined && status !== null && !['scheduled', 'live', 'ended'].includes(status)) {
       return res.status(400).json({ error: 'حالة البث غير صالحة' });
     }
@@ -2256,8 +2256,8 @@ app.patch('/api/live/:id/status', requireAdmin, async (req, res) => {
       }
       const sessionDoc = await db.collection('liveSessions').findOne({ id });
 
-      // Automatically add recorded live session as a Lesson in "الحصص والدروس" (or selected folder)
-      if (recordingUrl && sessionDoc) {
+      // Only publish recorded live session as a Lesson when explicitly requested by Teacher
+      if (publishToLessons && recordingUrl && sessionDoc) {
         const autoLessonId = `les_live_${sessionDoc.id}`;
         const existingLesson = await db.collection('lessons').findOne({ id: autoLessonId });
         if (!existingLesson) {
@@ -2299,7 +2299,7 @@ app.patch('/api/live/:id/status', requireAdmin, async (req, res) => {
         data.liveSessions[idx] = { ...data.liveSessions[idx], ...updateFields };
         const sessionItem = data.liveSessions[idx];
 
-        if (recordingUrl) {
+        if (publishToLessons && recordingUrl) {
           if (!data.lessons) data.lessons = [];
           const autoLessonId = `les_live_${sessionItem.id}`;
           const lessonIdx = data.lessons.findIndex(l => l.id === autoLessonId);
